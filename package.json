@@ -1,11 +1,6 @@
 {
   "name": "souschef",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "backend"
-  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -25,5 +20,5 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "packageManager": "npm@10.9.2"
+  "packageManager": "pnpm@9.15.0"
 }
