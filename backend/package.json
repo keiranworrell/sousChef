@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "lint": "tsc --noEmit",
+    "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "build": "tsc",
     "test": "vitest run"
