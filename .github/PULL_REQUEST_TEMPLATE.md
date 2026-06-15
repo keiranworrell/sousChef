@@ -12,7 +12,7 @@ Closes #
 
 ## Checklist
 
-- [ ] Follows naming conventions defined in `GEMINI.md`
+- [ ] Follows naming conventions defined in `CLAUDE.md`
 - [ ] No `any` types introduced
 - [ ] `.env.example` updated if new environment variables were added
 - [ ] Migrations included if schema was changed
