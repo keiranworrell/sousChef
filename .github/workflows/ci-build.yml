@@ -1,4 +1,4 @@
-name: CI — Test
+name: CI — Build
 
 on:
   push:
@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,5 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Test
-        run: npx turbo run test
+      - name: Build
+        run: npx turbo run build
+        env:
+          # Dummy value — no real API exists yet. next build requires the
+          # variable to be present if referenced at build time.
+          NEXT_PUBLIC_API_URL: https://api.souschef.app

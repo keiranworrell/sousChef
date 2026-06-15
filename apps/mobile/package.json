@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@souschef/shared": "*",
+    "@souschef/shared": "workspace:*",
     "expo": "~52.0.11",
     "expo-router": "~4.0.9",
     "expo-status-bar": "~2.0.0",
