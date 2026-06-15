@@ -151,4 +151,14 @@ jobs:
                 ]
               }
             }
-          prompt: '/gemini-plan-execute'
+          prompt: |-
+            Read .gemini/context.json for full issue context. You are implementing a GitHub issue for the sousChef project.
+
+            Your tasks:
+            1. Read GEMINI.md thoroughly for conventions, stack, and folder structure
+            2. Create a branch named following the convention: feat/issue-{number}-{brief-description}
+            3. Implement every acceptance criterion listed in the issue
+            4. Create a pull request referencing the issue with "Closes #{number}"
+
+            Use the GitHub MCP tools for all git operations (create_branch, push_files, create_pull_request).
+            Follow all naming, TypeScript, and commit conventions defined in GEMINI.md exactly.
