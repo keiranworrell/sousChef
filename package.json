@@ -15,9 +15,12 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "eslint": "^9.17.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2"
   },
   "engines": {
     "node": ">=20.0.0"
