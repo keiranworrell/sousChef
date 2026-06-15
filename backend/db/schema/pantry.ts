@@ -1,4 +1,4 @@
-import { integer, pgTable, real, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, real, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { users } from "./users";
 
 export const pantryItems = pgTable("pantry_items", {
