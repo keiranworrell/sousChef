@@ -155,7 +155,7 @@ souschef/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── turbo.json
 ├── package.json                    # Root workspace config
-└── GEMINI.md                       # This file
+└── CLAUDE.md                       # This file
 ```
 
 ---
