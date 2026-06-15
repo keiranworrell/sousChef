@@ -69,6 +69,7 @@ jobs:
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         env:
           GEMINI_CLI_TRUST_WORKSPACE: 'true'
+          GEMINI_MODEL: 'gemini-2.5-flash'
           GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
         with:
           gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
@@ -91,10 +92,8 @@ jobs:
           settings: |-
             {
               "sandbox": false,
-              "model": {
-                "name": "gemini-2.5-flash",
-                "maxSessionTurns": 25
-              },
+              "model": "gemini-2.5-flash",
+              "maxSessionTurns": 25,
               "telemetry": {
                 "enabled": true,
                 "target": "local",
