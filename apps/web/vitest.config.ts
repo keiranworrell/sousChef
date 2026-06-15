@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    passWithNoTests: true,
     coverage: {
       provider: "v8",
       include: ["app/**", "components/**", "hooks/**", "lib/**"],
