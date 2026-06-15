@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "sousChef",
+    "slug": "souschef",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.keiranworrell.souschef"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.keiranworrell.souschef"
+    },
+    "plugins": ["expo-router"],
+    "scheme": "souschef"
+  }
+}

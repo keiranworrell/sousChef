@@ -1,0 +1,160 @@
+// ─── Common ────────────────────────────────────────────────────────────────────
+
+export type UUID = string;
+
+export type ISODateString = string;
+
+export type PaginationParams = {
+  limit: number;
+  offset: number;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+// ─── API envelope ──────────────────────────────────────────────────────────────
+
+export type ApiSuccess<T> = {
+  data: T;
+};
+
+export type ApiError = {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+};
+
+export type ApiResponse<T> = ApiSuccess<T> | ApiError;
+
+// ─── User ──────────────────────────────────────────────────────────────────────
+
+export type User = {
+  id: UUID;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  createdAt: ISODateString;
+};
+
+// ─── Recipe ────────────────────────────────────────────────────────────────────
+
+export type Difficulty = "easy" | "medium" | "hard";
+
+export type Recipe = {
+  id: UUID;
+  userId: UUID;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  servings: number;
+  prepTimeMinutes: number | null;
+  cookTimeMinutes: number | null;
+  difficulty: Difficulty | null;
+  cuisine: string | null;
+  isPublic: boolean;
+  tags: string[];
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type RecipeIngredient = {
+  id: UUID;
+  recipeId: UUID;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+  orderIndex: number;
+};
+
+export type RecipeStep = {
+  id: UUID;
+  recipeId: UUID;
+  stepNumber: number;
+  instruction: string;
+  timerSeconds: number | null;
+  imageUrl: string | null;
+};
+
+// ─── Pantry ────────────────────────────────────────────────────────────────────
+
+export type PantryItem = {
+  id: UUID;
+  userId: UUID;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  expiryDate: ISODateString | null;
+  lowStockThreshold: number | null;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+// ─── Shopping ──────────────────────────────────────────────────────────────────
+
+export type ShoppingList = {
+  id: UUID;
+  userId: UUID;
+  name: string;
+  isShared: boolean;
+  createdAt: ISODateString;
+};
+
+export type ShoppingListItem = {
+  id: UUID;
+  shoppingListId: UUID;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+  isChecked: boolean;
+  orderIndex: number;
+};
+
+// ─── Fermentation ──────────────────────────────────────────────────────────────
+
+export type FermentationBatch = {
+  id: UUID;
+  userId: UUID;
+  recipeId: UUID | null;
+  name: string;
+  startedAt: ISODateString;
+  targetEndDate: ISODateString | null;
+  status: "active" | "complete" | "abandoned";
+  createdAt: ISODateString;
+};
+
+export type FermentationLog = {
+  id: UUID;
+  batchId: UUID;
+  loggedAt: ISODateString;
+  ph: number | null;
+  saltPercent: number | null;
+  temperatureCelsius: number | null;
+  weightGrams: number | null;
+  notes: string | null;
+  imageUrl: string | null;
+};
+
+// ─── Meal plan ─────────────────────────────────────────────────────────────────
+
+export type MealPlan = {
+  id: UUID;
+  userId: UUID;
+  weekStartDate: ISODateString;
+  createdAt: ISODateString;
+};
+
+export type MealPlanEntry = {
+  id: UUID;
+  mealPlanId: UUID;
+  recipeId: UUID;
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+};
