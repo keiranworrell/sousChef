@@ -92,6 +92,7 @@ jobs:
           github_issue_number: '${{ github.event.issue.number }}'
           settings: |-
             {
+              "sandbox": false,
               "model": {
                 "maxSessionTurns": 25
               },
@@ -136,7 +137,18 @@ jobs:
                 }
               },
               "tools": {
-                "core": []
+                "core": [
+                  "run_in_terminal",
+                  "read_file",
+                  "write_file",
+                  "create_file",
+                  "list_directory",
+                  "search_file_content",
+                  "replace_in_file",
+                  "move_file",
+                  "delete_file",
+                  "glob"
+                ]
               }
             }
           prompt: '/gemini-plan-execute'
