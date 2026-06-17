@@ -43,7 +43,7 @@ yarn-error.log*
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
-.terraform.lock.hcl
+# Note: .terraform.lock.hcl is intentionally NOT ignored — commit it like a lockfile
 
 # IDE
 .idea
