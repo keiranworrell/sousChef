@@ -1,2 +1,6 @@
+# Copy this file to terraform.tfvars for local development.
+# terraform.tfvars is gitignored — never commit it.
+# In CI, variables are provided via TF_VAR_* environment variables or -var flags.
+
 aws_region  = "eu-west-2"
 environment = "prod"
