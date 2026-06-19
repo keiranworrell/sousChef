@@ -14,6 +14,7 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "@neondatabase/serverless": "^0.10.4",
     "@souschef/shared": "workspace:*",
+    "aws-jwt-verify": "^4.0.1",
     "drizzle-orm": "^0.38.2",
     "zod": "^3.24.1"
   },

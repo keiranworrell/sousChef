@@ -1,9 +1,5 @@
+import { CognitoJwtVerifier } from "aws-jwt-verify";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
-
-export type AuthContext = {
-  userId: string;
-  email: string;
-};
 
 export class UnauthorizedError extends Error {
   constructor(message = "Unauthorized") {
@@ -12,21 +8,72 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export type AuthContext = {
+  /** Cognito sub — matches the cognito_id column in our users table */
+  cognitoId: string;
+  email: string;
+};
+
 /**
- * Validates the Cognito JWT from the Authorization header.
- * Returns the decoded user context or throws UnauthorizedError.
+ * Singleton verifier — aws-jwt-verify caches the Cognito JWKS after the first
+ * fetch so subsequent calls are fast with no extra network overhead.
+ *
+ * We verify ID tokens (tokenUse: "id") because they carry email and profile
+ * claims directly, which our handlers need to identify the calling user.
+ */
+let _verifier: ReturnType<typeof CognitoJwtVerifier.create> | null = null;
+
+function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
+  if (_verifier) return _verifier;
+
+  const userPoolId = process.env["COGNITO_USER_POOL_ID"];
+  const clientId = process.env["COGNITO_CLIENT_ID"];
+
+  if (!userPoolId || !clientId) {
+    throw new Error(
+      "COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID environment variables must be set",
+    );
+  }
+
+  _verifier = CognitoJwtVerifier.create({
+    userPoolId,
+    tokenUse: "id",
+    clientId,
+  });
+
+  return _verifier;
+}
+
+/**
+ * Extracts and verifies the Bearer token from the Authorization header.
+ * Throws UnauthorizedError if the token is missing, malformed, or invalid.
  */
 export async function validateAuth(
   event: APIGatewayProxyEventV2,
 ): Promise<AuthContext> {
-  const authHeader = event.headers["authorization"];
+  const authHeader =
+    event.headers["authorization"] ?? event.headers["Authorization"];
 
   if (!authHeader?.startsWith("Bearer ")) {
     throw new UnauthorizedError("Missing or malformed Authorization header");
   }
 
-  // TODO: verify JWT against Cognito JWKS endpoint
-  const _token = authHeader.slice(7);
+  const token = authHeader.slice(7);
 
-  throw new UnauthorizedError("JWT validation not yet implemented");
+  try {
+    const payload = await getVerifier().verify(token);
+
+    const email = payload["email"];
+    if (typeof email !== "string") {
+      throw new UnauthorizedError("Token payload is missing email claim");
+    }
+
+    return {
+      cognitoId: payload.sub,
+      email,
+    };
+  } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
+    throw new UnauthorizedError("Invalid or expired token");
+  }
 }
