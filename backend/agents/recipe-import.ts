@@ -30,10 +30,6 @@ type SchemaRecipe = {
   image?: string | { url: string } | Array<string | { url: string }>;
 };
 
-type SchemaGraph = {
-  "@graph"?: SchemaRecipe[];
-};
-
 // ── Parsing helpers ────────────────────────────────────────────────────────────
 
 /** Parse ISO 8601 duration (PT30M, PT1H, PT1H30M) → minutes */
