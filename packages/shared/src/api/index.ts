@@ -69,6 +69,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         post<RecipeWithDetails>("/recipes", input),
 
       update: (id: string, input: UpdateRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
+
         patch<RecipeWithDetails>(`/recipes/${id}`, input),
 
       delete: (id: string): Promise<ApiResponse<null>> =>
