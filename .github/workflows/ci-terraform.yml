@@ -6,11 +6,13 @@ on:
       - main
     paths:
       - 'infrastructure/terraform/environments/prod/**'
+      - 'backend/**'
   pull_request:
     branches:
       - main
     paths:
       - 'infrastructure/terraform/environments/prod/**'
+      - 'backend/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,6 +33,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Bundle Lambda functions
+        run: pnpm --filter @souschef/backend bundle:lambdas
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -62,6 +80,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color -input=false
         continue-on-error: true
+        env:
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
 
       - name: Post plan comment
         if: github.event_name == 'pull_request'
@@ -129,3 +149,5 @@ jobs:
       - name: Terraform Apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve -input=false
+        env:
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}

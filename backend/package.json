@@ -8,7 +8,8 @@
     "build": "tsc",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx db/migrate.ts"
+    "db:migrate": "tsx db/migrate.ts",
+    "bundle:lambdas": "node scripts/bundle-lambdas.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -22,6 +23,7 @@
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.2",
     "drizzle-kit": "^0.30.1",
+    "esbuild": "^0.24.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
