@@ -27,18 +27,19 @@ function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
   if (_verifier) return _verifier;
 
   const userPoolId = process.env["COGNITO_USER_POOL_ID"];
-  const clientId = process.env["COGNITO_CLIENT_ID"];
+  // Accepts a comma-separated list of client IDs (e.g. web + mobile)
+  const clientIds = process.env["COGNITO_CLIENT_IDS"]?.split(",").filter(Boolean);
 
-  if (!userPoolId || !clientId) {
+  if (!userPoolId || !clientIds?.length) {
     throw new Error(
-      "COGNITO_USER_POOL_ID and COGNITO_CLIENT_ID environment variables must be set",
+      "COGNITO_USER_POOL_ID and COGNITO_CLIENT_IDS environment variables must be set",
     );
   }
 
   _verifier = CognitoJwtVerifier.create({
     userPoolId,
     tokenUse: "id",
-    clientId,
+    clientId: clientIds,
   });
 
   return _verifier;

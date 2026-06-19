@@ -25,7 +25,7 @@ describe("validateAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env["COGNITO_USER_POOL_ID"] = "eu-west-2_testpool";
-    process.env["COGNITO_CLIENT_ID"] = "testclientid";
+    process.env["COGNITO_CLIENT_IDS"] = "testclientid";
   });
 
   it("throws UnauthorizedError when Authorization header is missing", async () => {
