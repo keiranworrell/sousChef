@@ -24,6 +24,7 @@ export const recipes = pgTable("recipes", {
   difficulty: difficultyEnum("difficulty"),
   cuisine: text("cuisine"),
   isPublic: boolean("is_public").notNull().default(false),
+  sourceUrl: text("source_url"),
   forkedFromId: uuid("forked_from_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
