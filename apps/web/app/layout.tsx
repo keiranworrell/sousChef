@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AmplifyProvider from "@/components/AmplifyProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }): React.JSX.Element {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AmplifyProvider>{children}</AmplifyProvider>
+      </body>
     </html>
   );
 }
