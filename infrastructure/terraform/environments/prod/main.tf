@@ -28,3 +28,21 @@ provider "aws" {
     }
   }
 }
+
+module "cognito" {
+  source      = "../../modules/cognito"
+  environment = var.environment
+
+  web_callback_urls = [
+    "https://souschef.app/auth/callback",
+    "http://localhost:3000/auth/callback",
+  ]
+
+  web_logout_urls = [
+    "https://souschef.app",
+    "http://localhost:3000",
+  ]
+
+  mobile_callback_urls = ["souschef://auth/callback"]
+  mobile_logout_urls   = ["souschef://"]
+}
