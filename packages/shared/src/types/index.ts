@@ -82,6 +82,57 @@ export type RecipeStep = {
   imageUrl: string | null;
 };
 
+export type RecipeTag = {
+  id: UUID;
+  recipeId: UUID;
+  tag: string;
+};
+
+export type RecipeWithDetails = Omit<Recipe, "tags"> & {
+  ingredients: RecipeIngredient[];
+  steps: RecipeStep[];
+  tags: RecipeTag[];
+};
+
+export type CreateIngredientInput = {
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  notes?: string | null;
+  orderIndex: number;
+};
+
+export type CreateStepInput = {
+  stepNumber: number;
+  instruction: string;
+  timerSeconds?: number | null;
+};
+
+export type CreateRecipeInput = {
+  title: string;
+  description?: string | null;
+  servings?: number;
+  prepTimeMinutes?: number | null;
+  cookTimeMinutes?: number | null;
+  difficulty?: Difficulty | null;
+  cuisine?: string | null;
+  isPublic?: boolean;
+  ingredients?: CreateIngredientInput[];
+  steps?: CreateStepInput[];
+  tags?: string[];
+};
+
+export type UpdateRecipeInput = Partial<
+  Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
+>;
+
+export type ListRecipesResponse = {
+  recipes: Recipe[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 // ─── Pantry ────────────────────────────────────────────────────────────────────
 
 export type PantryItem = {
