@@ -135,7 +135,7 @@ resource "aws_lambda_permission" "recipes_api" {
   action        = "lambda:InvokeFunction"
   function_name = module.recipes.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${module.api_gateway.api_id}/*/recipes*"
+  source_arn    = "${module.api_gateway.execution_arn}/*/recipes*"
 }
 
 # ── API Gateway integrations and routes ───────────────────────────────────────
