@@ -23,6 +23,10 @@ const entryPoints = [
     in: resolve(root, "triggers/cognito-post-confirmation.ts"),
     out: "cognito-post-confirmation",
   },
+  {
+    in: resolve(root, "functions/recipes.ts"),
+    out: "recipes",
+  },
 ];
 
 for (const entry of entryPoints) {

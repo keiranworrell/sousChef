@@ -27,3 +27,8 @@ output "cognito_hosted_ui_domain" {
   description = "Cognito hosted UI base URL"
   value       = module.cognito.hosted_ui_domain
 }
+
+output "api_gateway_url" {
+  description = "Base URL for the HTTP API Gateway (set as NEXT_PUBLIC_API_URL in Vercel and mobile config)"
+  value       = module.api_gateway.api_endpoint
+}
