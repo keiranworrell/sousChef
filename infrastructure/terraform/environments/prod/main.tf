@@ -30,7 +30,6 @@ provider "aws" {
 }
 
 # ── Cognito post-confirmation trigger ─────────────────────────────────────────
-# Built before terraform runs by the CI workflow (pnpm bundle:lambdas)
 
 data "archive_file" "cognito_post_confirmation" {
   type        = "zip"
@@ -50,7 +49,11 @@ module "cognito_post_confirmation" {
     DATABASE_URL = var.database_url
     NODE_ENV     = var.environment
   }
-  # invoker permission added separately below to avoid circular dependency
+}
+
+resource "aws_cloudwatch_log_group" "cognito_post_confirmation" {
+  name              = "/aws/lambda/${module.cognito_post_confirmation.function_name}"
+  retention_in_days = 14
 }
 
 # Grant Cognito permission to invoke the Lambda
@@ -126,6 +129,7 @@ resource "aws_cloudwatch_log_group" "recipes" {
   retention_in_days = 14
 }
 
+# Grant API Gateway permission to invoke the recipes Lambda
 resource "aws_lambda_permission" "recipes_api" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
