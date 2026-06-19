@@ -1,5 +1,6 @@
 import type { APIGatewayProxyResultV2 } from "aws-lambda";
 import { UnauthorizedError } from "./auth";
+import { ValidationError } from "./validation";
 
 type ErrorResponse = {
   statusCode: number;
@@ -15,7 +16,19 @@ function errorBody(code: string, message: string, details?: unknown): string {
 
 export function handleError(err: unknown): APIGatewayProxyResultV2 {
   if (err instanceof UnauthorizedError) {
-    return { statusCode: 401, headers: JSON_HEADERS, body: errorBody("UNAUTHORIZED", err.message) };
+    return {
+      statusCode: 401,
+      headers: JSON_HEADERS,
+      body: errorBody("UNAUTHORIZED", err.message),
+    };
+  }
+
+  if (err instanceof ValidationError) {
+    return {
+      statusCode: 422,
+      headers: JSON_HEADERS,
+      body: errorBody("VALIDATION_ERROR", "Validation failed", err.issues),
+    };
   }
 
   if (err instanceof Error) {
