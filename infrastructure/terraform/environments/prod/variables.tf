@@ -9,3 +9,9 @@ variable "environment" {
   type        = string
   default     = "prod"
 }
+
+variable "database_url" {
+  description = "Neon Postgres connection string — injected via TF_VAR_database_url in CI, never committed"
+  type        = string
+  sensitive   = true
+}
