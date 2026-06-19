@@ -26,3 +26,9 @@ variable "mobile_logout_urls" {
   type        = list(string)
   default     = ["souschef://"]
 }
+
+variable "post_confirmation_lambda_arn" {
+  description = "ARN of the Lambda to invoke after a user confirms their account. Leave null to skip."
+  type        = string
+  default     = null
+}
