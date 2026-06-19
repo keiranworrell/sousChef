@@ -65,15 +65,11 @@ export function createApiClient(baseUrl: string, token?: string) {
       get: (id: string): Promise<ApiResponse<RecipeWithDetails>> =>
         get<RecipeWithDetails>(`/recipes/${id}`),
 
-      create: (
-        input: CreateRecipeInput,
-      ): Promise<ApiResponse<RecipeWithDetails>> =>
+      create: (input: CreateRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes", input),
 
-      update: (
-        id: string,
-        input: UpdateRecipeInput,
-      ): Promise<ApiResponse<RecipeWithDetails>> =>
+      update: (id: string, input: UpdateRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
+
         patch<RecipeWithDetails>(`/recipes/${id}`, input),
 
       delete: (id: string): Promise<ApiResponse<null>> =>
