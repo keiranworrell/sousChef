@@ -83,3 +83,92 @@ module "cognito" {
 
   post_confirmation_lambda_arn = module.cognito_post_confirmation.function_arn
 }
+
+# ── API Gateway ────────────────────────────────────────────────────────────────
+
+module "api_gateway" {
+  source      = "../../modules/api_gateway"
+  api_name    = "souschef-${var.environment}-api"
+  description = "sousChef HTTP API — ${var.environment}"
+
+  cors_allow_origins = [
+    "https://souschef.app",
+    "http://localhost:3000",
+  ]
+}
+
+# ── Recipes Lambda ─────────────────────────────────────────────────────────────
+
+data "archive_file" "recipes" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/recipes.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/recipes.zip"
+}
+
+module "recipes" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-recipes"
+  handler         = "recipes.handler"
+  zip_path        = data.archive_file.recipes.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "recipes" {
+  name              = "/aws/lambda/${module.recipes.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "recipes_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.recipes.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/recipes*"
+}
+
+# ── API Gateway integrations and routes ───────────────────────────────────────
+
+resource "aws_apigatewayv2_integration" "recipes" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.recipes.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "recipes_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /recipes"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /recipes/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /recipes/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /recipes/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}

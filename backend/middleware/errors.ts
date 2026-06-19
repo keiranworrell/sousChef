@@ -2,6 +2,13 @@ import type { APIGatewayProxyResultV2 } from "aws-lambda";
 import { UnauthorizedError } from "./auth";
 import { ValidationError } from "./validation";
 
+export class NotFoundError extends Error {
+  constructor(message = "Not found") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
 type ErrorResponse = {
   statusCode: number;
   body: string;
@@ -20,6 +27,14 @@ export function handleError(err: unknown): APIGatewayProxyResultV2 {
       statusCode: 401,
       headers: JSON_HEADERS,
       body: errorBody("UNAUTHORIZED", err.message),
+    };
+  }
+
+  if (err instanceof NotFoundError) {
+    return {
+      statusCode: 404,
+      headers: JSON_HEADERS,
+      body: errorBody("NOT_FOUND", err.message),
     };
   }
 
