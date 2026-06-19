@@ -1,6 +1,9 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import { createApiClient } from "@souschef/shared";
 
+// process is polyfilled by React Native; declare the subset we use here
+declare const process: { env: Record<string, string | undefined> };
+
 const BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "";
 
 /**
