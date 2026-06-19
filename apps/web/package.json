@@ -11,8 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.6.0",
     "@souschef/shared": "workspace:*",
     "@souschef/ui": "workspace:*",
+    "aws-amplify": "^6.9.0",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
