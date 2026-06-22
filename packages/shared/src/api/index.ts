@@ -1,6 +1,7 @@
 import type {
   ApiResponse,
   CreateRecipeInput,
+  ImportRecipeInput,
   ListRecipesResponse,
   RecipeWithDetails,
   UpdateRecipeInput,
@@ -74,6 +75,9 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/recipes/${id}`),
+
+      import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
+        post<RecipeWithDetails>("/recipes/import", input),
     },
   };
 }

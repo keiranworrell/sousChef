@@ -11,6 +11,7 @@ import {
   updateRecipe,
   deleteRecipe,
 } from "../db/queries/recipe-queries";
+import { importRecipeFromUrl } from "../agents/recipe-import";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -26,6 +27,10 @@ const StepSchema = z.object({
   stepNumber: z.number().int().positive(),
   instruction: z.string().min(1),
   timerSeconds: z.number().int().positive().nullable().optional(),
+});
+
+const ImportRecipeSchema = z.object({
+  url: z.string().url(),
 });
 
 const CreateRecipeSchema = z.object({
@@ -72,6 +77,23 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const query = PaginationSchema.parse(event.queryStringParameters ?? {});
       const result = await listRecipes(user.id, query.limit, query.offset);
       return okResponse(result);
+    }
+
+    // POST /recipes/import
+    if (method === "POST" && event.rawPath?.endsWith("/import")) {
+      const body = parseBody(event.body, ImportRecipeSchema);
+      const result = await importRecipeFromUrl(body.url);
+      if (!result.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: { code: "IMPORT_FAILED", message: result.error },
+          }),
+        };
+      }
+      const recipe = await createRecipe({ ...result.recipe, userId: user.id });
+      return okResponse(recipe, 201);
     }
 
     // POST /recipes

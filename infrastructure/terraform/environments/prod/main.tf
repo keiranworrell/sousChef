@@ -159,6 +159,12 @@ resource "aws_apigatewayv2_route" "recipes_create" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_import" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes/import"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 resource "aws_apigatewayv2_route" "recipes_get" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /recipes/{id}"

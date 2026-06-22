@@ -111,15 +111,21 @@ export type CreateStepInput = {
 export type CreateRecipeInput = {
   title: string;
   description?: string | null;
+  imageUrl?: string | null;
   servings?: number;
   prepTimeMinutes?: number | null;
   cookTimeMinutes?: number | null;
   difficulty?: Difficulty | null;
   cuisine?: string | null;
   isPublic?: boolean;
+  sourceUrl?: string | null;
   ingredients?: CreateIngredientInput[];
   steps?: CreateStepInput[];
   tags?: string[];
+};
+
+export type ImportRecipeInput = {
+  url: string;
 };
 
 export type UpdateRecipeInput = Partial<

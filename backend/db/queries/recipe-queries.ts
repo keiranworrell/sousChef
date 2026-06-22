@@ -31,12 +31,14 @@ export type CreateRecipeInput = {
   userId: string;
   title: string;
   description?: string | null;
+  imageUrl?: string | null;
   servings?: number;
   prepTimeMinutes?: number | null;
   cookTimeMinutes?: number | null;
   difficulty?: "easy" | "medium" | "hard" | null;
   cuisine?: string | null;
   isPublic?: boolean;
+  sourceUrl?: string | null;
   ingredients?: CreateIngredientInput[];
   steps?: CreateStepInput[];
   tags?: string[];
