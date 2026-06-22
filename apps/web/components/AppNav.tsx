@@ -22,7 +22,7 @@ export default function AppNav(): React.JSX.Element {
   ];
 
   // Items not yet built
-  const comingSoon = new Set(["/pantry", "/meal-plan"]);
+  const comingSoon = new Set(["/meal-plan"]);
 
   async function handleSignOut(): Promise<void> {
     await signOut();
