@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import type { CreateRecipeInput } from "@souschef/shared";
@@ -27,6 +28,7 @@ export default function NewRecipeScreen(): React.JSX.Element {
   const [cookTime, setCookTime] = useState("");
   const [difficulty, setDifficulty] = useState<"" | "easy" | "medium" | "hard">("");
   const [cuisine, setCuisine] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [ingredients, setIngredients] = useState<IngredientField[]>([
     { name: "", quantity: "", unit: "" },
   ]);
@@ -48,6 +50,7 @@ export default function NewRecipeScreen(): React.JSX.Element {
         cookTimeMinutes: cookTime ? parseInt(cookTime, 10) : null,
         difficulty: difficulty || null,
         cuisine: cuisine.trim() || null,
+        isPublic,
         ingredients: ingredients
           .filter((i) => i.name.trim())
           .map((i, idx) => ({
@@ -119,6 +122,18 @@ export default function NewRecipeScreen(): React.JSX.Element {
             <Field label="Cuisine" style={{ flex: 1 }}>
               <TextInput style={styles.input} value={cuisine} onChangeText={setCuisine} placeholder="e.g. Italian" />
             </Field>
+          </View>
+          <View style={styles.switchRow}>
+            <View>
+              <Text style={styles.fieldLabel}>Make public</Text>
+              <Text style={styles.switchHint}>Others can find and save this recipe</Text>
+            </View>
+            <Switch
+              value={isPublic}
+              onValueChange={setIsPublic}
+              trackColor={{ false: "#d1d5db", true: "#fdba74" }}
+              thumbColor={isPublic ? "#f97316" : "#fff"}
+            />
           </View>
         </Section>
 
@@ -232,6 +247,8 @@ const styles = StyleSheet.create({
   stepNum: { fontSize: 13, fontWeight: "600", color: "#9ca3af", marginTop: 10, width: 18 },
   removeBtn: { fontSize: 20, color: "#9ca3af", marginTop: 6 },
   addLink: { fontSize: 13, fontWeight: "600", color: "#f97316", marginTop: 4 },
+  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  switchHint: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
   error: { color: "#dc2626", fontSize: 13, marginBottom: 12 },
   footer: { gap: 10 },
   submitButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
