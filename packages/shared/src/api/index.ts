@@ -1,11 +1,17 @@
 import type {
   ApiResponse,
+  CreateFermentationBatchInput,
+  CreateFermentationLogInput,
   CreateMealPlanEntryInput,
   CreatePantryItemInput,
   CreateRecipeInput,
   CreateShoppingListInput,
   CreateShoppingListItemInput,
+  FermentationBatch,
+  FermentationBatchWithLogs,
+  FermentationLog,
   ImportRecipeInput,
+  ListFermentationBatchesResponse,
   ListPantryItemsResponse,
   ListRecipesResponse,
   ListShoppingListsResponse,
@@ -16,6 +22,8 @@ import type {
   ShoppingList,
   ShoppingListItem,
   ShoppingListWithItems,
+  UpdateFermentationBatchInput,
+  UpdateFermentationLogInput,
   UpdatePantryItemInput,
   UpdateRecipeInput,
   UpdateShoppingListInput,
@@ -107,6 +115,34 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/pantry/${id}`),
+    },
+
+    fermentation: {
+      list: (): Promise<ApiResponse<ListFermentationBatchesResponse>> =>
+        get<ListFermentationBatchesResponse>("/fermentation"),
+
+      get: (batchId: string): Promise<ApiResponse<FermentationBatchWithLogs>> =>
+        get<FermentationBatchWithLogs>(`/fermentation/${batchId}`),
+
+      create: (input: CreateFermentationBatchInput): Promise<ApiResponse<FermentationBatch>> =>
+        post<FermentationBatch>("/fermentation", input),
+
+      update: (batchId: string, input: UpdateFermentationBatchInput): Promise<ApiResponse<FermentationBatch>> =>
+        patch<FermentationBatch>(`/fermentation/${batchId}`, input),
+
+      delete: (batchId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/fermentation/${batchId}`),
+
+      logs: {
+        create: (batchId: string, input: CreateFermentationLogInput): Promise<ApiResponse<FermentationLog>> =>
+          post<FermentationLog>(`/fermentation/${batchId}/logs`, input),
+
+        update: (batchId: string, logId: string, input: UpdateFermentationLogInput): Promise<ApiResponse<FermentationLog>> =>
+          patch<FermentationLog>(`/fermentation/${batchId}/logs/${logId}`, input),
+
+        delete: (batchId: string, logId: string): Promise<ApiResponse<null>> =>
+          del<null>(`/fermentation/${batchId}/logs/${logId}`),
+      },
     },
 
     mealPlans: {
