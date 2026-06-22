@@ -76,6 +76,11 @@ export default function RecipeDetailPage(): React.JSX.Element {
           )}
         </div>
         <div className="flex shrink-0 gap-2">
+          {recipe.steps.length > 0 && (
+            <Link href={`/recipes/${id}/cook`} className="btn-primary">
+              Start cooking
+            </Link>
+          )}
           <Link href={`/recipes/${id}/edit`} className="btn-secondary">
             Edit
           </Link>
