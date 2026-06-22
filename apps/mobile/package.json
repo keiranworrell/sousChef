@@ -16,6 +16,7 @@
     "@souschef/shared": "workspace:*",
     "aws-amplify": "^6.9.0",
     "expo": "~52.0.11",
+    "expo-keep-awake": "~14.0.2",
     "expo-router": "~4.0.9",
     "expo-status-bar": "~2.0.0",
     "nativewind": "^4.1.23",

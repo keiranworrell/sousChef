@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails } from "@souschef/shared";
-import { getApiClient } from "../../../lib/api";
+import { getApiClient } from "../../../../lib/api";
 
 export default function RecipeDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,6 +78,14 @@ export default function RecipeDetailScreen(): React.JSX.Element {
 
       {/* Actions */}
       <View style={styles.actions}>
+        {recipe.steps.length > 0 && (
+          <TouchableOpacity
+            style={styles.cookButton}
+            onPress={() => router.push(`/(app)/recipes/${id}/cook`)}
+          >
+            <Text style={styles.cookButtonText}>Start cooking</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => router.push(`/(app)/recipes/${id}/edit`)}
@@ -158,7 +166,9 @@ const styles = StyleSheet.create({
   error: { color: "#dc2626", fontSize: 13 },
   title: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 6 },
   description: { fontSize: 14, color: "#6b7280", marginBottom: 16, lineHeight: 20 },
-  actions: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  actions: { flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap" },
+  cookButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  cookButtonText: { fontSize: 13, fontWeight: "600", color: "#fff" },
   editButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   editButtonText: { fontSize: 13, fontWeight: "600", color: "#374151" },
   deleteButton: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
