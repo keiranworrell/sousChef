@@ -35,6 +35,10 @@ const entryPoints = [
     in: resolve(root, "functions/shopping.ts"),
     out: "shopping",
   },
+  {
+    in: resolve(root, "functions/mealplans.ts"),
+    out: "mealplans",
+  },
 ];
 
 for (const entry of entryPoints) {

@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  CreateMealPlanEntryInput,
   CreatePantryItemInput,
   CreateRecipeInput,
   CreateShoppingListInput,
@@ -8,6 +9,8 @@ import type {
   ListPantryItemsResponse,
   ListRecipesResponse,
   ListShoppingListsResponse,
+  MealPlanEntry,
+  MealPlanWithEntries,
   PantryItem,
   RecipeWithDetails,
   ShoppingList,
@@ -104,6 +107,19 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/pantry/${id}`),
+    },
+
+    mealPlans: {
+      get: (weekStart?: string): Promise<ApiResponse<MealPlanWithEntries>> => {
+        const qs = weekStart ? `?weekStart=${encodeURIComponent(weekStart)}` : "";
+        return get<MealPlanWithEntries>(`/meal-plans${qs}`);
+      },
+
+      addEntry: (planId: string, input: CreateMealPlanEntryInput): Promise<ApiResponse<MealPlanEntry>> =>
+        post<MealPlanEntry>(`/meal-plans/${planId}/entries`, input),
+
+      removeEntry: (planId: string, entryId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/meal-plans/${planId}/entries/${entryId}`),
     },
 
     shopping: {

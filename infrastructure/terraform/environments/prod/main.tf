@@ -342,3 +342,65 @@ resource "aws_apigatewayv2_route" "shopping_items_delete" {
   route_key = "DELETE /shopping/{listId}/items/{id}"
   target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
 }
+
+# ── Meal Plans Lambda ──────────────────────────────────────────────────────────
+
+data "archive_file" "mealplans" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/mealplans.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/mealplans.zip"
+}
+
+module "mealplans" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-mealplans"
+  handler         = "mealplans.handler"
+  zip_path        = data.archive_file.mealplans.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "mealplans" {
+  name              = "/aws/lambda/${module.mealplans.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "mealplans_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.mealplans.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/meal-plans*"
+}
+
+resource "aws_apigatewayv2_integration" "mealplans" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.mealplans.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "mealplans_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /meal-plans"
+  target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
+}
+
+resource "aws_apigatewayv2_route" "mealplans_entries_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /meal-plans/{planId}/entries"
+  target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
+}
+
+resource "aws_apigatewayv2_route" "mealplans_entries_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /meal-plans/{planId}/entries/{entryId}"
+  target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
+}
