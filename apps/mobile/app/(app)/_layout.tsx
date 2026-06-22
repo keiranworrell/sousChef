@@ -53,6 +53,15 @@ export default function AppLayout(): React.JSX.Element {
         }}
       />
       <Tabs.Screen
+        name="shopping"
+        options={{
+          title: "Shopping",
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="cart-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="meal-plan"
         options={{
           title: "Meal Plan",
