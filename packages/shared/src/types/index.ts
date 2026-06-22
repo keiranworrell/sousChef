@@ -241,6 +241,9 @@ export type FermentationLog = {
 
 // ─── Meal plan ─────────────────────────────────────────────────────────────────
 
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+
 export type MealPlan = {
   id: UUID;
   userId: UUID;
@@ -248,10 +251,26 @@ export type MealPlan = {
   createdAt: ISODateString;
 };
 
+export type MealPlanEntryRecipe = {
+  id: UUID;
+  title: string;
+  imageUrl: string | null;
+  servings: number;
+};
+
 export type MealPlanEntry = {
   id: UUID;
   mealPlanId: UUID;
   recipeId: UUID;
-  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  dayOfWeek: DayOfWeek;
+  mealType: MealType;
+  recipe: MealPlanEntryRecipe;
+};
+
+export type MealPlanWithEntries = MealPlan & { entries: MealPlanEntry[] };
+
+export type CreateMealPlanEntryInput = {
+  recipeId: UUID;
+  dayOfWeek: DayOfWeek;
+  mealType: MealType;
 };
