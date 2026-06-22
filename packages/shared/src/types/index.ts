@@ -216,6 +216,8 @@ export type ListShoppingListsResponse = {
 
 // ─── Fermentation ──────────────────────────────────────────────────────────────
 
+export type FermentationStatus = "active" | "complete" | "abandoned";
+
 export type FermentationBatch = {
   id: UUID;
   userId: UUID;
@@ -223,7 +225,7 @@ export type FermentationBatch = {
   name: string;
   startedAt: ISODateString;
   targetEndDate: ISODateString | null;
-  status: "active" | "complete" | "abandoned";
+  status: FermentationStatus;
   createdAt: ISODateString;
 };
 
@@ -237,6 +239,35 @@ export type FermentationLog = {
   weightGrams: number | null;
   notes: string | null;
   imageUrl: string | null;
+};
+
+export type FermentationBatchWithLogs = FermentationBatch & {
+  logs: FermentationLog[];
+};
+
+export type CreateFermentationBatchInput = {
+  name: string;
+  startedAt: ISODateString;
+  targetEndDate?: ISODateString | null;
+  recipeId?: UUID | null;
+  status?: FermentationStatus;
+};
+
+export type UpdateFermentationBatchInput = Partial<CreateFermentationBatchInput>;
+
+export type CreateFermentationLogInput = {
+  loggedAt?: ISODateString;
+  ph?: number | null;
+  saltPercent?: number | null;
+  temperatureCelsius?: number | null;
+  weightGrams?: number | null;
+  notes?: string | null;
+};
+
+export type UpdateFermentationLogInput = Partial<CreateFermentationLogInput>;
+
+export type ListFermentationBatchesResponse = {
+  batches: FermentationBatch[];
 };
 
 // ─── Meal plan ─────────────────────────────────────────────────────────────────

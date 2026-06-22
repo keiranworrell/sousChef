@@ -404,3 +404,95 @@ resource "aws_apigatewayv2_route" "mealplans_entries_delete" {
   route_key = "DELETE /meal-plans/{planId}/entries/{entryId}"
   target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
 }
+
+# ── Fermentation Lambda ────────────────────────────────────────────────────────
+
+data "archive_file" "fermentation" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/fermentation.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/fermentation.zip"
+}
+
+module "fermentation" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-fermentation"
+  handler         = "fermentation.handler"
+  zip_path        = data.archive_file.fermentation.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "fermentation" {
+  name              = "/aws/lambda/${module.fermentation.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "fermentation_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.fermentation.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/fermentation*"
+}
+
+resource "aws_apigatewayv2_integration" "fermentation" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.fermentation.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /fermentation"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /fermentation"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /fermentation/{batchId}"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /fermentation/{batchId}"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /fermentation/{batchId}"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_logs_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /fermentation/{batchId}/logs"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_logs_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /fermentation/{batchId}/logs/{logId}"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
+
+resource "aws_apigatewayv2_route" "fermentation_logs_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /fermentation/{batchId}/logs/{logId}"
+  target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
+}
