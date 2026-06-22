@@ -1,9 +1,13 @@
 import type {
   ApiResponse,
+  CreatePantryItemInput,
   CreateRecipeInput,
   ImportRecipeInput,
+  ListPantryItemsResponse,
   ListRecipesResponse,
+  PantryItem,
   RecipeWithDetails,
+  UpdatePantryItemInput,
   UpdateRecipeInput,
 } from "../types";
 
@@ -78,6 +82,20 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
+    },
+
+    pantry: {
+      list: (): Promise<ApiResponse<ListPantryItemsResponse>> =>
+        get<ListPantryItemsResponse>("/pantry"),
+
+      create: (input: CreatePantryItemInput): Promise<ApiResponse<PantryItem>> =>
+        post<PantryItem>("/pantry", input),
+
+      update: (id: string, input: UpdatePantryItemInput): Promise<ApiResponse<PantryItem>> =>
+        patch<PantryItem>(`/pantry/${id}`, input),
+
+      delete: (id: string): Promise<ApiResponse<null>> =>
+        del<null>(`/pantry/${id}`),
     },
   };
 }

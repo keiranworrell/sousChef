@@ -182,3 +182,71 @@ resource "aws_apigatewayv2_route" "recipes_delete" {
   route_key = "DELETE /recipes/{id}"
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
+
+# ── Pantry Lambda ──────────────────────────────────────────────────────────────
+
+data "archive_file" "pantry" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/pantry.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/pantry.zip"
+}
+
+module "pantry" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-pantry"
+  handler         = "pantry.handler"
+  zip_path        = data.archive_file.pantry.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "pantry" {
+  name              = "/aws/lambda/${module.pantry.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "pantry_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.pantry.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/pantry*"
+}
+
+resource "aws_apigatewayv2_integration" "pantry" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.pantry.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "pantry_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /pantry"
+  target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
+}
+
+resource "aws_apigatewayv2_route" "pantry_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /pantry"
+  target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
+}
+
+resource "aws_apigatewayv2_route" "pantry_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /pantry/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
+}
+
+resource "aws_apigatewayv2_route" "pantry_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /pantry/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
+}

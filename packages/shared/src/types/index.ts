@@ -153,6 +153,20 @@ export type PantryItem = {
   updatedAt: ISODateString;
 };
 
+export type CreatePantryItemInput = {
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  expiryDate?: ISODateString | null;
+  lowStockThreshold?: number | null;
+};
+
+export type UpdatePantryItemInput = Partial<CreatePantryItemInput>;
+
+export type ListPantryItemsResponse = {
+  items: PantryItem[];
+};
+
 // ─── Shopping ──────────────────────────────────────────────────────────────────
 
 export type ShoppingList = {
