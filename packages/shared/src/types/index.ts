@@ -175,6 +175,7 @@ export type ShoppingList = {
   name: string;
   isShared: boolean;
   createdAt: ISODateString;
+  updatedAt: ISODateString;
 };
 
 export type ShoppingListItem = {
@@ -186,6 +187,31 @@ export type ShoppingListItem = {
   category: string | null;
   isChecked: boolean;
   orderIndex: number;
+};
+
+export type ShoppingListWithItems = ShoppingList & { items: ShoppingListItem[] };
+
+export type CreateShoppingListInput = {
+  name: string;
+};
+
+export type UpdateShoppingListInput = {
+  name: string;
+};
+
+export type CreateShoppingListItemInput = {
+  name: string;
+  quantity?: number | null;
+  unit?: string | null;
+  category?: string | null;
+};
+
+export type UpdateShoppingListItemInput = Partial<CreateShoppingListItemInput> & {
+  isChecked?: boolean;
+};
+
+export type ListShoppingListsResponse = {
+  lists: ShoppingList[];
 };
 
 // ─── Fermentation ──────────────────────────────────────────────────────────────
