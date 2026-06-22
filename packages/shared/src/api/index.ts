@@ -2,13 +2,21 @@ import type {
   ApiResponse,
   CreatePantryItemInput,
   CreateRecipeInput,
+  CreateShoppingListInput,
+  CreateShoppingListItemInput,
   ImportRecipeInput,
   ListPantryItemsResponse,
   ListRecipesResponse,
+  ListShoppingListsResponse,
   PantryItem,
   RecipeWithDetails,
+  ShoppingList,
+  ShoppingListItem,
+  ShoppingListWithItems,
   UpdatePantryItemInput,
   UpdateRecipeInput,
+  UpdateShoppingListInput,
+  UpdateShoppingListItemInput,
 } from "../types";
 
 type RequestOptions = {
@@ -96,6 +104,34 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/pantry/${id}`),
+    },
+
+    shopping: {
+      list: (): Promise<ApiResponse<ListShoppingListsResponse>> =>
+        get<ListShoppingListsResponse>("/shopping"),
+
+      get: (listId: string): Promise<ApiResponse<ShoppingListWithItems>> =>
+        get<ShoppingListWithItems>(`/shopping/${listId}`),
+
+      create: (input: CreateShoppingListInput): Promise<ApiResponse<ShoppingList>> =>
+        post<ShoppingList>("/shopping", input),
+
+      update: (listId: string, input: UpdateShoppingListInput): Promise<ApiResponse<ShoppingList>> =>
+        patch<ShoppingList>(`/shopping/${listId}`, input),
+
+      delete: (listId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/shopping/${listId}`),
+
+      items: {
+        create: (listId: string, input: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
+          post<ShoppingListItem>(`/shopping/${listId}/items`, input),
+
+        update: (listId: string, itemId: string, input: UpdateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
+          patch<ShoppingListItem>(`/shopping/${listId}/items/${itemId}`, input),
+
+        delete: (listId: string, itemId: string): Promise<ApiResponse<null>> =>
+          del<null>(`/shopping/${listId}/items/${itemId}`),
+      },
     },
   };
 }

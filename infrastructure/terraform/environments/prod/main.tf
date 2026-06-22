@@ -250,3 +250,95 @@ resource "aws_apigatewayv2_route" "pantry_delete" {
   route_key = "DELETE /pantry/{id}"
   target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
 }
+
+# ── Shopping Lambda ────────────────────────────────────────────────────────────
+
+data "archive_file" "shopping" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/shopping.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/shopping.zip"
+}
+
+module "shopping" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-shopping"
+  handler         = "shopping.handler"
+  zip_path        = data.archive_file.shopping.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "shopping" {
+  name              = "/aws/lambda/${module.shopping.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "shopping_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.shopping.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/shopping*"
+}
+
+resource "aws_apigatewayv2_integration" "shopping" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.shopping.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "shopping_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /shopping"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /shopping"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /shopping/{listId}"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /shopping/{listId}"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /shopping/{listId}"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_items_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /shopping/{listId}/items"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_items_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /shopping/{listId}/items/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
+resource "aws_apigatewayv2_route" "shopping_items_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /shopping/{listId}/items/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
