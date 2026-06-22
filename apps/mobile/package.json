@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.0",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@souschef/shared": "workspace:*",
     "aws-amplify": "^6.9.0",
