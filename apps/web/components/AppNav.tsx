@@ -21,6 +21,7 @@ export default function AppNav(): React.JSX.Element {
     { label: "Shopping", href: "/shopping", active: pathname.startsWith("/shopping") },
     { label: "Fermentation", href: "/fermentation", active: pathname.startsWith("/fermentation") },
     { label: "Meal Plan", href: "/meal-plan", active: pathname.startsWith("/meal-plan") },
+    { label: "Community", href: "/community", active: pathname.startsWith("/community") },
   ];
 
   // Items not yet built

@@ -496,3 +496,65 @@ resource "aws_apigatewayv2_route" "fermentation_logs_delete" {
   route_key = "DELETE /fermentation/{batchId}/logs/{logId}"
   target    = "integrations/${aws_apigatewayv2_integration.fermentation.id}"
 }
+
+# ── Community Lambda ───────────────────────────────────────────────────────────
+
+data "archive_file" "community" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/community.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/community.zip"
+}
+
+module "community" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-community"
+  handler         = "community.handler"
+  zip_path        = data.archive_file.community.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "community" {
+  name              = "/aws/lambda/${module.community.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "community_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.community.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/community*"
+}
+
+resource "aws_apigatewayv2_integration" "community" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.community.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "community_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /community/recipes"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}
+
+resource "aws_apigatewayv2_route" "community_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /community/recipes/{recipeId}"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}
+
+resource "aws_apigatewayv2_route" "community_fork" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /community/recipes/{recipeId}/fork"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}

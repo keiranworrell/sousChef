@@ -43,6 +43,10 @@ const entryPoints = [
     in: resolve(root, "functions/fermentation.ts"),
     out: "fermentation",
   },
+  {
+    in: resolve(root, "functions/community.ts"),
+    out: "community",
+  },
 ];
 
 for (const entry of entryPoints) {
