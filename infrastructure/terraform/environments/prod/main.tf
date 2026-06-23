@@ -405,34 +405,6 @@ resource "aws_apigatewayv2_route" "mealplans_entries_delete" {
   target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
 }
 
-# ── Fermentation state imports (remove after successful apply) ─────────────────
-# Resources exist in AWS but fell out of state due to the stale lock incident.
-
-import {
-  to = module.fermentation.aws_iam_role.this
-  id = "souschef-prod-fermentation-role"
-}
-
-import {
-  to = module.fermentation.aws_iam_role_policy_attachment.basic_execution
-  id = "souschef-prod-fermentation-role/arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-import {
-  to = module.fermentation.aws_lambda_function.this
-  id = "souschef-prod-fermentation"
-}
-
-import {
-  to = aws_cloudwatch_log_group.fermentation
-  id = "/aws/lambda/souschef-prod-fermentation"
-}
-
-import {
-  to = aws_lambda_permission.fermentation_api
-  id = "souschef-prod-fermentation/AllowAPIGatewayInvoke"
-}
-
 # ── Fermentation Lambda ────────────────────────────────────────────────────────
 
 data "archive_file" "fermentation" {
