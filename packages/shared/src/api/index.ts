@@ -1,5 +1,7 @@
 import type {
   ApiResponse,
+  CommunityFeedParams,
+  CommunityFeedResponse,
   CreateFermentationBatchInput,
   CreateFermentationLogInput,
   CreateMealPlanEntryInput,
@@ -115,6 +117,25 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/pantry/${id}`),
+    },
+
+    community: {
+      list: (params?: CommunityFeedParams): Promise<ApiResponse<CommunityFeedResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.q) qs.set("q", params.q);
+        if (params?.cuisine) qs.set("cuisine", params.cuisine);
+        if (params?.tag) qs.set("tag", params.tag);
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<CommunityFeedResponse>(`/community/recipes${query}`);
+      },
+
+      get: (recipeId: string): Promise<ApiResponse<RecipeWithDetails>> =>
+        get<RecipeWithDetails>(`/community/recipes/${recipeId}`),
+
+      fork: (recipeId: string): Promise<ApiResponse<RecipeWithDetails>> =>
+        post<RecipeWithDetails>(`/community/recipes/${recipeId}/fork`, {}),
     },
 
     fermentation: {

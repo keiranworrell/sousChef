@@ -139,6 +139,21 @@ export type ListRecipesResponse = {
   offset: number;
 };
 
+export type CommunityFeedParams = {
+  q?: string;
+  cuisine?: string;
+  tag?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type CommunityFeedResponse = {
+  recipes: RecipeWithDetails[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 // ─── Pantry ────────────────────────────────────────────────────────────────────
 
 export type PantryItem = {
