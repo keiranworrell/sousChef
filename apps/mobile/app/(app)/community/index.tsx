@@ -77,8 +77,7 @@ export default function CommunityScreen(): React.JSX.Element {
 
   useEffect(() => {
     void load({ q, cuisine, tag, offset });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset]);
+  }, [offset]); // intentionally omits q/cuisine/tag — those trigger via the debounced effect above
 
   async function handleFork(recipe: RecipeWithDetails): Promise<void> {
     setForkingId(recipe.id);
