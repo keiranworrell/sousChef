@@ -80,13 +80,18 @@ export default function AppLayout(): React.JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="community"
         options={{
-          title: "Profile",
+          title: "Community",
           tabBarIcon: ({ color, size }) => (
-            <TabIcon name="person-outline" color={color} size={size} />
+            <TabIcon name="people-outline" color={color} size={size} />
           ),
         }}
+      />
+      {/* Profile tab hidden — sign-out moved to Community screen header */}
+      <Tabs.Screen
+        name="profile"
+        options={{ href: null }}
       />
       {/* Hide the index redirect from the tab bar */}
       <Tabs.Screen
