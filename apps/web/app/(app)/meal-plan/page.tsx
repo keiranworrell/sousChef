@@ -52,6 +52,8 @@ export default function MealPlanPage(): React.JSX.Element {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [recipesLoaded, setRecipesLoaded] = useState(false);
+  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [recipesError, setRecipesError] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   const [addingEntry, setAddingEntry] = useState(false);
 
@@ -80,14 +82,18 @@ export default function MealPlanPage(): React.JSX.Element {
     setPickerTarget(target);
     setPickerSearch("");
     if (!recipesLoaded) {
+      setRecipesLoading(true);
+      setRecipesError(null);
       try {
         const api = await getApiClient();
         const res = await api.recipes.list({ limit: 200 });
         if ("error" in res) throw new Error(res.error.message);
         setAllRecipes(res.data.recipes);
         setRecipesLoaded(true);
-      } catch {
-        // show empty picker — user can still see the UI
+      } catch (err) {
+        setRecipesError(err instanceof Error ? err.message : "Failed to load recipes");
+      } finally {
+        setRecipesLoading(false);
       }
     }
   }
@@ -272,7 +278,13 @@ export default function MealPlanPage(): React.JSX.Element {
               />
             </div>
             <ul className="overflow-y-auto flex-1 py-2">
-              {filteredRecipes.length === 0 && (
+              {recipesLoading && (
+                <li className="px-5 py-8 text-center text-sm text-gray-400">Loading…</li>
+              )}
+              {recipesError && (
+                <li className="px-5 py-8 text-center text-sm text-red-500">{recipesError}</li>
+              )}
+              {!recipesLoading && !recipesError && filteredRecipes.length === 0 && (
                 <li className="px-5 py-8 text-center text-sm text-gray-400">
                   {allRecipes.length === 0 ? "No recipes found." : "No matches."}
                 </li>
