@@ -86,7 +86,7 @@ export default function MealPlanPage(): React.JSX.Element {
       setRecipesError(null);
       try {
         const api = await getApiClient();
-        const res = await api.recipes.list({ limit: 200 });
+        const res = await api.recipes.list({ limit: 100 });
         if ("error" in res) throw new Error(res.error.message);
         setAllRecipes(res.data.recipes);
         setRecipesLoaded(true);
