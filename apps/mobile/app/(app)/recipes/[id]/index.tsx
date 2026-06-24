@@ -105,6 +105,7 @@ export default function RecipeDetailScreen(): React.JSX.Element {
         {recipe.cookTimeMinutes && <MetaItem label="Cook" value={`${recipe.cookTimeMinutes} min`} />}
         {recipe.difficulty && <MetaItem label="Difficulty" value={recipe.difficulty} />}
         {recipe.cuisine && <MetaItem label="Cuisine" value={recipe.cuisine} />}
+        <MetaItem label="Visibility" value={recipe.isPublic ? "Public" : "Private"} />
       </View>
 
       {/* Ingredients */}
