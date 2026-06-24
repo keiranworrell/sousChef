@@ -96,6 +96,7 @@ module "api_gateway" {
 
   cors_allow_origins = [
     "https://souschef.app",
+    "https://sous-chef-web-l1zo.vercel.app",
     "http://localhost:3000",
   ]
 }
