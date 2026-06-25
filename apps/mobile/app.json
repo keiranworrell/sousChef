@@ -11,11 +11,17 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f97316"
       },
       "package": "com.keiranworrell.souschef"
     },
     "plugins": ["expo-router"],
-    "scheme": "souschef"
+    "scheme": "souschef",
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_PROJECT_ID_FROM_EAS_INIT"
+      }
+    }
   }
 }
