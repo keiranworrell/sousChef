@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { shoppingLists, shoppingListItems, pantryItems } from "../schema";
 
