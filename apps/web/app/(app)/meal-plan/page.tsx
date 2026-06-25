@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { MealPlanWithEntries, MealPlanEntry, Recipe, DayOfWeek, MealType } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
@@ -43,10 +44,18 @@ function formatWeekRange(monday: Date): string {
 type PickerTarget = { dayOfWeek: DayOfWeek; mealType: MealType };
 
 export default function MealPlanPage(): React.JSX.Element {
+  const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
   const [plan, setPlan] = useState<MealPlanWithEntries | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Generate shopping list
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [genName, setGenName] = useState("");
+  const [genDeductPantry, setGenDeductPantry] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   // Recipe picker
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -134,6 +143,34 @@ export default function MealPlanPage(): React.JSX.Element {
     }
   }
 
+  function openGenerate(): void {
+    setGenName(`Week of ${formatWeekRange(weekStart)}`);
+    setGenDeductPantry(false);
+    setGenError(null);
+    setShowGenerate(true);
+  }
+
+  async function handleGenerate(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!plan) return;
+    setGenError(null);
+    setGenerating(true);
+    try {
+      const api = await getApiClient();
+      const res = await api.mealPlans.generateShoppingList(plan.id, {
+        name: genName.trim() || undefined,
+        deductPantry: genDeductPantry,
+      });
+      if ("error" in res) throw new Error(res.error.message);
+      setShowGenerate(false);
+      router.push(`/shopping/${res.data.id}`);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function getEntry(dayOfWeek: DayOfWeek, mealType: MealType): MealPlanEntry | undefined {
     return plan?.entries.find(
       (e) => Number(e.dayOfWeek) === dayOfWeek && e.mealType === mealType,
@@ -147,9 +184,9 @@ export default function MealPlanPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* Header + week nav */}
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Meal Plan</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             className="btn-secondary py-1.5 px-3 text-sm"
             onClick={() => setWeekStart((w) => addDays(w, -7))}
@@ -171,6 +208,14 @@ export default function MealPlanPage(): React.JSX.Element {
           >
             This week
           </button>
+          {plan && (
+            <button
+              className="btn-primary py-1.5 px-3 text-sm"
+              onClick={openGenerate}
+            >
+              Generate shopping list
+            </button>
+          )}
         </div>
       </div>
 
@@ -245,6 +290,64 @@ export default function MealPlanPage(): React.JSX.Element {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Generate shopping list modal */}
+      {showGenerate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900">Generate shopping list</h2>
+              <button
+                onClick={() => setShowGenerate(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => { void handleGenerate(e); }}
+              className="px-5 py-4 space-y-4"
+            >
+              <div>
+                <label className="label">List name</label>
+                <input
+                  className="input"
+                  value={genName}
+                  onChange={(e) => setGenName(e.target.value)}
+                  placeholder="Meal plan shopping list"
+                  autoFocus
+                />
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                  checked={genDeductPantry}
+                  onChange={(e) => setGenDeductPantry(e.target.checked)}
+                />
+                <span className="text-sm text-gray-700">
+                  Deduct items already in pantry
+                </span>
+              </label>
+              {genError && <p className="text-sm text-red-600">{genError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" className="btn-primary flex-1" disabled={generating}>
+                  {generating ? "Generating…" : "Generate"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary flex-1"
+                  onClick={() => setShowGenerate(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

@@ -153,3 +153,50 @@ export async function getNextOrderIndex(listId: string): Promise<number> {
   if (items.length === 0) return 0;
   return (items[items.length - 1]?.orderIndex ?? -1) + 1;
 }
+
+export type BulkCreateShoppingListInput = {
+  userId: string;
+  name: string;
+  items: Array<{
+    name: string;
+    quantity: number | null;
+    unit: string | null;
+  }>;
+};
+
+/**
+ * Creates a shopping list and bulk-inserts all items in a single transaction.
+ */
+export async function createShoppingListWithItems(
+  input: BulkCreateShoppingListInput,
+): Promise<ShoppingListWithItems> {
+  const db = getDb();
+
+  return db.transaction(async (tx) => {
+    const [list] = await tx
+      .insert(shoppingLists)
+      .values({ userId: input.userId, name: input.name })
+      .returning();
+
+    if (!list) throw new Error("Failed to create shopping list");
+
+    if (input.items.length === 0) {
+      return { ...list, items: [] };
+    }
+
+    const items = await tx
+      .insert(shoppingListItems)
+      .values(
+        input.items.map((item, i) => ({
+          shoppingListId: list.id,
+          name: item.name,
+          quantity: item.quantity ?? undefined,
+          unit: item.unit ?? undefined,
+          orderIndex: i,
+        })),
+      )
+      .returning();
+
+    return { ...list, items };
+  });
+}

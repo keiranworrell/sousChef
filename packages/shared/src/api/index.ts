@@ -177,6 +177,12 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       removeEntry: (planId: string, entryId: string): Promise<ApiResponse<null>> =>
         del<null>(`/meal-plans/${planId}/entries/${entryId}`),
+
+      generateShoppingList: (
+        planId: string,
+        input: { name?: string; deductPantry?: boolean },
+      ): Promise<ApiResponse<ShoppingListWithItems>> =>
+        post<ShoppingListWithItems>(`/meal-plans/${planId}/shopping-list`, input),
     },
 
     shopping: {

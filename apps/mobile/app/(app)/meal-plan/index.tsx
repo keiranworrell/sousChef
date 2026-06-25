@@ -8,7 +8,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  Switch,
+  Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 import type {
   MealPlanWithEntries,
   MealPlanEntry,
@@ -50,10 +53,17 @@ function formatWeekLabel(monday: Date): string {
 type PickerTarget = { dayOfWeek: DayOfWeek; mealType: MealType };
 
 export default function MealPlanScreen(): React.JSX.Element {
+  const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
   const [plan, setPlan] = useState<MealPlanWithEntries | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Generate shopping list
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [genName, setGenName] = useState("");
+  const [genDeductPantry, setGenDeductPantry] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
@@ -133,9 +143,79 @@ export default function MealPlanScreen(): React.JSX.Element {
     }
   }
 
+  function openGenerate(): void {
+    setGenName(`Week of ${formatWeekLabel(weekStart)}`);
+    setGenDeductPantry(false);
+    setShowGenerate(true);
+  }
+
+  async function handleGenerate(): Promise<void> {
+    if (!plan) return;
+    setGenerating(true);
+    try {
+      const api = await getApiClient();
+      const res = await api.mealPlans.generateShoppingList(plan.id, {
+        name: genName.trim() || undefined,
+        deductPantry: genDeductPantry,
+      });
+      if ("error" in res) throw new Error(res.error.message);
+      setShowGenerate(false);
+      router.push(`/shopping/${res.data.id}`);
+    } catch (err) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function getEntry(dayOfWeek: DayOfWeek, mealType: MealType): MealPlanEntry | undefined {
     return plan?.entries.find(
       (e) => Number(e.dayOfWeek) === dayOfWeek && e.mealType === mealType,
+    );
+  }
+
+  // Generate shopping list view
+  if (showGenerate) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.pickerHeader}>
+          <Text style={styles.pickerTitle}>Generate shopping list</Text>
+          <TouchableOpacity onPress={() => setShowGenerate(false)}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 16 }}>
+          <View style={styles.genField}>
+            <Text style={styles.genLabel}>List name</Text>
+            <TextInput
+              style={styles.searchInput}
+              value={genName}
+              onChangeText={setGenName}
+              placeholder="Meal plan shopping list"
+              autoFocus
+            />
+          </View>
+          <View style={styles.genRow}>
+            <Text style={styles.genLabel}>Deduct items already in pantry</Text>
+            <Switch
+              value={genDeductPantry}
+              onValueChange={setGenDeductPantry}
+              trackColor={{ true: "#f97316" }}
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.generateBtn, generating && styles.disabled]}
+            onPress={() => { void handleGenerate(); }}
+            disabled={generating}
+          >
+            {generating ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.generateBtnText}>Generate</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
     );
   }
 
@@ -215,6 +295,15 @@ export default function MealPlanScreen(): React.JSX.Element {
           <Text style={styles.navBtnText}>Next →</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Generate shopping list button */}
+      {plan && (
+        <View style={styles.generateBar}>
+          <TouchableOpacity style={styles.generateBtn} onPress={openGenerate}>
+            <Text style={styles.generateBtnText}>Generate shopping list</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {loading && (
         <View style={styles.center}>
@@ -392,4 +481,26 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: "#9ca3af" },
   errorText: { fontSize: 14, color: "#dc2626" },
   disabled: { opacity: 0.5 },
+  // Generate shopping list
+  generateBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  generateBtn: {
+    backgroundColor: "#f97316",
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center" as const,
+  },
+  generateBtnText: { color: "#fff", fontWeight: "600" as const, fontSize: 14 },
+  genField: { gap: 6 },
+  genRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  },
+  genLabel: { fontSize: 13, fontWeight: "500" as const, color: "#374151" },
 });

@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../client";
-import { mealPlans, mealPlanEntries, recipes } from "../schema";
+import { mealPlans, mealPlanEntries, recipes, recipeIngredients } from "../schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,4 +157,49 @@ export async function deleteMealPlanEntry(
     )
     .returning({ id: mealPlanEntries.id });
   return result.length > 0;
+}
+
+export type MealPlanIngredient = {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+};
+
+/**
+ * Returns all ingredients across every recipe in a meal plan.
+ * Verifies the plan belongs to the given userId.
+ */
+export async function getMealPlanIngredients(
+  planId: string,
+  userId: string,
+): Promise<MealPlanIngredient[] | null> {
+  const db = getDb();
+
+  // Confirm plan ownership
+  const [plan] = await db
+    .select({ id: mealPlans.id })
+    .from(mealPlans)
+    .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)));
+  if (!plan) return null;
+
+  // Get distinct recipe IDs for this plan
+  const entries = await db
+    .select({ recipeId: mealPlanEntries.recipeId })
+    .from(mealPlanEntries)
+    .where(eq(mealPlanEntries.mealPlanId, planId));
+
+  if (entries.length === 0) return [];
+
+  const recipeIds = [...new Set(entries.map((e) => e.recipeId))];
+
+  const ingredients = await db
+    .select({
+      name: recipeIngredients.name,
+      quantity: recipeIngredients.quantity,
+      unit: recipeIngredients.unit,
+    })
+    .from(recipeIngredients)
+    .where(inArray(recipeIngredients.recipeId, recipeIds));
+
+  return ingredients;
 }
