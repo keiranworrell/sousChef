@@ -201,6 +201,9 @@ export function createApiClient(baseUrl: string, token?: string) {
       delete: (listId: string): Promise<ApiResponse<null>> =>
         del<null>(`/shopping/${listId}`),
 
+      complete: (listId: string): Promise<ApiResponse<{ pantryItemsAffected: number }>> =>
+        post<{ pantryItemsAffected: number }>(`/shopping/${listId}/complete`, {}),
+
       items: {
         create: (listId: string, input: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
           post<ShoppingListItem>(`/shopping/${listId}/items`, input),

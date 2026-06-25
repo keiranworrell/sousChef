@@ -1,6 +1,6 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb } from "../client";
-import { shoppingLists, shoppingListItems } from "../schema";
+import { shoppingLists, shoppingListItems, pantryItems } from "../schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -198,5 +198,80 @@ export async function createShoppingListWithItems(
       .returning();
 
     return { ...list, items };
+  });
+}
+
+/**
+ * Upserts all checked shopping list items into the user's pantry, then deletes the list.
+ * Matching is by name (case-insensitive) + unit (case-insensitive).
+ * If a pantry item already exists, quantities are summed (when both are numeric).
+ * Returns the number of pantry items created or updated.
+ */
+export async function completeShoppingList(
+  listId: string,
+  userId: string,
+): Promise<{ pantryItemsAffected: number } | null> {
+  const db = getDb();
+
+  // Verify ownership
+  const [list] = await db
+    .select({ id: shoppingLists.id })
+    .from(shoppingLists)
+    .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+  if (!list) return null;
+
+  // Fetch checked items
+  const checkedItems = await db
+    .select()
+    .from(shoppingListItems)
+    .where(and(eq(shoppingListItems.shoppingListId, listId), eq(shoppingListItems.isChecked, true)));
+
+  return db.transaction(async (tx) => {
+    let affected = 0;
+
+    for (const item of checkedItems) {
+      const normName = item.name.trim();
+      const normUnit = (item.unit ?? "").trim();
+
+      // Look for an existing pantry item with matching name + unit (case-insensitive)
+      const [existing] = await tx
+        .select()
+        .from(pantryItems)
+        .where(
+          and(
+            eq(pantryItems.userId, userId),
+            sql`lower(trim(${pantryItems.name})) = lower(${normName})`,
+            sql`lower(trim(coalesce(${pantryItems.unit}, ''))) = lower(${normUnit})`,
+          ),
+        );
+
+      if (existing) {
+        // Add quantities if both are numeric
+        const newQty =
+          existing.quantity !== null && item.quantity !== null
+            ? existing.quantity + item.quantity
+            : (existing.quantity ?? item.quantity ?? null);
+        await tx
+          .update(pantryItems)
+          .set({ quantity: newQty, updatedAt: new Date() })
+          .where(eq(pantryItems.id, existing.id));
+      } else {
+        await tx.insert(pantryItems).values({
+          userId,
+          name: normName,
+          quantity: item.quantity ?? null,
+          unit: item.unit ?? null,
+        });
+      }
+
+      affected += 1;
+    }
+
+    // Delete the list (cascade removes items)
+    await tx
+      .delete(shoppingLists)
+      .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+
+    return { pantryItemsAffected: affected };
   });
 }

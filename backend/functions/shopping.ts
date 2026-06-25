@@ -14,6 +14,7 @@ import {
   updateShoppingListItem,
   deleteShoppingListItem,
   getNextOrderIndex,
+  completeShoppingList,
 } from "../db/queries/shopping-queries";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -86,6 +87,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (
         if (!deleted) throw new NotFoundError("Item not found");
         return okResponse(null, 204);
       }
+    }
+
+    // POST /shopping/{listId}/complete
+    const completeMatch = path.match(/\/shopping\/([^/]+)\/complete$/);
+    if (completeMatch && method === "POST") {
+      const listId = completeMatch[1]!;
+      const result = await completeShoppingList(listId, user.id);
+      if (!result) throw new NotFoundError("Shopping list not found");
+      return okResponse(result);
     }
 
     // Routes for lists: /shopping[/{listId}]
