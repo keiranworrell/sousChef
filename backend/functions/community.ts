@@ -44,6 +44,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const limit = Math.min(parseInt(qs["limit"] ?? "20", 10), 50);
       const offset = parseInt(qs["offset"] ?? "0", 10);
       const result = await listPublicRecipes({
+        userId: user.id,
         q: qs["q"] ?? null,
         cuisine: qs["cuisine"] ?? null,
         tag: qs["tag"] ?? null,

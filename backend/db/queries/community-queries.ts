@@ -1,9 +1,10 @@
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
 import type { RecipeWithDetails } from "./recipe-queries";
 
 export type CommunityFeedParams = {
+  userId: string;
   q?: string | null;
   cuisine?: string | null;
   tag?: string | null;
@@ -24,10 +25,10 @@ export async function listPublicRecipes(
   params: CommunityFeedParams,
 ): Promise<CommunityFeedResult> {
   const db = getDb();
-  const { q, cuisine, tag, limit = 20, offset = 0 } = params;
+  const { userId, q, cuisine, tag, limit = 20, offset = 0 } = params;
 
-  // Build WHERE conditions
-  const conditions = [eq(recipes.isPublic, true)];
+  // Build WHERE conditions — exclude the requesting user's own recipes
+  const conditions = [eq(recipes.isPublic, true), ne(recipes.userId, userId)];
 
   if (q) {
     conditions.push(
