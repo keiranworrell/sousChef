@@ -104,7 +104,7 @@ export default function PantryScreen(): React.JSX.Element {
           name: form.name.trim(),
           quantity: form.quantity ? parseFloat(form.quantity) : null,
           unit: form.unit.trim() || null,
-          expiryDate: form.expiryDate || null,
+          expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : null,
           lowStockThreshold: form.lowStockThreshold ? parseFloat(form.lowStockThreshold) : null,
         };
         const res = await api.pantry.create(input);
@@ -115,7 +115,7 @@ export default function PantryScreen(): React.JSX.Element {
           name: form.name.trim(),
           quantity: form.quantity ? parseFloat(form.quantity) : null,
           unit: form.unit.trim() || null,
-          expiryDate: form.expiryDate || null,
+          expiryDate: form.expiryDate ? new Date(form.expiryDate).toISOString() : null,
           lowStockThreshold: form.lowStockThreshold ? parseFloat(form.lowStockThreshold) : null,
         };
         const res = await api.pantry.update(formMode, input);

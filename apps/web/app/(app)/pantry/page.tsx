@@ -96,7 +96,7 @@ export default function PantryPage(): React.JSX.Element {
         name: addForm.name.trim(),
         quantity: addForm.quantity ? parseFloat(addForm.quantity) : null,
         unit: addForm.unit.trim() || null,
-        expiryDate: addForm.expiryDate || null,
+        expiryDate: addForm.expiryDate ? new Date(addForm.expiryDate).toISOString() : null,
         lowStockThreshold: addForm.lowStockThreshold ? parseFloat(addForm.lowStockThreshold) : null,
       };
       const res = await api.pantry.create(input);
@@ -134,7 +134,7 @@ export default function PantryPage(): React.JSX.Element {
         name: editForm.name.trim(),
         quantity: editForm.quantity ? parseFloat(editForm.quantity) : null,
         unit: editForm.unit.trim() || null,
-        expiryDate: editForm.expiryDate || null,
+        expiryDate: editForm.expiryDate ? new Date(editForm.expiryDate).toISOString() : null,
         lowStockThreshold: editForm.lowStockThreshold ? parseFloat(editForm.lowStockThreshold) : null,
       };
       const res = await api.pantry.update(id, input);
