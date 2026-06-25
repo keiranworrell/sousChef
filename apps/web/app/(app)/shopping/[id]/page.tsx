@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
@@ -11,9 +11,15 @@ const emptyAddForm: AddForm = { name: "", quantity: "", unit: "", category: "" }
 
 export default function ShoppingListPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [list, setList] = useState<ShoppingListWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // List-level actions
+  const [completing, setCompleting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Add item form
   const [adding, setAdding] = useState(false);
@@ -100,6 +106,38 @@ export default function ShoppingListPage(): React.JSX.Element {
     }
   }
 
+  async function handleComplete(): Promise<void> {
+    const checkedCount = list?.items.filter((i) => i.isChecked).length ?? 0;
+    if (!confirm(`Add ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""} to your pantry and delete this list?`)) return;
+    setActionError(null);
+    setCompleting(true);
+    try {
+      const api = await getApiClient();
+      const res = await api.shopping.complete(id);
+      if ("error" in res) throw new Error(res.error.message);
+      router.push("/pantry");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  async function handleDeleteList(): Promise<void> {
+    if (!confirm(`Delete "${list?.name}"? This can't be undone.`)) return;
+    setActionError(null);
+    setDeleting(true);
+    try {
+      const api = await getApiClient();
+      await api.shopping.delete(id);
+      router.push("/shopping");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
     return <div className="mx-auto max-w-3xl px-4 py-10"><p className="text-sm text-gray-400">Loading…</p></div>;
   }
@@ -120,10 +158,31 @@ export default function ShoppingListPage(): React.JSX.Element {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6">
         <Link href="/shopping" className="text-sm text-orange-500 hover:underline">← Shopping lists</Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">{list.name}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          {unchecked.length} remaining · {checked.length} checked
-        </p>
+        <div className="mt-2 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{list.name}</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {unchecked.length} remaining · {checked.length} checked
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              className="btn-primary py-1.5 px-3 text-sm disabled:opacity-50"
+              onClick={() => { void handleComplete(); }}
+              disabled={completing || deleting}
+            >
+              {completing ? "Updating pantry…" : "Complete & update pantry"}
+            </button>
+            <button
+              className="btn-secondary py-1.5 px-3 text-sm text-red-600 border-red-200 hover:bg-red-50 disabled:opacity-50"
+              onClick={() => { void handleDeleteList(); }}
+              disabled={completing || deleting}
+            >
+              {deleting ? "Deleting…" : "Delete list"}
+            </button>
+          </div>
+        </div>
+        {actionError && <p className="mt-2 text-sm text-red-600">{actionError}</p>}
       </div>
 
       {/* Add item form */}

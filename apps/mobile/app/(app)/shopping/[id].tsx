@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
@@ -33,6 +34,8 @@ export default function ShoppingListScreen(): React.JSX.Element {
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
+  const [deletingList, setDeletingList] = useState(false);
 
   useEffect(() => {
     if (id) void load();
@@ -104,6 +107,70 @@ export default function ShoppingListScreen(): React.JSX.Element {
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function handleListActions(): void {
+    const checkedCount = list?.items.filter((i) => i.isChecked).length ?? 0;
+    Alert.alert(
+      list?.name ?? "Shopping list",
+      "What would you like to do?",
+      [
+        {
+          text: `Complete & update pantry (${checkedCount} item${checkedCount !== 1 ? "s" : ""})`,
+          onPress: () => {
+            Alert.alert(
+              "Update pantry?",
+              `This will add ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""} to your pantry and delete this list.`,
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Complete",
+                  onPress: async () => {
+                    setCompleting(true);
+                    try {
+                      const api = await getApiClient();
+                      const res = await api.shopping.complete(id);
+                      if ("error" in res) throw new Error(res.error.message);
+                      router.replace("/pantry");
+                    } catch (err) {
+                      Alert.alert("Error", err instanceof Error ? err.message : "Something went wrong");
+                    } finally {
+                      setCompleting(false);
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+        {
+          text: "Delete list",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert("Delete list?", "This can't be undone.", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                  setDeletingList(true);
+                  try {
+                    const api = await getApiClient();
+                    await api.shopping.delete(id);
+                    router.replace("/shopping");
+                  } catch (err) {
+                    Alert.alert("Error", err instanceof Error ? err.message : "Something went wrong");
+                  } finally {
+                    setDeletingList(false);
+                  }
+                },
+              },
+            ]);
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
   }
 
   if (loading) {
@@ -191,9 +258,22 @@ export default function ShoppingListScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>← Lists</Text>
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backLink}>← Lists</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleListActions}
+            disabled={completing || deletingList}
+            style={styles.moreBtn}
+          >
+            {(completing || deletingList) ? (
+              <ActivityIndicator size="small" color="#f97316" />
+            ) : (
+              <Text style={styles.moreBtnText}>⋯</Text>
+            )}
+          </TouchableOpacity>
+        </View>
         <Text style={styles.pageTitle}>{list.name}</Text>
         <Text style={styles.subtitle}>{unchecked.length} remaining · {checked.length} done</Text>
       </View>
@@ -303,7 +383,10 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
   formContent: { padding: 16, paddingBottom: 40 },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  backLink: { fontSize: 14, color: "#f97316", marginBottom: 8 },
+  headerTop: { flexDirection: "row" as const, alignItems: "center", justifyContent: "space-between" as const, marginBottom: 8 },
+  backLink: { fontSize: 14, color: "#f97316" },
+  moreBtn: { padding: 4 },
+  moreBtnText: { fontSize: 22, color: "#6b7280", fontWeight: "700" as const },
   pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 4 },
   subtitle: { fontSize: 13, color: "#9ca3af" },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
