@@ -21,7 +21,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#f97316"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ]
+    ],
     "scheme": "souschef",
     "owner": "keiranworrell",
     "extra": {
