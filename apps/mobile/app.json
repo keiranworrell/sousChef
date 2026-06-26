@@ -16,6 +16,11 @@
       },
       "package": "com.keiranworrell.souschef"
     },
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f97316"
+    },
     "plugins": ["expo-router"],
     "scheme": "souschef",
     "owner": "keiranworrell",

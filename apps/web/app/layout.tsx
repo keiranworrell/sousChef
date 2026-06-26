@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "sousChef",
   description: "Recipe management and cooking companion",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
