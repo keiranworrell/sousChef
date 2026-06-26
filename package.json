@@ -7,8 +7,7 @@
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "eas-build-on-install": "corepack enable && pnpm install --frozen-lockfile"
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
