@@ -36,7 +36,8 @@ export default function AppNav(): React.JSX.Element {
     <nav className="sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 h-14">
         {/* Brand */}
-        <Link href="/recipes" className="text-lg font-bold text-orange-500 tracking-tight">
+        <Link href="/recipes" className="flex items-center gap-2 text-lg font-bold text-orange-500 tracking-tight">
+          <img src="/icon.png" alt="" className="h-7 w-7 rounded-md" />
           sousChef
         </Link>
 
