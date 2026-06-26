@@ -16,19 +16,9 @@
       },
       "package": "com.keiranworrell.souschef"
     },
-<<<<<<< Updated upstream
     "plugins": ["expo-router"],
     "scheme": "souschef",
-    "extra": {
-      "eas": {
-        "projectId": "REPLACE_WITH_PROJECT_ID_FROM_EAS_INIT"
-      }
-    }
-=======
-    "plugins": [
-      "expo-router"
-    ],
-    "scheme": "souschef",
+    "owner": "keiranworrell",
     "extra": {
       "router": {
         "origin": false
@@ -36,8 +26,6 @@
       "eas": {
         "projectId": "eec4bb25-774c-4525-98eb-b97fa6cd50ba"
       }
-    },
-    "owner": "keiranworrell"
->>>>>>> Stashed changes
+    }
   }
 }
