@@ -154,6 +154,26 @@ export async function getNextOrderIndex(listId: string): Promise<number> {
   return (items[items.length - 1]?.orderIndex ?? -1) + 1;
 }
 
+export async function bulkAddShoppingListItems(
+  listId: string,
+  items: Array<{ name: string; quantity?: number | null; unit?: string | null }>,
+  startOrderIndex: number,
+): Promise<ShoppingListItemRecord[]> {
+  const db = getDb();
+  return db
+    .insert(shoppingListItems)
+    .values(
+      items.map((item, i) => ({
+        shoppingListId: listId,
+        name: item.name,
+        quantity: item.quantity ?? undefined,
+        unit: item.unit ?? undefined,
+        orderIndex: startOrderIndex + i,
+      })),
+    )
+    .returning();
+}
+
 export type BulkCreateShoppingListInput = {
   userId: string;
   name: string;

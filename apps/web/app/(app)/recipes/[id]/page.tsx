@@ -3,8 +3,15 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { RecipeWithDetails } from "@souschef/shared";
+import type { RecipeWithDetails, ShoppingList } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+
+type AddToListState =
+  | { step: "closed" }
+  | { step: "picking"; lists: ShoppingList[]; loading: boolean }
+  | { step: "new-name"; lists: ShoppingList[]; newName: string }
+  | { step: "saving" }
+  | { step: "done"; listId: string };
 
 export default function RecipeDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +20,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [addToList, setAddToList] = useState<AddToListState>({ step: "closed" });
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -39,6 +47,54 @@ export default function RecipeDetailPage(): React.JSX.Element {
       router.push("/recipes");
     } catch {
       setDeleting(false);
+    }
+  }
+
+  async function openAddToList(): Promise<void> {
+    setAddToList({ step: "picking", lists: [], loading: true });
+    try {
+      const api = await getApiClient();
+      const res = await api.shopping.list();
+      const lists = "data" in res ? res.data.lists : [];
+      setAddToList({ step: "picking", lists, loading: false });
+    } catch {
+      setAddToList({ step: "picking", lists: [], loading: false });
+    }
+  }
+
+  async function addToExistingList(listId: string): Promise<void> {
+    if (!recipe) return;
+    setAddToList({ step: "saving" });
+    const items = recipe.ingredients.map((ing) => ({
+      name: ing.name,
+      quantity: ing.quantity ?? null,
+      unit: ing.unit ?? null,
+    }));
+    try {
+      const api = await getApiClient();
+      await api.shopping.items.bulkAdd(listId, items);
+      setAddToList({ step: "done", listId });
+    } catch {
+      setAddToList({ step: "closed" });
+    }
+  }
+
+  async function addToNewList(name: string): Promise<void> {
+    if (!recipe) return;
+    setAddToList({ step: "saving" });
+    const items = recipe.ingredients.map((ing) => ({
+      name: ing.name,
+      quantity: ing.quantity ?? null,
+      unit: ing.unit ?? null,
+    }));
+    try {
+      const api = await getApiClient();
+      const created = await api.shopping.create({ name });
+      if ("error" in created) throw new Error(created.error.message);
+      await api.shopping.items.bulkAdd(created.data.id, items);
+      setAddToList({ step: "done", listId: created.data.id });
+    } catch {
+      setAddToList({ step: "closed" });
     }
   }
 
@@ -75,11 +131,16 @@ export default function RecipeDetailPage(): React.JSX.Element {
             <p className="mt-2 text-gray-500">{recipe.description}</p>
           )}
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           {recipe.steps.length > 0 && (
             <Link href={`/recipes/${id}/cook`} className="btn-primary">
               Start cooking
             </Link>
+          )}
+          {recipe.ingredients.length > 0 && (
+            <button onClick={() => { void openAddToList(); }} className="btn-secondary">
+              Add to list
+            </button>
           )}
           <Link href={`/recipes/${id}/edit`} className="btn-secondary">
             Edit
@@ -146,6 +207,108 @@ export default function RecipeDetailPage(): React.JSX.Element {
             ))}
           </ol>
         </section>
+      )}
+
+      {/* Add to list modal */}
+      {addToList.step !== "closed" && addToList.step !== "done" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            {addToList.step === "saving" ? (
+              <p className="text-sm text-gray-500">Adding ingredients…</p>
+            ) : addToList.step === "new-name" ? (
+              <>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">New shopping list</h2>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  placeholder="List name"
+                  value={addToList.newName}
+                  onChange={(e) =>
+                    setAddToList({ ...addToList, newName: e.target.value })
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && addToList.newName.trim()) {
+                      void addToNewList(addToList.newName.trim());
+                    }
+                  }}
+                  autoFocus
+                />
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={() => { void addToNewList(addToList.newName.trim()); }}
+                    disabled={!addToList.newName.trim()}
+                    className="btn-primary flex-1 disabled:opacity-50"
+                  >
+                    Create &amp; add
+                  </button>
+                  <button
+                    onClick={() => setAddToList({ step: "picking", lists: addToList.lists, loading: false })}
+                    className="btn-secondary"
+                  >
+                    Back
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="mb-4 text-base font-semibold text-gray-900">Add to shopping list</h2>
+                {addToList.loading ? (
+                  <p className="text-sm text-gray-400">Loading lists…</p>
+                ) : (
+                  <div className="space-y-2">
+                    {addToList.lists.map((list) => (
+                      <button
+                        key={list.id}
+                        onClick={() => { void addToExistingList(list.id); }}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                      >
+                        {list.name}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() =>
+                        setAddToList({
+                          step: "new-name",
+                          lists: addToList.lists,
+                          newName: `${recipe.title} ingredients`,
+                        })
+                      }
+                      className="w-full rounded-lg border border-dashed border-gray-300 px-4 py-2.5 text-left text-sm font-medium text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                    >
+                      + New list
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => setAddToList({ step: "closed" })}
+                  className="mt-4 text-sm text-gray-400 hover:text-gray-600"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Success banner */}
+      {addToList.step === "done" && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl bg-gray-900 px-5 py-3 text-sm text-white shadow-lg">
+          <span>Added to shopping list</span>
+          <Link
+            href={`/shopping/${addToList.listId}`}
+            className="font-medium text-orange-400 hover:underline"
+            onClick={() => setAddToList({ step: "closed" })}
+          >
+            View list →
+          </Link>
+          <button
+            onClick={() => setAddToList({ step: "closed" })}
+            className="ml-2 text-gray-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );

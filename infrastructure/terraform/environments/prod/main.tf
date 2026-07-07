@@ -350,6 +350,12 @@ resource "aws_apigatewayv2_route" "shopping_complete" {
   target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
 }
 
+resource "aws_apigatewayv2_route" "shopping_items_bulk_add" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /shopping/{listId}/items/bulk"
+  target    = "integrations/${aws_apigatewayv2_integration.shopping.id}"
+}
+
 # ── Meal Plans Lambda ──────────────────────────────────────────────────────────
 
 data "archive_file" "mealplans" {

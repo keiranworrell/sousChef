@@ -208,6 +208,12 @@ export function createApiClient(baseUrl: string, token?: string) {
         create: (listId: string, input: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
           post<ShoppingListItem>(`/shopping/${listId}/items`, input),
 
+        bulkAdd: (
+          listId: string,
+          items: Array<{ name: string; quantity?: number | null; unit?: string | null }>,
+        ): Promise<ApiResponse<ShoppingListItem[]>> =>
+          post<ShoppingListItem[]>(`/shopping/${listId}/items/bulk`, { items }),
+
         update: (listId: string, itemId: string, input: UpdateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
           patch<ShoppingListItem>(`/shopping/${listId}/items/${itemId}`, input),
 
