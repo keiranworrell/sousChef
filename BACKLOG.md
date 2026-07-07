@@ -27,7 +27,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 - [x] Recipe tags — starter, main, dessert, baking, cuisine (Mexican, Italian, etc.) — usable for search and filter
 - [ ] Predictive tags based on ingredients (e.g. auto-flag vegetarian/vegan from ingredient list, likely via a simple rules pass or a cheap AI call)
-- [ ] Filter and sort on Recipes and Community tabs — most used, most/least recently used, dietary requirements, tags
+- [x] Filter and sort on Recipes tab — by tag, difficulty, and sort order (newest/oldest/A–Z)
 - [ ] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
 - [ ] Share button on recipes — generate a shareable link that opens the recipe for non-users (public recipes only)
 - [ ] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
