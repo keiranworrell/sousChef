@@ -165,40 +165,38 @@ export type BulkCreateShoppingListInput = {
 };
 
 /**
- * Creates a shopping list and bulk-inserts all items in a single transaction.
+ * Creates a shopping list and bulk-inserts all items.
  */
 export async function createShoppingListWithItems(
   input: BulkCreateShoppingListInput,
 ): Promise<ShoppingListWithItems> {
   const db = getDb();
 
-  return db.transaction(async (tx) => {
-    const [list] = await tx
-      .insert(shoppingLists)
-      .values({ userId: input.userId, name: input.name })
-      .returning();
+  const [list] = await db
+    .insert(shoppingLists)
+    .values({ userId: input.userId, name: input.name })
+    .returning();
 
-    if (!list) throw new Error("Failed to create shopping list");
+  if (!list) throw new Error("Failed to create shopping list");
 
-    if (input.items.length === 0) {
-      return { ...list, items: [] };
-    }
+  if (input.items.length === 0) {
+    return { ...list, items: [] };
+  }
 
-    const items = await tx
-      .insert(shoppingListItems)
-      .values(
-        input.items.map((item, i) => ({
-          shoppingListId: list.id,
-          name: item.name,
-          quantity: item.quantity ?? undefined,
-          unit: item.unit ?? undefined,
-          orderIndex: i,
-        })),
-      )
-      .returning();
+  const items = await db
+    .insert(shoppingListItems)
+    .values(
+      input.items.map((item, i) => ({
+        shoppingListId: list.id,
+        name: item.name,
+        quantity: item.quantity ?? undefined,
+        unit: item.unit ?? undefined,
+        orderIndex: i,
+      })),
+    )
+    .returning();
 
-    return { ...list, items };
-  });
+  return { ...list, items };
 }
 
 /**
@@ -226,52 +224,50 @@ export async function completeShoppingList(
     .from(shoppingListItems)
     .where(and(eq(shoppingListItems.shoppingListId, listId), eq(shoppingListItems.isChecked, true)));
 
-  return db.transaction(async (tx) => {
-    let affected = 0;
+  let affected = 0;
 
-    for (const item of checkedItems) {
-      const normName = item.name.trim();
-      const normUnit = (item.unit ?? "").trim();
+  for (const item of checkedItems) {
+    const normName = item.name.trim();
+    const normUnit = (item.unit ?? "").trim();
 
-      // Look for an existing pantry item with matching name + unit (case-insensitive)
-      const [existing] = await tx
-        .select()
-        .from(pantryItems)
-        .where(
-          and(
-            eq(pantryItems.userId, userId),
-            sql`lower(trim(${pantryItems.name})) = lower(${normName})`,
-            sql`lower(trim(coalesce(${pantryItems.unit}, ''))) = lower(${normUnit})`,
-          ),
-        );
+    // Look for an existing pantry item with matching name + unit (case-insensitive)
+    const [existing] = await db
+      .select()
+      .from(pantryItems)
+      .where(
+        and(
+          eq(pantryItems.userId, userId),
+          sql`lower(trim(${pantryItems.name})) = lower(${normName})`,
+          sql`lower(trim(coalesce(${pantryItems.unit}, ''))) = lower(${normUnit})`,
+        ),
+      );
 
-      if (existing) {
-        // Add quantities if both are numeric
-        const newQty =
-          existing.quantity !== null && item.quantity !== null
-            ? existing.quantity + item.quantity
-            : (existing.quantity ?? item.quantity ?? null);
-        await tx
-          .update(pantryItems)
-          .set({ quantity: newQty, updatedAt: new Date() })
-          .where(eq(pantryItems.id, existing.id));
-      } else {
-        await tx.insert(pantryItems).values({
-          userId,
-          name: normName,
-          quantity: item.quantity ?? null,
-          unit: item.unit ?? null,
-        });
-      }
-
-      affected += 1;
+    if (existing) {
+      // Add quantities if both are numeric
+      const newQty =
+        existing.quantity !== null && item.quantity !== null
+          ? existing.quantity + item.quantity
+          : (existing.quantity ?? item.quantity ?? null);
+      await db
+        .update(pantryItems)
+        .set({ quantity: newQty, updatedAt: new Date() })
+        .where(eq(pantryItems.id, existing.id));
+    } else {
+      await db.insert(pantryItems).values({
+        userId,
+        name: normName,
+        quantity: item.quantity ?? null,
+        unit: item.unit ?? null,
+      });
     }
 
-    // Delete the list (cascade removes items)
-    await tx
-      .delete(shoppingLists)
-      .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+    affected += 1;
+  }
 
-    return { pantryItemsAffected: affected };
-  });
+  // Delete the list (cascade removes items)
+  await db
+    .delete(shoppingLists)
+    .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+
+  return { pantryItemsAffected: affected };
 }
