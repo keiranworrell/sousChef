@@ -80,10 +80,16 @@ export function createApiClient(baseUrl: string, token?: string) {
       list: (params?: {
         limit?: number;
         offset?: number;
+        tag?: string;
+        difficulty?: string;
+        sort?: "newest" | "oldest" | "title";
       }): Promise<ApiResponse<ListRecipesResponse>> => {
         const qs = new URLSearchParams();
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
         if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        if (params?.tag) qs.set("tag", params.tag);
+        if (params?.difficulty) qs.set("difficulty", params.difficulty);
+        if (params?.sort) qs.set("sort", params.sort);
         const query = qs.toString() ? `?${qs.toString()}` : "";
         return get<ListRecipesResponse>(`/recipes${query}`);
       },
