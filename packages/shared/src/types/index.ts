@@ -147,8 +147,12 @@ export type CommunityFeedParams = {
   offset?: number;
 };
 
+export type CommunityRecipe = RecipeWithDetails & {
+  creatorName: string;
+};
+
 export type CommunityFeedResponse = {
-  recipes: RecipeWithDetails[];
+  recipes: CommunityRecipe[];
   total: number;
   limit: number;
   offset: number;

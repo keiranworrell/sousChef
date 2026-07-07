@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { RecipeWithDetails } from "@souschef/shared";
+import type { CommunityRecipe } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -15,7 +15,7 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 export default function CommunityPage(): React.JSX.Element {
   const router = useRouter();
 
-  const [recipes, setRecipes] = useState<RecipeWithDetails[]>([]);
+  const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +155,7 @@ export default function CommunityPage(): React.JSX.Element {
                   >
                     {recipe.title}
                   </Link>
+                  <p className="mt-0.5 text-xs text-gray-400">by {recipe.creatorName}</p>
                   {recipe.description && (
                     <p className="mt-1 text-sm text-gray-500 line-clamp-2">
                       {recipe.description}
