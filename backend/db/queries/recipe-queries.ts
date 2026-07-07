@@ -49,7 +49,7 @@ export type UpdateRecipeInput = Partial<
 > & { tags?: string[] };
 
 export type ListRecipesResult = {
-  recipes: (RecipeRecord & { tags: RecipeTagRecord[] })[];
+  recipes: (RecipeRecord & { tags: string[] })[];
   total: number;
   limit: number;
   offset: number;
@@ -112,7 +112,10 @@ export async function listRecipes(
     tagsByRecipeId.set(row.recipe_tags.recipeId, existing);
   }
 
-  const recipesWithTags = rows.map((r) => ({ ...r, tags: tagsByRecipeId.get(r.id) ?? [] }));
+  const recipesWithTags = rows.map((r) => ({
+    ...r,
+    tags: (tagsByRecipeId.get(r.id) ?? []).map((t) => t.tag),
+  }));
 
   return { recipes: recipesWithTags, total: countRow?.count ?? 0, limit, offset };
 }
