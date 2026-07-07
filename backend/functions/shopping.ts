@@ -15,6 +15,7 @@ import {
   deleteShoppingListItem,
   getNextOrderIndex,
   completeShoppingList,
+  bulkAddShoppingListItems,
 } from "../db/queries/shopping-queries";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -42,6 +43,14 @@ const UpdateItemSchema = z.object({
   isChecked: z.boolean().optional(),
 });
 
+const BulkAddItemsSchema = z.object({
+  items: z.array(z.object({
+    name: z.string().min(1).max(255),
+    quantity: z.number().nonnegative().nullable().optional(),
+    unit: z.string().max(50).nullable().optional(),
+  })).min(1),
+});
+
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -54,6 +63,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const method = event.requestContext.http.method.toUpperCase();
     const path = event.rawPath ?? "";
+
+    // POST /shopping/{listId}/items/bulk
+    const bulkMatch = path.match(/\/shopping\/([^/]+)\/items\/bulk$/);
+    if (bulkMatch && method === "POST") {
+      const listId = bulkMatch[1]!;
+      const list = await getShoppingListWithItems(listId, user.id);
+      if (!list) throw new NotFoundError("Shopping list not found");
+      const body = parseBody(event.body, BulkAddItemsSchema);
+      const startIndex = await getNextOrderIndex(listId);
+      const items = await bulkAddShoppingListItems(listId, body.items, startIndex);
+      return okResponse(items, 201);
+    }
 
     // Routes involving items: /shopping/{listId}/items[/{itemId}]
     const itemsMatch = path.match(/\/shopping\/([^/]+)\/items(?:\/([^/]+))?$/);
