@@ -130,7 +130,7 @@ export type ImportRecipeInput = {
 
 export type UpdateRecipeInput = Partial<
   Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
->;
+> & { tags?: string[] };
 
 export type ListRecipesResponse = {
   recipes: Recipe[];

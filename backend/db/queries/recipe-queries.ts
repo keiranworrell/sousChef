@@ -46,10 +46,10 @@ export type CreateRecipeInput = {
 
 export type UpdateRecipeInput = Partial<
   Omit<CreateRecipeInput, "userId" | "ingredients" | "steps" | "tags">
->;
+> & { tags?: string[] };
 
 export type ListRecipesResult = {
-  recipes: RecipeRecord[];
+  recipes: (RecipeRecord & { tags: RecipeTagRecord[] })[];
   total: number;
   limit: number;
   offset: number;
@@ -62,7 +62,7 @@ export async function listRecipes(
 ): Promise<ListRecipesResult> {
   const db = getDb();
 
-  const [rows, [countRow]] = await Promise.all([
+  const [rows, [countRow], allTags] = await Promise.all([
     db
       .select()
       .from(recipes)
@@ -74,9 +74,23 @@ export async function listRecipes(
       .select({ count: sql<number>`count(*)`.mapWith(Number) })
       .from(recipes)
       .where(eq(recipes.userId, userId)),
+    db
+      .select()
+      .from(recipeTags)
+      .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
+      .where(eq(recipes.userId, userId)),
   ]);
 
-  return { recipes: rows, total: countRow?.count ?? 0, limit, offset };
+  const tagsByRecipeId = new Map<string, RecipeTagRecord[]>();
+  for (const row of allTags) {
+    const existing = tagsByRecipeId.get(row.recipe_tags.recipeId) ?? [];
+    existing.push(row.recipe_tags);
+    tagsByRecipeId.set(row.recipe_tags.recipeId, existing);
+  }
+
+  const recipesWithTags = rows.map((r) => ({ ...r, tags: tagsByRecipeId.get(r.id) ?? [] }));
+
+  return { recipes: recipesWithTags, total: countRow?.count ?? 0, limit, offset };
 }
 
 export async function getRecipeById(
@@ -155,13 +169,24 @@ export async function updateRecipe(
 ): Promise<RecipeRecord | null> {
   const db = getDb();
 
+  const { tags, ...recipeFields } = input;
+
   const [updated] = await db
     .update(recipes)
-    .set({ ...input, updatedAt: new Date() })
+    .set({ ...recipeFields, updatedAt: new Date() })
     .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
     .returning();
 
-  return updated ?? null;
+  if (!updated) return null;
+
+  if (tags !== undefined) {
+    await db.delete(recipeTags).where(eq(recipeTags.recipeId, id));
+    if (tags.length > 0) {
+      await db.insert(recipeTags).values(tags.map((tag) => ({ tag, recipeId: id })));
+    }
+  }
+
+  return updated;
 }
 
 export async function deleteRecipe(
