@@ -1,4 +1,4 @@
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, asc, eq, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
 
@@ -55,25 +55,49 @@ export type ListRecipesResult = {
   offset: number;
 };
 
+export type ListRecipesParams = {
+  limit?: number;
+  offset?: number;
+  tag?: string;
+  difficulty?: string;
+  sort?: "newest" | "oldest" | "title";
+};
+
 export async function listRecipes(
   userId: string,
-  limit = 20,
-  offset = 0,
+  params: ListRecipesParams = {},
 ): Promise<ListRecipesResult> {
+  const { limit = 20, offset = 0, tag, difficulty, sort = "newest" } = params;
   const db = getDb();
 
+  // If filtering by tag, first find matching recipe IDs
+  let tagFilteredIds: string[] | null = null;
+  if (tag) {
+    const tagRows = await db
+      .select({ recipeId: recipeTags.recipeId })
+      .from(recipeTags)
+      .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
+      .where(and(eq(recipes.userId, userId), eq(recipeTags.tag, tag.toLowerCase().trim())));
+    tagFilteredIds = tagRows.map((r) => r.recipeId);
+    if (tagFilteredIds.length === 0) {
+      return { recipes: [], total: 0, limit, offset };
+    }
+  }
+
+  const baseWhere = and(
+    eq(recipes.userId, userId),
+    difficulty ? eq(recipes.difficulty, difficulty as "easy" | "medium" | "hard") : undefined,
+    tagFilteredIds ? inArray(recipes.id, tagFilteredIds) : undefined,
+  );
+
+  const orderBy =
+    sort === "oldest" ? asc(recipes.updatedAt)
+    : sort === "title" ? asc(recipes.title)
+    : desc(recipes.updatedAt);
+
   const [rows, [countRow], allTags] = await Promise.all([
-    db
-      .select()
-      .from(recipes)
-      .where(eq(recipes.userId, userId))
-      .orderBy(desc(recipes.updatedAt))
-      .limit(limit)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(recipes)
-      .where(eq(recipes.userId, userId)),
+    db.select().from(recipes).where(baseWhere).orderBy(orderBy).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(recipes).where(baseWhere),
     db
       .select()
       .from(recipeTags)

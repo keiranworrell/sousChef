@@ -53,9 +53,12 @@ const UpdateRecipeSchema = CreateRecipeSchema.partial().omit({
   tags: true,
 });
 
-const PaginationSchema = z.object({
+const ListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
   offset: z.coerce.number().int().nonnegative().optional().default(0),
+  tag: z.string().optional(),
+  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  sort: z.enum(["newest", "oldest", "title"]).optional(),
 });
 
 // ── Handler ────────────────────────────────────────────────────────────────────
@@ -74,8 +77,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // GET /recipes
     if (method === "GET" && !recipeId) {
-      const query = PaginationSchema.parse(event.queryStringParameters ?? {});
-      const result = await listRecipes(user.id, query.limit, query.offset);
+      const query = ListQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await listRecipes(user.id, query);
       return okResponse(result);
     }
 

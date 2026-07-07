@@ -6,14 +6,14 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 ## 🐛 Bugs
 
-- [ ] Shopping list generation from meal plan is broken
-- [ ] Pantry population from completed shopping list is broken
+- [x] Shopping list generation from meal plan is broken
+- [x] Pantry population from completed shopping list is broken
 
 ---
 
 ## 🎨 Small / UI changes
 
-- [ ] Confirm password field on sign-up form (enter twice for validation)
+- [x] Confirm password field on sign-up form (enter twice for validation)
 - [ ] Move recipe importer inside the recipe creation form (not always at top of recipe list); include list of supported import sources
 - [ ] Add a source label/link on imported recipes pointing to the original URL
 - [ ] Show a "public" label or star on recipes the user has made public
@@ -27,14 +27,14 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 - [x] Recipe tags — starter, main, dessert, baking, cuisine (Mexican, Italian, etc.) — usable for search and filter
 - [ ] Predictive tags based on ingredients (e.g. auto-flag vegetarian/vegan from ingredient list, likely via a simple rules pass or a cheap AI call)
-- [ ] Filter and sort on Recipes and Community tabs — most used, most/least recently used, dietary requirements, tags
+- [x] Filter and sort on Recipes tab — by tag, difficulty, and sort order (newest/oldest/A–Z)
 - [ ] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
 - [ ] Share button on recipes — generate a shareable link that opens the recipe for non-users (public recipes only)
 - [ ] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
 - [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
 - [ ] Add friends — follow/connect with other users
 - [ ] Ingredient substitution assistant — AI agent surfaced while cooking a recipe (agent skeleton already exists in `backend/agents/substitution.ts`)
-- [ ] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
+- [x] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
 
 ---
 
