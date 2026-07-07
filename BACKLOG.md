@@ -6,14 +6,14 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 ## 🐛 Bugs
 
-- [ ] Shopping list generation from meal plan is broken
-- [ ] Pantry population from completed shopping list is broken
+- [x] Shopping list generation from meal plan is broken
+- [x] Pantry population from completed shopping list is broken
 
 ---
 
 ## 🎨 Small / UI changes
 
-- [ ] Confirm password field on sign-up form (enter twice for validation)
+- [x] Confirm password field on sign-up form (enter twice for validation)
 - [ ] Move recipe importer inside the recipe creation form (not always at top of recipe list); include list of supported import sources
 - [ ] Add a source label/link on imported recipes pointing to the original URL
 - [ ] Show a "public" label or star on recipes the user has made public
@@ -34,7 +34,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
 - [ ] Add friends — follow/connect with other users
 - [ ] Ingredient substitution assistant — AI agent surfaced while cooking a recipe (agent skeleton already exists in `backend/agents/substitution.ts`)
-- [ ] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
+- [x] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
 
 ---
 
