@@ -40,24 +40,40 @@ const GenerateShoppingListSchema = z.object({
 function aggregateIngredients(
   ingredients: MealPlanIngredient[],
 ): Array<{ name: string; quantity: number | null; unit: string | null }> {
-  const map = new Map<string, { name: string; quantity: number | null; unit: string | null }>();
+  // Group by ingredient name (case-insensitive). Within each group, sum quantities
+  // when all entries share the same unit. When units differ, drop quantity/unit so
+  // the user at least gets a single line item for the ingredient.
+  type Entry = { name: string; quantity: number | null; unit: string | null };
+  const map = new Map<string, Entry[]>();
 
   for (const ing of ingredients) {
-    const key = `${ing.name.toLowerCase().trim()}||${(ing.unit ?? "").toLowerCase().trim()}`;
-    const existing = map.get(key);
-    if (existing) {
-      // Sum quantities if both are numeric; otherwise set to null (unknown total)
-      if (existing.quantity !== null && ing.quantity !== null) {
-        existing.quantity += ing.quantity;
-      } else {
-        existing.quantity = null;
-      }
+    const nameKey = ing.name.toLowerCase().trim();
+    const entries = map.get(nameKey);
+    if (entries) {
+      entries.push({ name: ing.name, quantity: ing.quantity, unit: ing.unit ?? null });
     } else {
-      map.set(key, { name: ing.name, quantity: ing.quantity, unit: ing.unit ?? null });
+      map.set(nameKey, [{ name: ing.name, quantity: ing.quantity, unit: ing.unit ?? null }]);
     }
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).map((entries) => {
+    const first = entries[0]!;
+    if (entries.length === 1) return first;
+
+    const units = new Set(entries.map((e) => (e.unit ?? "").toLowerCase().trim()));
+
+    if (units.size === 1) {
+      // All same unit — sum quantities (null if any is unknown)
+      const total = entries.reduce<number | null>((acc, e) => {
+        if (acc === null || e.quantity === null) return null;
+        return acc + e.quantity;
+      }, 0);
+      return { name: first.name, quantity: total, unit: first.unit };
+    }
+
+    // Mixed units — can't safely sum; return the ingredient with no quantity/unit
+    return { name: first.name, quantity: null, unit: null };
+  });
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────
