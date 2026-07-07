@@ -156,7 +156,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
       </div>
 
       {/* Meta */}
-      <div className="mb-8 flex flex-wrap gap-4 text-sm text-gray-500 border-b border-gray-100 pb-6">
+      <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-500">
         <span>{recipe.servings} servings</span>
         {totalMins > 0 && <span>{totalMins} min total</span>}
         {recipe.prepTimeMinutes && <span>{recipe.prepTimeMinutes} min prep</span>}
@@ -164,6 +164,20 @@ export default function RecipeDetailPage(): React.JSX.Element {
         {recipe.difficulty && <span className="capitalize">{recipe.difficulty}</span>}
         {recipe.cuisine && <span>{recipe.cuisine}</span>}
       </div>
+
+      {recipe.tags.length > 0 && (
+        <div className="mb-8 flex flex-wrap gap-1.5 border-b border-gray-100 pb-6">
+          {recipe.tags.map((t) => (
+            <span
+              key={t.id}
+              className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-600"
+            >
+              {t.tag}
+            </span>
+          ))}
+        </div>
+      )}
+      {recipe.tags.length === 0 && <div className="mb-8 border-b border-gray-100" />}
 
       {/* Ingredients */}
       {recipe.ingredients.length > 0 && (

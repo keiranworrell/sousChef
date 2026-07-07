@@ -33,6 +33,10 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   const [difficulty, setDifficulty] = useState<string>(initial?.difficulty ?? "");
   const [cuisine, setCuisine] = useState(initial?.cuisine ?? "");
   const [isPublic, setIsPublic] = useState(initial?.isPublic ?? false);
+  const [tags, setTags] = useState<string[]>(
+    initial?.tags.map((t) => t.tag) ?? [],
+  );
+  const [tagInput, setTagInput] = useState("");
 
   const [ingredients, setIngredients] = useState<IngredientField[]>(
     initial?.ingredients.map((i) => ({
@@ -69,6 +73,18 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     setSteps((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  function addTag(value: string): void {
+    const trimmed = value.trim().toLowerCase();
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags((prev) => [...prev, trimmed]);
+    }
+    setTagInput("");
+  }
+
+  function removeTag(tag: string): void {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setError(null);
@@ -95,6 +111,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             notes: i.notes || null,
             orderIndex: idx,
           })),
+        tags,
         steps: steps
           .filter((s) => s.instruction.trim())
           .map((s, idx) => ({
@@ -216,6 +233,48 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
               <span className="text-sm text-gray-700">Make public</span>
             </label>
           </div>
+        </div>
+
+        <div>
+          <label className="label">Tags</label>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="text-orange-400 hover:text-orange-700"
+                  aria-label={`Remove ${tag}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <input
+            className="input"
+            placeholder="e.g. vegetarian, pasta, quick — press Enter or comma to add"
+            value={tagInput}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.endsWith(",")) {
+                addTag(val.slice(0, -1));
+              } else {
+                setTagInput(val);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addTag(tagInput);
+              }
+            }}
+          />
+          <p className="mt-1 text-xs text-gray-500">Press Enter or type a comma to add a tag</p>
         </div>
       </section>
 

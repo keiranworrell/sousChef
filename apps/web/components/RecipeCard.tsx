@@ -44,6 +44,19 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
         {totalMins > 0 && <span>{totalMins} min</span>}
         {recipe.cuisine && <span>{recipe.cuisine}</span>}
       </div>
+
+      {recipe.tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {recipe.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
     </Link>
   );
 }
