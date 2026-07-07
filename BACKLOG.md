@@ -34,6 +34,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
 - [ ] Add friends — follow/connect with other users
 - [ ] Ingredient substitution assistant — AI agent surfaced while cooking a recipe (agent skeleton already exists in `backend/agents/substitution.ts`)
+- [ ] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
 
 ---
 
