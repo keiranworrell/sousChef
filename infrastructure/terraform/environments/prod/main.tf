@@ -412,6 +412,12 @@ resource "aws_apigatewayv2_route" "mealplans_entries_delete" {
   target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
 }
 
+resource "aws_apigatewayv2_route" "mealplans_generate_shopping_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /meal-plans/{planId}/shopping-list"
+  target    = "integrations/${aws_apigatewayv2_integration.mealplans.id}"
+}
+
 # ── Fermentation Lambda ────────────────────────────────────────────────────────
 
 data "archive_file" "fermentation" {

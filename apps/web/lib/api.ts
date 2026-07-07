@@ -1,7 +1,7 @@
 import { fetchAuthSession } from "aws-amplify/auth";
 import { createApiClient } from "@souschef/shared";
 
-const BASE_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "";
+const BASE_URL = (process.env["NEXT_PUBLIC_API_URL"] ?? "").replace(/\/$/, "");
 
 /**
  * Returns an API client pre-loaded with the current user's ID token.
