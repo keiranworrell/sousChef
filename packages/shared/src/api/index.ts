@@ -2,6 +2,7 @@ import type {
   ApiResponse,
   CommunityFeedParams,
   CommunityFeedResponse,
+  CommunityRecipe,
   CreateFermentationBatchInput,
   CreateFermentationLogInput,
   CreateMealPlanEntryInput,
@@ -137,8 +138,8 @@ export function createApiClient(baseUrl: string, token?: string) {
         return get<CommunityFeedResponse>(`/community/recipes${query}`);
       },
 
-      get: (recipeId: string): Promise<ApiResponse<RecipeWithDetails>> =>
-        get<RecipeWithDetails>(`/community/recipes/${recipeId}`),
+      get: (recipeId: string): Promise<ApiResponse<CommunityRecipe>> =>
+        get<CommunityRecipe>(`/community/recipes/${recipeId}`),
 
       fork: (recipeId: string): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>(`/community/recipes/${recipeId}/fork`, {}),

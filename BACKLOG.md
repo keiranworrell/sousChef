@@ -18,7 +18,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [ ] Add a source label/link on imported recipes pointing to the original URL
 - [ ] Show a "public" label or star on recipes the user has made public
 - [ ] Rearrange nav bar — move Fermentation into a dropdown (niche feature, declutters main nav)
-- [ ] Show creator name/label on community recipe cards
+- [x] Show creator name/label on community recipe cards
 - [ ] Search community recipes by user/creator
 
 ---

@@ -1,7 +1,11 @@
 import { and, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import { getDb } from "../client";
-import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
+import { recipes, recipeIngredients, recipeSteps, recipeTags, users } from "../schema";
 import type { RecipeWithDetails } from "./recipe-queries";
+
+export type CommunityRecipeWithCreator = RecipeWithDetails & {
+  creatorName: string;
+};
 
 export type CommunityFeedParams = {
   userId: string;
@@ -13,7 +17,7 @@ export type CommunityFeedParams = {
 };
 
 export type CommunityFeedResult = {
-  recipes: RecipeWithDetails[];
+  recipes: CommunityRecipeWithCreator[];
   total: number;
   limit: number;
   offset: number;
@@ -56,8 +60,9 @@ export async function listPublicRecipes(
 
   const [rows, [countRow]] = await Promise.all([
     db
-      .select()
+      .select({ recipe: recipes, creatorName: users.displayName })
       .from(recipes)
+      .innerJoin(users, eq(recipes.userId, users.id))
       .where(where)
       .orderBy(desc(recipes.updatedAt))
       .limit(limit)
@@ -69,9 +74,13 @@ export async function listPublicRecipes(
   ]);
 
   // Fetch details for all returned recipes in parallel
-  const recipeIds = rows.map((r) => r.id);
+  const recipeIds = rows.map((r) => r.recipe.id);
   const fullRecipes = recipeIds.length > 0
-    ? await fetchRecipeDetails(recipeIds, rows)
+    ? await fetchRecipeDetails(
+        recipeIds,
+        rows.map((r) => r.recipe),
+        rows.map((r) => r.creatorName),
+      )
     : [];
 
   return { recipes: fullRecipes, total: countRow?.count ?? 0, limit, offset };
@@ -80,7 +89,8 @@ export async function listPublicRecipes(
 async function fetchRecipeDetails(
   ids: string[],
   recipeRows: (typeof recipes.$inferSelect)[],
-): Promise<RecipeWithDetails[]> {
+  creatorNames: string[],
+): Promise<CommunityRecipeWithCreator[]> {
   const db = getDb();
 
   const [allIngredients, allSteps, allTags] = await Promise.all([
@@ -100,24 +110,26 @@ async function fetchRecipeDetails(
       .where(inArray(recipeTags.recipeId, ids)),
   ]);
 
-  return recipeRows.map((recipe) => ({
+  return recipeRows.map((recipe, idx) => ({
     ...recipe,
     ingredients: allIngredients.filter((i) => i.recipeId === recipe.id),
     steps: allSteps.filter((s) => s.recipeId === recipe.id),
     tags: allTags.filter((t) => t.recipeId === recipe.id),
+    creatorName: creatorNames[idx] ?? "Unknown",
   }));
 }
 
 // ── Get single public recipe ───────────────────────────────────────────────────
 
-export async function getPublicRecipe(id: string): Promise<RecipeWithDetails | null> {
+export async function getPublicRecipe(id: string): Promise<CommunityRecipeWithCreator | null> {
   const db = getDb();
-  const [recipe] = await db
-    .select()
+  const [row] = await db
+    .select({ recipe: recipes, creatorName: users.displayName })
     .from(recipes)
+    .innerJoin(users, eq(recipes.userId, users.id))
     .where(and(eq(recipes.id, id), eq(recipes.isPublic, true)));
-  if (!recipe) return null;
-  const [result] = await fetchRecipeDetails([recipe.id], [recipe]);
+  if (!row) return null;
+  const [result] = await fetchRecipeDetails([row.recipe.id], [row.recipe], [row.creatorName]);
   return result ?? null;
 }
 
