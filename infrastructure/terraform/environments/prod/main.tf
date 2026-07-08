@@ -704,14 +704,6 @@ data "archive_file" "images" {
   output_path = "${path.root}/../../../../backend/dist/lambda/images.zip"
 }
 
-data "aws_iam_policy_document" "images_s3" {
-  statement {
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.recipe_images.arn}/recipes/*"]
-  }
-}
-
 module "images" {
   source          = "../../modules/lambda"
   function_name   = "souschef-${var.environment}-images"
@@ -719,7 +711,16 @@ module "images" {
   zip_path        = data.archive_file.images.output_path
   timeout_seconds = 30
   memory_mb       = 256
-  policy_json     = data.aws_iam_policy_document.images_s3.json
+  policy_json     = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*"
+      }
+    ]
+  })
 
   environment_variables = {
     DATABASE_URL              = var.database_url
