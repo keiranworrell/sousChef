@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { Recipe } from "@souschef/shared";
 import RecipeCard from "@/components/RecipeCard";
 import { getApiClient } from "@/lib/api";
@@ -11,15 +10,9 @@ type SortOption = "newest" | "oldest" | "title";
 type DifficultyOption = "" | "easy" | "medium" | "hard";
 
 export default function RecipesPage(): React.JSX.Element {
-  const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [importUrl, setImportUrl] = useState("");
-  const [importLoading, setImportLoading] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Filter/sort state
   const [sort, setSort] = useState<SortOption>("newest");
@@ -75,23 +68,6 @@ export default function RecipesPage(): React.JSX.Element {
     void load({ sort, tag, difficulty });
   }, [sort, tag, difficulty, load]);
 
-  async function handleImport(e: React.FormEvent): Promise<void> {
-    e.preventDefault();
-    const url = importUrl.trim();
-    if (!url) return;
-    setImportError(null);
-    setImportLoading(true);
-    try {
-      const api = await getApiClient();
-      const res = await api.recipes.import({ url });
-      if ("error" in res) throw new Error(res.error.message);
-      router.push(`/recipes/${res.data.id}`);
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Import failed");
-      setImportLoading(false);
-    }
-  }
-
   const hasFilters = tag !== "" || difficulty !== "";
 
   return (
@@ -102,32 +78,6 @@ export default function RecipesPage(): React.JSX.Element {
           + New recipe
         </Link>
       </div>
-
-      {/* URL import */}
-      <form onSubmit={(e) => { void handleImport(e); }} className="mb-8">
-        <label className="label">Import from URL</label>
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            type="url"
-            className="input flex-1"
-            placeholder="https://www.example.com/recipe/..."
-            value={importUrl}
-            onChange={(e) => setImportUrl(e.target.value)}
-            disabled={importLoading}
-          />
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={importLoading || !importUrl.trim()}
-          >
-            {importLoading ? "Importing…" : "Import"}
-          </button>
-        </div>
-        {importError && (
-          <p className="mt-1 text-sm text-red-600">{importError}</p>
-        )}
-      </form>
 
       {/* Filter / sort bar */}
       <div className="mb-6 flex flex-wrap items-center gap-3">

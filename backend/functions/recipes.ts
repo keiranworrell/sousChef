@@ -82,7 +82,23 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse(result);
     }
 
-    // POST /recipes/import
+    // POST /recipes/import/parse — parse only, no save
+    if (method === "POST" && event.rawPath?.endsWith("/import/parse")) {
+      const body = parseBody(event.body, ImportRecipeSchema);
+      const result = await importRecipeFromUrl(body.url);
+      if (!result.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: { code: "IMPORT_FAILED", message: result.error },
+          }),
+        };
+      }
+      return okResponse(result.recipe);
+    }
+
+    // POST /recipes/import — parse and save
     if (method === "POST" && event.rawPath?.endsWith("/import")) {
       const body = parseBody(event.body, ImportRecipeSchema);
       const result = await importRecipeFromUrl(body.url);

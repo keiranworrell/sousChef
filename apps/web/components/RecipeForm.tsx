@@ -21,6 +21,17 @@ type StepField = {
   timerSeconds: string;
 };
 
+const SUPPORTED_SOURCES = [
+  "BBC Good Food",
+  "AllRecipes",
+  "Serious Eats",
+  "NYT Cooking",
+  "Bon Appétit",
+  "Food Network",
+  "Epicurious",
+  "most sites using Schema.org recipe markup",
+];
+
 export default function RecipeForm({ initial }: Props): React.JSX.Element {
   const router = useRouter();
   const isEdit = !!initial;
@@ -56,6 +67,57 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Import state (create mode only)
+  const [importUrl, setImportUrl] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [imported, setImported] = useState(false);
+
+  async function handleImport(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    const url = importUrl.trim();
+    if (!url) return;
+    setImportError(null);
+    setImportLoading(true);
+    try {
+      const api = await getApiClient();
+      const res = await api.recipes.parse({ url });
+      if ("error" in res) throw new Error(res.error.message);
+      const r = res.data;
+      if (r.title) setTitle(r.title);
+      if (r.description) setDescription(r.description);
+      if (r.servings) setServings(String(r.servings));
+      if (r.prepTimeMinutes != null) setPrepTime(String(r.prepTimeMinutes));
+      if (r.cookTimeMinutes != null) setCookTime(String(r.cookTimeMinutes));
+      if (r.difficulty) setDifficulty(r.difficulty);
+      if (r.cuisine) setCuisine(r.cuisine);
+      if (r.tags && r.tags.length > 0) setTags(r.tags);
+      if (r.ingredients && r.ingredients.length > 0) {
+        setIngredients(
+          r.ingredients.map((i) => ({
+            name: i.name,
+            quantity: i.quantity != null ? String(i.quantity) : "",
+            unit: i.unit ?? "",
+            notes: i.notes ?? "",
+          })),
+        );
+      }
+      if (r.steps && r.steps.length > 0) {
+        setSteps(
+          r.steps.map((s) => ({
+            instruction: s.instruction,
+            timerSeconds: s.timerSeconds != null ? String(s.timerSeconds) : "",
+          })),
+        );
+      }
+      setImported(true);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImportLoading(false);
+    }
+  }
 
   function addIngredient(): void {
     setIngredients((prev) => [...prev, { name: "", quantity: "", unit: "", notes: "" }]);
@@ -139,6 +201,52 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* URL import (create mode only) */}
+      {!isEdit && (
+        <section className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Import from a URL</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Supported: {SUPPORTED_SOURCES.join(", ")}.
+            </p>
+          </div>
+          {imported ? (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-green-600 font-medium">✓ Recipe imported — review and edit below</p>
+              <button
+                type="button"
+                onClick={() => { setImported(false); setImportUrl(""); }}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                Import a different URL
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="url"
+                className="input flex-1 text-sm"
+                placeholder="https://www.bbcgoodfood.com/recipes/…"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                disabled={importLoading}
+              />
+              <button
+                type="button"
+                onClick={(e) => { void handleImport(e); }}
+                disabled={importLoading || !importUrl.trim()}
+                className="btn-secondary text-sm disabled:opacity-50"
+              >
+                {importLoading ? "Importing…" : "Import"}
+              </button>
+            </div>
+          )}
+          {importError && (
+            <p className="text-xs text-red-600">{importError}</p>
+          )}
+        </section>
+      )}
+
       {/* Basic info */}
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
