@@ -12,6 +12,7 @@ export type CommunityFeedParams = {
   q?: string | null;
   cuisine?: string | null;
   tag?: string | null;
+  creator?: string | null;
   limit?: number;
   offset?: number;
 };
@@ -29,7 +30,7 @@ export async function listPublicRecipes(
   params: CommunityFeedParams,
 ): Promise<CommunityFeedResult> {
   const db = getDb();
-  const { userId, q, cuisine, tag, limit = 20, offset = 0 } = params;
+  const { userId, q, cuisine, tag, creator, limit = 20, offset = 0 } = params;
 
   // Build WHERE conditions — exclude the requesting user's own recipes
   const conditions = [eq(recipes.isPublic, true), ne(recipes.userId, userId)];
@@ -54,6 +55,16 @@ export async function listPublicRecipes(
       .from(recipeTags)
       .where(ilike(recipeTags.tag, `%${tag}%`));
     conditions.push(inArray(recipes.id, tagSubquery));
+  }
+
+  if (creator) {
+    // Subquery: recipe IDs whose owner's displayName matches
+    const creatorSubquery = db
+      .select({ id: recipes.id })
+      .from(recipes)
+      .innerJoin(users, eq(recipes.userId, users.id))
+      .where(ilike(users.displayName, `%${creator}%`));
+    conditions.push(inArray(recipes.id, creatorSubquery));
   }
 
   const where = and(...conditions);

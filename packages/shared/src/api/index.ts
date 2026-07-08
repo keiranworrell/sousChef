@@ -135,6 +135,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         if (params?.q) qs.set("q", params.q);
         if (params?.cuisine) qs.set("cuisine", params.cuisine);
         if (params?.tag) qs.set("tag", params.tag);
+        if (params?.creator) qs.set("creator", params.creator);
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
         if (params?.offset !== undefined) qs.set("offset", String(params.offset));
         const query = qs.toString() ? `?${qs.toString()}` : "";
