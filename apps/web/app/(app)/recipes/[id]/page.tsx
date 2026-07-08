@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { RecipeWithDetails, ShoppingList } from "@souschef/shared";
+import type { RecipeIngredient, RecipeWithDetails, ShoppingList, Substitution } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import IngredientWithSubs from "@/components/IngredientWithSubs";
 
 type AddToListState =
   | { step: "closed" }
@@ -86,6 +87,19 @@ export default function RecipeDetailPage(): React.JSX.Element {
     } catch {
       setAddToList({ step: "closed" });
     }
+  }
+
+  function handleReplaceIngredient(
+    ingredient: RecipeIngredient,
+    sub: Substitution,
+  ): void {
+    if (!recipe) return;
+    setRecipe({
+      ...recipe,
+      ingredients: recipe.ingredients.map((ing) =>
+        ing.id === ingredient.id ? { ...ing, name: sub.name } : ing,
+      ),
+    });
   }
 
   async function addToNewList(name: string): Promise<void> {
@@ -223,18 +237,17 @@ export default function RecipeDetailPage(): React.JSX.Element {
       {/* Ingredients */}
       {recipe.ingredients.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Ingredients</h2>
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Ingredients</h2>
+            <span className="text-xs text-gray-400">Tap an ingredient to see substitutions</span>
+          </div>
           <ul className="space-y-2">
             {recipe.ingredients.map((ing) => (
-              <li key={ing.id} className="flex gap-2 text-sm text-gray-700">
-                {ing.quantity != null && (
-                  <span className="font-medium text-gray-900">
-                    {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""}
-                  </span>
-                )}
-                <span>{ing.name}</span>
-                {ing.notes && <span className="text-gray-400">({ing.notes})</span>}
-              </li>
+              <IngredientWithSubs
+                key={ing.id}
+                ingredient={ing}
+                onReplace={handleReplaceIngredient}
+              />
             ))}
           </ul>
         </section>
