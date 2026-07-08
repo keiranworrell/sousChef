@@ -145,6 +145,7 @@ export type CommunityFeedParams = {
   q?: string;
   cuisine?: string;
   tag?: string;
+  creator?: string;
   limit?: number;
   offset?: number;
 };

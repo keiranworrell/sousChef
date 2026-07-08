@@ -23,6 +23,7 @@ export default function CommunityPage(): React.JSX.Element {
   const [q, setQ] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [tag, setTag] = useState("");
+  const [creator, setCreator] = useState("");
 
   const [offset, setOffset] = useState(0);
   const limit = 20;
@@ -33,7 +34,7 @@ export default function CommunityPage(): React.JSX.Element {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(
-    async (params: { q: string; cuisine: string; tag: string; offset: number }): Promise<void> => {
+    async (params: { q: string; cuisine: string; tag: string; creator: string; offset: number }): Promise<void> => {
       setLoading(true);
       setError(null);
       try {
@@ -42,6 +43,7 @@ export default function CommunityPage(): React.JSX.Element {
           q: params.q || undefined,
           cuisine: params.cuisine || undefined,
           tag: params.tag || undefined,
+          creator: params.creator || undefined,
           limit,
           offset: params.offset,
         });
@@ -62,16 +64,16 @@ export default function CommunityPage(): React.JSX.Element {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setOffset(0);
-      void load({ q, cuisine, tag, offset: 0 });
+      void load({ q, cuisine, tag, creator, offset: 0 });
     }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [q, cuisine, tag, load]);
+  }, [q, cuisine, tag, creator, load]);
 
   // Reload when offset changes (pagination)
   useEffect(() => {
-    void load({ q, cuisine, tag, offset });
+    void load({ q, cuisine, tag, creator, offset });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offset]);
 
@@ -109,6 +111,13 @@ export default function CommunityPage(): React.JSX.Element {
           placeholder="Search recipes…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+        />
+        <input
+          type="text"
+          className="input w-full sm:w-36"
+          placeholder="Creator"
+          value={creator}
+          onChange={(e) => setCreator(e.target.value)}
         />
         <input
           type="text"
