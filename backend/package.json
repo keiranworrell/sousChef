@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
     "@neondatabase/serverless": "^0.10.4",
     "@souschef/shared": "workspace:*",
     "aws-jwt-verify": "^4.0.1",
