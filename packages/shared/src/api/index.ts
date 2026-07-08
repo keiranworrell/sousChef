@@ -1,5 +1,7 @@
 import type {
   ApiResponse,
+  UpdateUserInput,
+  User,
   CommunityFeedParams,
   CommunityFeedResponse,
   CommunityRecipe,
@@ -127,6 +129,14 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       delete: (id: string): Promise<ApiResponse<null>> =>
         del<null>(`/pantry/${id}`),
+    },
+
+    users: {
+      me: (): Promise<ApiResponse<User>> =>
+        get<User>("/users/me"),
+
+      update: (input: UpdateUserInput): Promise<ApiResponse<User>> =>
+        patch<User>("/users/me", input),
     },
 
     images: {

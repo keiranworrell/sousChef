@@ -51,6 +51,10 @@ const entryPoints = [
     in: resolve(root, "functions/images.ts"),
     out: "images",
   },
+  {
+    in: resolve(root, "functions/users.ts"),
+    out: "users",
+  },
 ];
 
 for (const entry of entryPoints) {

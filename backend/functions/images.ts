@@ -10,7 +10,7 @@ import { getUserByCognitoId } from "../db/queries/user-queries";
 
 const PresignRequestSchema = z.object({
   contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
-  context: z.enum(["recipe"]).default("recipe"),
+  context: z.enum(["recipe", "avatar"]).default("recipe"),
 });
 
 const EXTENSION_MAP: Record<string, string> = {
@@ -39,7 +39,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "POST" && path.endsWith("/images/presign")) {
       const body = parseBody(event.body, PresignRequestSchema);
       const ext = EXTENSION_MAP[body.contentType] ?? "jpg";
-      const key = `${body.context}s/${user.id}/${randomUUID()}.${ext}`;
+      const folder = body.context === "avatar" ? "avatars" : "recipes";
+      const key = `${folder}/${user.id}/${randomUUID()}.${ext}`;
 
       const client = new S3Client({ region: AWS_REGION });
       const command = new PutObjectCommand({
