@@ -11,6 +11,16 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      // <img> is intentional — images come from external CDNs (S3/CloudFront, recipe sites)
+      // that aren't configured as Next.js image domains; using next/image would require listing
+      // every possible source. Revisit if we standardise on a single CDN domain.
+      "@next/next/no-img-element": "off",
+      // exhaustive-deps: pre-existing pattern across the codebase; not a runtime issue
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

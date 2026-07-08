@@ -203,7 +203,7 @@ export default function ProfilePage(): React.JSX.Element {
               value={user.email}
               disabled
             />
-            <p className="mt-1 text-xs text-gray-400">Email can't be changed here.</p>
+            <p className="mt-1 text-xs text-gray-400">Email cannot be changed here.</p>
           </div>
           <div>
             <label className="label">Bio</label>
