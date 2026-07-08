@@ -26,11 +26,18 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
         <h2 className="text-base font-semibold text-gray-900 leading-snug">
           {recipe.title}
         </h2>
-        {recipe.difficulty && (
-          <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
-            {DIFFICULTY_LABEL[recipe.difficulty]}
-          </span>
-        )}
+        <div className="flex shrink-0 gap-1.5">
+          {recipe.isPublic && (
+            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
+              Public
+            </span>
+          )}
+          {recipe.difficulty && (
+            <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
+              {DIFFICULTY_LABEL[recipe.difficulty]}
+            </span>
+          )}
+        </div>
       </div>
 
       {recipe.description && (
