@@ -583,3 +583,176 @@ resource "aws_apigatewayv2_route" "community_fork" {
   route_key = "POST /community/recipes/{recipeId}/fork"
   target    = "integrations/${aws_apigatewayv2_integration.community.id}"
 }
+
+# ── Recipe Images S3 + CloudFront ──────────────────────────────────────────────
+
+resource "aws_s3_bucket" "recipe_images" {
+  bucket = "souschef-${var.environment}-recipe-images"
+
+  tags = {
+    Name = "souschef-${var.environment}-recipe-images"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "recipe_images" {
+  bucket                  = aws_s3_bucket.recipe_images.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_cors_configuration" "recipe_images" {
+  bucket = aws_s3_bucket.recipe_images.id
+
+  cors_rule {
+    allowed_headers = ["Content-Type"]
+    allowed_methods = ["PUT"]
+    allowed_origins = [
+      "https://souschef.app",
+      "https://sous-chef-web-l1zo.vercel.app",
+      "http://localhost:3000",
+    ]
+    max_age_seconds = 3000
+  }
+}
+
+resource "aws_cloudfront_origin_access_control" "recipe_images" {
+  name                              = "souschef-${var.environment}-recipe-images-oac"
+  description                       = "OAC for sousChef recipe images bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_distribution" "recipe_images" {
+  enabled             = true
+  comment             = "sousChef ${var.environment} recipe images CDN"
+  default_root_object = ""
+  price_class         = "PriceClass_100"
+
+  origin {
+    domain_name              = aws_s3_bucket.recipe_images.bucket_regional_domain_name
+    origin_id                = "s3-recipe-images"
+    origin_access_control_id = aws_cloudfront_origin_access_control.recipe_images.id
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "s3-recipe-images"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    min_ttl     = 0
+    default_ttl = 86400
+    max_ttl     = 31536000
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  tags = {
+    Name = "souschef-${var.environment}-recipe-images"
+  }
+}
+
+# Allow CloudFront to read from the S3 bucket via OAC
+resource "aws_s3_bucket_policy" "recipe_images" {
+  bucket = aws_s3_bucket.recipe_images.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowCloudFrontServicePrincipal"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.recipe_images.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.recipe_images.arn
+          }
+        }
+      }
+    ]
+  })
+}
+
+# ── Images Lambda ──────────────────────────────────────────────────────────────
+
+data "archive_file" "images" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/images.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/images.zip"
+}
+
+data "aws_iam_policy_document" "images_s3" {
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.recipe_images.arn}/recipes/*"]
+  }
+}
+
+module "images" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-images"
+  handler         = "images.handler"
+  zip_path        = data.archive_file.images.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = data.aws_iam_policy_document.images_s3.json
+
+  environment_variables = {
+    DATABASE_URL              = var.database_url
+    NODE_ENV                  = var.environment
+    COGNITO_USER_POOL_ID      = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS        = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+    IMAGES_BUCKET_NAME        = aws_s3_bucket.recipe_images.bucket
+    IMAGES_CLOUDFRONT_DOMAIN  = aws_cloudfront_distribution.recipe_images.domain_name
+  }
+}
+
+resource "aws_cloudwatch_log_group" "images" {
+  name              = "/aws/lambda/${module.images.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "images_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.images.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/images*"
+}
+
+resource "aws_apigatewayv2_integration" "images" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.images.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "images_presign" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /images/presign"
+  target    = "integrations/${aws_apigatewayv2_integration.images.id}"
+}
