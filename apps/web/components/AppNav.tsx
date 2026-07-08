@@ -15,33 +15,44 @@ export default function AppNav(): React.JSX.Element {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
-  const navItems: NavItem[] = [
+  const mainNavItems: NavItem[] = [
     { label: "Recipes", href: "/recipes", active: pathname.startsWith("/recipes") },
     { label: "Pantry", href: "/pantry", active: pathname.startsWith("/pantry") },
     { label: "Shopping", href: "/shopping", active: pathname.startsWith("/shopping") },
-    { label: "Fermentation", href: "/fermentation", active: pathname.startsWith("/fermentation") },
     { label: "Meal Plan", href: "/meal-plan", active: pathname.startsWith("/meal-plan") },
     { label: "Community", href: "/community", active: pathname.startsWith("/community") },
   ];
 
-  const activeItem = navItems.find((item) => item.active);
+  const moreNavItems: NavItem[] = [
+    { label: "Fermentation", href: "/fermentation", active: pathname.startsWith("/fermentation") },
+  ];
 
-  // Close menu when clicking outside
+  const allNavItems = [...mainNavItems, ...moreNavItems];
+  const activeItem = allNavItems.find((item) => item.active);
+  const moreActive = moreNavItems.some((item) => item.active);
+
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent): void {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+      }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close menu on route change
+  // Close menus on route change
   useEffect(() => {
     setMenuOpen(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   async function handleSignOut(): Promise<void> {
@@ -63,7 +74,7 @@ export default function AppNav(): React.JSX.Element {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => (
+          {mainNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -76,6 +87,48 @@ export default function AppNav(): React.JSX.Element {
               {item.label}
             </Link>
           ))}
+
+          {/* More dropdown */}
+          <div className="relative" ref={moreRef}>
+            <button
+              onClick={() => setMoreOpen((o) => !o)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                moreActive
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              More
+              <svg
+                className={`h-3.5 w-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            {moreOpen && (
+              <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                {moreNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`block px-4 py-2 text-sm font-medium transition-colors ${
+                      item.active
+                        ? "bg-orange-50 text-orange-600"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Desktop sign out */}
@@ -118,7 +171,7 @@ export default function AppNav(): React.JSX.Element {
 
           {menuOpen && (
             <div className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-sm py-2 px-4 flex flex-col">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
