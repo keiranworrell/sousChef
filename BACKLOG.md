@@ -19,7 +19,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [x] Show a "public" label or star on recipes the user has made public
 - [x] Rearrange nav bar — move Fermentation into a dropdown (niche feature, declutters main nav)
 - [x] Show creator name/label on community recipe cards
-- [ ] Search community recipes by user/creator
+- [x] Search community recipes by user/creator
 
 ---
 
