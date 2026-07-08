@@ -140,8 +140,8 @@ export function createApiClient(baseUrl: string, token?: string) {
     },
 
     images: {
-      presign: (contentType: string): Promise<ApiResponse<{ uploadUrl: string; imageUrl: string }>> =>
-        post<{ uploadUrl: string; imageUrl: string }>("/images/presign", { contentType, context: "recipe" }),
+      presign: (contentType: string, context: "recipe" | "avatar" = "recipe"): Promise<ApiResponse<{ uploadUrl: string; imageUrl: string }>> =>
+        post<{ uploadUrl: string; imageUrl: string }>("/images/presign", { contentType, context }),
     },
 
     community: {
