@@ -65,8 +65,36 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     })) ?? [{ instruction: "", timerSeconds: "" }],
   );
 
+  const [imageUrl, setImageUrl] = useState<string>(initial?.imageUrl ?? "");
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageError(null);
+    setImageUploading(true);
+    try {
+      const api = await getApiClient();
+      const presignRes = await api.images.presign(file.type);
+      if ("error" in presignRes) throw new Error(presignRes.error.message);
+      const { uploadUrl, imageUrl: cdnUrl } = presignRes.data;
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      setImageUrl(cdnUrl);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setImageUploading(false);
+    }
+  }
 
   // Import state (create mode only)
   const [importUrl, setImportUrl] = useState("");
@@ -87,6 +115,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       const r = res.data;
       if (r.title) setTitle(r.title);
       if (r.description) setDescription(r.description);
+      if (r.imageUrl) setImageUrl(r.imageUrl);
       if (r.servings) setServings(String(r.servings));
       if (r.prepTimeMinutes != null) setPrepTime(String(r.prepTimeMinutes));
       if (r.cookTimeMinutes != null) setCookTime(String(r.cookTimeMinutes));
@@ -158,6 +187,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       const payload: CreateRecipeInput = {
         title,
         description: description || null,
+        imageUrl: imageUrl || null,
         servings: parseInt(servings, 10) || 4,
         prepTimeMinutes: prepTime ? parseInt(prepTime, 10) : null,
         cookTimeMinutes: cookTime ? parseInt(cookTime, 10) : null,
@@ -340,6 +370,42 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
               />
               <span className="text-sm text-gray-700">Make public</span>
             </label>
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Photo</label>
+          <div className="flex items-start gap-4">
+            {imageUrl && (
+              <div className="relative shrink-0">
+                <img
+                  src={imageUrl}
+                  alt="Recipe"
+                  className="h-24 w-24 rounded-lg object-cover border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-white text-xs hover:bg-red-600"
+                  aria-label="Remove image"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <div className="flex-1">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition ${imageUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) => { void handleImageSelect(e); }}
+                  disabled={imageUploading}
+                />
+                {imageUploading ? "Uploading…" : imageUrl ? "Replace photo" : "Upload a photo"}
+              </label>
+              {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
+            </div>
           </div>
         </div>
 

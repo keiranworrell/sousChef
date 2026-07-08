@@ -129,6 +129,11 @@ export function createApiClient(baseUrl: string, token?: string) {
         del<null>(`/pantry/${id}`),
     },
 
+    images: {
+      presign: (contentType: string): Promise<ApiResponse<{ uploadUrl: string; imageUrl: string }>> =>
+        post<{ uploadUrl: string; imageUrl: string }>("/images/presign", { contentType, context: "recipe" }),
+    },
+
     community: {
       list: (params?: CommunityFeedParams): Promise<ApiResponse<CommunityFeedResponse>> => {
         const qs = new URLSearchParams();
