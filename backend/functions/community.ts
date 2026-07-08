@@ -14,12 +14,21 @@ export const handler: APIGatewayProxyHandlerV2 = async (
   event,
 ): Promise<APIGatewayProxyResultV2> => {
   try {
+    const method = event.requestContext.http.method.toUpperCase();
+    const path = event.rawPath ?? "";
+
+    // GET /public/recipes/{id} — no auth required
+    const publicDetailMatch = path.match(/\/public\/recipes\/([^/]+)$/);
+    if (publicDetailMatch && method === "GET") {
+      const recipeId = publicDetailMatch[1]!;
+      const recipe = await getPublicRecipe(recipeId);
+      if (!recipe) throw new NotFoundError("Recipe not found");
+      return okResponse(recipe);
+    }
+
     const auth = await validateAuth(event);
     const user = await getUserByCognitoId(auth.cognitoId);
     if (!user) throw new NotFoundError("User not found");
-
-    const method = event.requestContext.http.method.toUpperCase();
-    const path = event.rawPath ?? "";
 
     // POST /community/recipes/{id}/fork
     const forkMatch = path.match(/\/community\/recipes\/([^/]+)\/fork$/);

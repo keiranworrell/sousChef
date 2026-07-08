@@ -21,6 +21,15 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [addToList, setAddToList] = useState<AddToListState>({ step: "closed" });
+  const [copied, setCopied] = useState(false);
+
+  function handleShare(): void {
+    const url = `${window.location.origin}/r/${id}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -164,6 +173,14 @@ export default function RecipeDetailPage(): React.JSX.Element {
           {recipe.ingredients.length > 0 && (
             <button onClick={() => { void openAddToList(); }} className="btn-secondary">
               Add to list
+            </button>
+          )}
+          {recipe.isPublic && (
+            <button
+              onClick={handleShare}
+              className="btn-secondary"
+            >
+              {copied ? "✓ Copied!" : "Share"}
             </button>
           )}
           <Link href={`/recipes/${id}/edit`} className="btn-secondary">
