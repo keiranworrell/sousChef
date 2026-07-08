@@ -58,6 +58,8 @@ export type Recipe = {
   difficulty: Difficulty | null;
   cuisine: string | null;
   isPublic: boolean;
+  sourceUrl: string | null;
+  forkedFromId: string | null;
   tags: string[];
   createdAt: ISODateString;
   updatedAt: ISODateString;

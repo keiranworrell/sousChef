@@ -130,6 +130,16 @@ export default function RecipeDetailPage(): React.JSX.Element {
           {recipe.description && (
             <p className="mt-2 text-gray-500">{recipe.description}</p>
           )}
+          {recipe.sourceUrl && (
+            <a
+              href={recipe.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block text-xs text-gray-400 hover:text-orange-500 hover:underline"
+            >
+              ↗ Original source: {new URL(recipe.sourceUrl).hostname.replace(/^www\./, "")}
+            </a>
+          )}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {recipe.steps.length > 0 && (
