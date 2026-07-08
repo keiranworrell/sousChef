@@ -704,14 +704,8 @@ data "archive_file" "images" {
   output_path = "${path.root}/../../../../backend/dist/lambda/images.zip"
 }
 
-module "images" {
-  source          = "../../modules/lambda"
-  function_name   = "souschef-${var.environment}-images"
-  handler         = "images.handler"
-  zip_path        = data.archive_file.images.output_path
-  timeout_seconds = 30
-  memory_mb       = 256
-  policy_json     = jsonencode({
+locals {
+  images_s3_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -721,6 +715,16 @@ module "images" {
       }
     ]
   })
+}
+
+module "images" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-images"
+  handler         = "images.handler"
+  zip_path        = data.archive_file.images.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = local.images_s3_policy
 
   environment_variables = {
     DATABASE_URL              = var.database_url
