@@ -30,7 +30,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [x] Filter and sort on Recipes tab — by tag, difficulty, and sort order (newest/oldest/A–Z)
 - [ ] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
 - [ ] Share button on recipes — generate a shareable link that opens the recipe for non-users (public recipes only)
-- [ ] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
+- [x] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
 - [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
 - [ ] Add friends — follow/connect with other users
 - [ ] Ingredient substitution assistant — AI agent surfaced while cooking a recipe (agent skeleton already exists in `backend/agents/substitution.ts`)
