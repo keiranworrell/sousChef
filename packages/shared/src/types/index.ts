@@ -39,7 +39,17 @@ export type User = {
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  bio: string | null;
+  dietaryPreferences: string[] | null;
   createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type UpdateUserInput = {
+  displayName?: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  dietaryPreferences?: string[] | null;
 };
 
 // ─── Recipe ────────────────────────────────────────────────────────────────────

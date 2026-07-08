@@ -35,3 +35,26 @@ export async function getUserByCognitoId(
     .limit(1);
   return user ?? null;
 }
+
+export type UpdateUserInput = {
+  displayName?: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  dietaryPreferences?: string[] | null;
+};
+
+/**
+ * Updates a user's profile fields. Returns the updated record or null if not found.
+ */
+export async function updateUser(
+  id: string,
+  input: UpdateUserInput,
+): Promise<UserRecord | null> {
+  const db = getDb();
+  const [updated] = await db
+    .update(users)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(users.id, id))
+    .returning();
+  return updated ?? null;
+}

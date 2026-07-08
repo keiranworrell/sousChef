@@ -711,7 +711,10 @@ locals {
       {
         Effect   = "Allow"
         Action   = ["s3:PutObject"]
-        Resource = "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*"
+        Resource = [
+          "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*",
+          "arn:aws:s3:::souschef-${var.environment}-recipe-images/avatars/*",
+        ]
       }
     ]
   })
@@ -760,4 +763,60 @@ resource "aws_apigatewayv2_route" "images_presign" {
   api_id    = module.api_gateway.api_id
   route_key = "POST /images/presign"
   target    = "integrations/${aws_apigatewayv2_integration.images.id}"
+}
+
+# ── Users Lambda ───────────────────────────────────────────────────────────────
+
+data "archive_file" "users" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/users.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/users.zip"
+}
+
+module "users" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-users"
+  handler         = "users.handler"
+  zip_path        = data.archive_file.users.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+
+  environment_variables = {
+    DATABASE_URL         = var.database_url
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "users" {
+  name              = "/aws/lambda/${module.users.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "users_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.users.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/users*"
+}
+
+resource "aws_apigatewayv2_integration" "users" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.users.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "users_me_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/me"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_me_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /users/me"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
