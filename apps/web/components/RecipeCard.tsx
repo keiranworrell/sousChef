@@ -20,50 +20,59 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
   return (
     <Link
       href={`/recipes/${recipe.id}`}
-      className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+      className="block rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="text-base font-semibold text-gray-900 leading-snug">
-          {recipe.title}
-        </h2>
-        <div className="flex shrink-0 gap-1.5">
-          {recipe.isPublic && (
-            <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
-              Public
-            </span>
-          )}
-          {recipe.difficulty && (
-            <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
-              {DIFFICULTY_LABEL[recipe.difficulty]}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {recipe.description && (
-        <p className="mt-1.5 text-sm text-gray-500 line-clamp-2">
-          {recipe.description}
-        </p>
+      {recipe.imageUrl && (
+        <img
+          src={recipe.imageUrl}
+          alt={recipe.title}
+          className="w-full h-40 object-cover"
+        />
       )}
-
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
-        <span>{recipe.servings} servings</span>
-        {totalMins > 0 && <span>{totalMins} min</span>}
-        {recipe.cuisine && <span>{recipe.cuisine}</span>}
-      </div>
-
-      {recipe.tags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {recipe.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600"
-            >
-              {tag}
-            </span>
-          ))}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-base font-semibold text-gray-900 leading-snug">
+            {recipe.title}
+          </h2>
+          <div className="flex shrink-0 gap-1.5">
+            {recipe.isPublic && (
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
+                Public
+              </span>
+            )}
+            {recipe.difficulty && (
+              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
+                {DIFFICULTY_LABEL[recipe.difficulty]}
+              </span>
+            )}
+          </div>
         </div>
-      )}
+
+        {recipe.description && (
+          <p className="mt-1.5 text-sm text-gray-500 line-clamp-2">
+            {recipe.description}
+          </p>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
+          <span>{recipe.servings} servings</span>
+          {totalMins > 0 && <span>{totalMins} min</span>}
+          {recipe.cuisine && <span>{recipe.cuisine}</span>}
+        </div>
+
+        {recipe.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {recipe.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </Link>
   );
 }

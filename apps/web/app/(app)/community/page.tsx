@@ -154,9 +154,16 @@ export default function CommunityPage(): React.JSX.Element {
           return (
             <div
               key={recipe.id}
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+              className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
             >
-              <div className="flex items-start justify-between gap-3">
+              {recipe.imageUrl && (
+                <img
+                  src={recipe.imageUrl}
+                  alt={recipe.title}
+                  className="w-full h-40 object-cover"
+                />
+              )}
+              <div className="p-5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
                     href={`/community/${recipe.id}`}

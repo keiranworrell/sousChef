@@ -121,6 +121,13 @@ export default function RecipeDetailPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {recipe.imageUrl && (
+        <img
+          src={recipe.imageUrl}
+          alt={recipe.title}
+          className="w-full h-64 object-cover rounded-xl mb-6"
+        />
+      )}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <Link href="/recipes" className="text-sm text-orange-500 hover:underline">
