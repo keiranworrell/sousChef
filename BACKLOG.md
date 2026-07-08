@@ -14,7 +14,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 ## 🎨 Small / UI changes
 
 - [x] Confirm password field on sign-up form (enter twice for validation)
-- [ ] Move recipe importer inside the recipe creation form (not always at top of recipe list); include list of supported import sources
+- [x] Move recipe importer inside the recipe creation form (not always at top of recipe list); include list of supported import sources
 - [ ] Add a source label/link on imported recipes pointing to the original URL
 - [ ] Show a "public" label or star on recipes the user has made public
 - [ ] Rearrange nav bar — move Fermentation into a dropdown (niche feature, declutters main nav)
