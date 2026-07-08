@@ -559,6 +559,14 @@ resource "aws_lambda_permission" "community_api" {
   source_arn    = "${module.api_gateway.execution_arn}/*/community*"
 }
 
+resource "aws_lambda_permission" "public_api" {
+  statement_id  = "AllowAPIGatewayInvokePublic"
+  action        = "lambda:InvokeFunction"
+  function_name = module.community.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/public*"
+}
+
 resource "aws_apigatewayv2_integration" "community" {
   api_id                 = module.api_gateway.api_id
   integration_type       = "AWS_PROXY"
@@ -581,6 +589,12 @@ resource "aws_apigatewayv2_route" "community_get" {
 resource "aws_apigatewayv2_route" "community_fork" {
   api_id    = module.api_gateway.api_id
   route_key = "POST /community/recipes/{recipeId}/fork"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}
+
+resource "aws_apigatewayv2_route" "public_recipe_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /public/recipes/{recipeId}"
   target    = "integrations/${aws_apigatewayv2_integration.community.id}"
 }
 
