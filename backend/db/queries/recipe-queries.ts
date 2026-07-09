@@ -68,7 +68,7 @@ export async function listRecipes(
   params: ListRecipesParams = {},
 ): Promise<ListRecipesResult> {
   const { limit = 20, offset = 0, tag, difficulty, sort = "newest" } = params;
-  const db = getDb();
+  const db = await getDb();
 
   // If filtering by tag, first find matching recipe IDs
   let tagFilteredIds: string[] | null = null;
@@ -124,7 +124,7 @@ export async function getRecipeById(
   id: string,
   userId: string,
 ): Promise<RecipeWithDetails | null> {
-  const db = getDb();
+  const db = await getDb();
 
   const [recipe] = await db
     .select()
@@ -154,7 +154,7 @@ export async function getRecipeById(
 export async function createRecipe(
   input: CreateRecipeInput,
 ): Promise<RecipeWithDetails> {
-  const db = getDb();
+  const db = await getDb();
   const { ingredients = [], steps = [], tags = [], ...recipeData } = input;
 
   const [recipe] = await db.insert(recipes).values(recipeData).returning();
@@ -194,7 +194,7 @@ export async function updateRecipe(
   userId: string,
   input: UpdateRecipeInput,
 ): Promise<RecipeRecord | null> {
-  const db = getDb();
+  const db = await getDb();
 
   const { tags, ...recipeFields } = input;
 
@@ -220,7 +220,7 @@ export async function deleteRecipe(
   id: string,
   userId: string,
 ): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(recipes)
     .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))

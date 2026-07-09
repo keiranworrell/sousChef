@@ -22,6 +22,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1083.0",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.10.2",
     "drizzle-kit": "^0.30.1",

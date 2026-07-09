@@ -49,7 +49,7 @@ export async function getOrCreateMealPlan(
   userId: string,
   weekStart: Date,
 ): Promise<MealPlanWithEntries> {
-  const db = getDb();
+  const db = await getDb();
 
   // Find existing plan for this week
   let [plan] = await db
@@ -77,7 +77,7 @@ export async function getOrCreateMealPlan(
 }
 
 async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithRecipe[]> {
-  const db = getDb();
+  const db = await getDb();
   const rows = await db
     .select({
       id: mealPlanEntries.id,
@@ -111,7 +111,7 @@ async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithR
 export async function createMealPlanEntry(
   input: CreateMealPlanEntryInput,
 ): Promise<MealPlanEntryWithRecipe> {
-  const db = getDb();
+  const db = await getDb();
   const [entry] = await db
     .insert(mealPlanEntries)
     .values({
@@ -146,7 +146,7 @@ export async function deleteMealPlanEntry(
   entryId: string,
   planId: string,
 ): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(mealPlanEntries)
     .where(
@@ -173,7 +173,7 @@ export async function getMealPlanIngredients(
   planId: string,
   userId: string,
 ): Promise<MealPlanIngredient[] | null> {
-  const db = getDb();
+  const db = await getDb();
 
   // Confirm plan ownership
   const [plan] = await db

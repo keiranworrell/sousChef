@@ -18,7 +18,7 @@ export type UpdatePantryItemInput = Partial<
 >;
 
 export async function listPantryItems(userId: string): Promise<PantryItemRecord[]> {
-  const db = getDb();
+  const db = await getDb();
   return db
     .select()
     .from(pantryItems)
@@ -29,7 +29,7 @@ export async function listPantryItems(userId: string): Promise<PantryItemRecord[
 export async function createPantryItem(
   input: CreatePantryItemInput,
 ): Promise<PantryItemRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [item] = await db.insert(pantryItems).values(input).returning();
   if (!item) throw new Error("Insert returned no rows");
   return item;
@@ -40,7 +40,7 @@ export async function updatePantryItem(
   userId: string,
   input: UpdatePantryItemInput,
 ): Promise<PantryItemRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(pantryItems)
     .set({ ...input, updatedAt: new Date() })
@@ -53,7 +53,7 @@ export async function deletePantryItem(
   id: string,
   userId: string,
 ): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(pantryItems)
     .where(and(eq(pantryItems.id, id), eq(pantryItems.userId, userId)))

@@ -36,7 +36,7 @@ export type ShoppingListWithItems = ShoppingListRecord & {
 // ── Lists ─────────────────────────────────────────────────────────────────────
 
 export async function listShoppingLists(userId: string): Promise<ShoppingListRecord[]> {
-  const db = getDb();
+  const db = await getDb();
   return db
     .select()
     .from(shoppingLists)
@@ -48,7 +48,7 @@ export async function getShoppingListWithItems(
   id: string,
   userId: string,
 ): Promise<ShoppingListWithItems | null> {
-  const db = getDb();
+  const db = await getDb();
   const [list] = await db
     .select()
     .from(shoppingLists)
@@ -67,7 +67,7 @@ export async function getShoppingListWithItems(
 export async function createShoppingList(
   input: CreateShoppingListInput,
 ): Promise<ShoppingListRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [list] = await db.insert(shoppingLists).values(input).returning();
   if (!list) throw new Error("Insert returned no rows");
   return list;
@@ -78,7 +78,7 @@ export async function updateShoppingList(
   userId: string,
   input: UpdateShoppingListInput,
 ): Promise<ShoppingListRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(shoppingLists)
     .set({ ...input, updatedAt: new Date() })
@@ -88,7 +88,7 @@ export async function updateShoppingList(
 }
 
 export async function deleteShoppingList(id: string, userId: string): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(shoppingLists)
     .where(and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId)))
@@ -101,7 +101,7 @@ export async function deleteShoppingList(id: string, userId: string): Promise<bo
 export async function createShoppingListItem(
   input: CreateShoppingListItemInput,
 ): Promise<ShoppingListItemRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [item] = await db.insert(shoppingListItems).values(input).returning();
   if (!item) throw new Error("Insert returned no rows");
   return item;
@@ -112,7 +112,7 @@ export async function updateShoppingListItem(
   listId: string,
   input: UpdateShoppingListItemInput,
 ): Promise<ShoppingListItemRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(shoppingListItems)
     .set(input)
@@ -130,7 +130,7 @@ export async function deleteShoppingListItem(
   id: string,
   listId: string,
 ): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(shoppingListItems)
     .where(
@@ -144,7 +144,7 @@ export async function deleteShoppingListItem(
 }
 
 export async function getNextOrderIndex(listId: string): Promise<number> {
-  const db = getDb();
+  const db = await getDb();
   const items = await db
     .select({ orderIndex: shoppingListItems.orderIndex })
     .from(shoppingListItems)
@@ -159,7 +159,7 @@ export async function bulkAddShoppingListItems(
   items: Array<{ name: string; quantity?: number | null; unit?: string | null }>,
   startOrderIndex: number,
 ): Promise<ShoppingListItemRecord[]> {
-  const db = getDb();
+  const db = await getDb();
   return db
     .insert(shoppingListItems)
     .values(
@@ -190,7 +190,7 @@ export type BulkCreateShoppingListInput = {
 export async function createShoppingListWithItems(
   input: BulkCreateShoppingListInput,
 ): Promise<ShoppingListWithItems> {
-  const db = getDb();
+  const db = await getDb();
 
   const [list] = await db
     .insert(shoppingLists)
@@ -229,7 +229,7 @@ export async function completeShoppingList(
   listId: string,
   userId: string,
 ): Promise<{ pantryItemsAffected: number } | null> {
-  const db = getDb();
+  const db = await getDb();
 
   // Verify ownership
   const [list] = await db

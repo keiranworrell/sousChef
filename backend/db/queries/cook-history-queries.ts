@@ -24,7 +24,7 @@ export async function logCook(
   userId: string,
   recipeId: string,
 ): Promise<CookHistoryEntryWithRecipe> {
-  const db = getDb();
+  const db = await getDb();
 
   const [entry] = await db
     .insert(cookHistory)
@@ -62,7 +62,7 @@ export async function getCookHistory(
   limit: number;
   offset: number;
 }> {
-  const db = getDb();
+  const db = await getDb();
   const { limit, offset } = options;
 
   const [totalRow] = await db

@@ -39,7 +39,7 @@ export type FermentationBatchWithLogs = FermentationBatchRecord & {
 // ── Batches ───────────────────────────────────────────────────────────────────
 
 export async function listBatches(userId: string): Promise<FermentationBatchRecord[]> {
-  const db = getDb();
+  const db = await getDb();
   return db
     .select()
     .from(fermentationBatches)
@@ -51,7 +51,7 @@ export async function getBatchWithLogs(
   id: string,
   userId: string,
 ): Promise<FermentationBatchWithLogs | null> {
-  const db = getDb();
+  const db = await getDb();
   const [batch] = await db
     .select()
     .from(fermentationBatches)
@@ -70,7 +70,7 @@ export async function getBatchWithLogs(
 export async function createBatch(
   input: CreateBatchInput,
 ): Promise<FermentationBatchRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [batch] = await db
     .insert(fermentationBatches)
     .values({
@@ -91,7 +91,7 @@ export async function updateBatch(
   userId: string,
   input: UpdateBatchInput,
 ): Promise<FermentationBatchRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(fermentationBatches)
     .set({
@@ -107,7 +107,7 @@ export async function updateBatch(
 }
 
 export async function deleteBatch(id: string, userId: string): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(fermentationBatches)
     .where(and(eq(fermentationBatches.id, id), eq(fermentationBatches.userId, userId)))
@@ -120,7 +120,7 @@ export async function deleteBatch(id: string, userId: string): Promise<boolean> 
 export async function createLog(
   input: CreateLogInput,
 ): Promise<FermentationLogRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [log] = await db
     .insert(fermentationLogs)
     .values({
@@ -143,7 +143,7 @@ export async function updateLog(
   batchId: string,
   input: UpdateLogInput,
 ): Promise<FermentationLogRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(fermentationLogs)
     .set({
@@ -160,7 +160,7 @@ export async function updateLog(
 }
 
 export async function deleteLog(id: string, batchId: string): Promise<boolean> {
-  const db = getDb();
+  const db = await getDb();
   const result = await db
     .delete(fermentationLogs)
     .where(and(eq(fermentationLogs.id, id), eq(fermentationLogs.batchId, batchId)))
