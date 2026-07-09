@@ -29,7 +29,7 @@ export type CommunityFeedResult = {
 export async function listPublicRecipes(
   params: CommunityFeedParams,
 ): Promise<CommunityFeedResult> {
-  const db = getDb();
+  const db = await getDb();
   const { userId, q, cuisine, tag, creator, limit = 20, offset = 0 } = params;
 
   // Build WHERE conditions — exclude the requesting user's own recipes
@@ -102,7 +102,7 @@ async function fetchRecipeDetails(
   recipeRows: (typeof recipes.$inferSelect)[],
   creatorNames: string[],
 ): Promise<CommunityRecipeWithCreator[]> {
-  const db = getDb();
+  const db = await getDb();
 
   const [allIngredients, allSteps, allTags] = await Promise.all([
     db
@@ -133,7 +133,7 @@ async function fetchRecipeDetails(
 // ── Get single public recipe ───────────────────────────────────────────────────
 
 export async function getPublicRecipe(id: string): Promise<CommunityRecipeWithCreator | null> {
-  const db = getDb();
+  const db = await getDb();
   const [row] = await db
     .select({ recipe: recipes, creatorName: users.displayName })
     .from(recipes)
@@ -150,7 +150,7 @@ export async function forkRecipe(
   recipeId: string,
   userId: string,
 ): Promise<RecipeWithDetails> {
-  const db = getDb();
+  const db = await getDb();
 
   // Fetch the source recipe (must be public)
   const source = await getPublicRecipe(recipeId);

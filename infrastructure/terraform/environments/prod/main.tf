@@ -29,6 +29,47 @@ provider "aws" {
   }
 }
 
+# ── Secrets Manager ────────────────────────────────────────────────────────────
+
+# Reference the manually-created secret — value is never stored in Terraform state
+data "aws_secretsmanager_secret" "database_url" {
+  name = "souschef-prod-database-url"
+}
+
+locals {
+  # IAM policy granting GetSecretValue on the DB secret — applied to all Lambdas
+  db_secret_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = data.aws_secretsmanager_secret.database_url.arn
+      }
+    ]
+  })
+
+  # Images Lambda needs both S3 write and Secrets Manager access
+  images_combined_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = [
+          "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*",
+          "arn:aws:s3:::souschef-${var.environment}-recipe-images/avatars/*",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = data.aws_secretsmanager_secret.database_url.arn
+      }
+    ]
+  })
+}
+
 # ── Cognito post-confirmation trigger ─────────────────────────────────────────
 
 data "archive_file" "cognito_post_confirmation" {
@@ -44,10 +85,11 @@ module "cognito_post_confirmation" {
   zip_path        = data.archive_file.cognito_post_confirmation.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL = var.database_url
-    NODE_ENV     = var.environment
+    DATABASE_SECRET_ARN = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV            = var.environment
   }
 }
 
@@ -116,9 +158,10 @@ module "recipes" {
   zip_path        = data.archive_file.recipes.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -217,9 +260,10 @@ module "pantry" {
   zip_path        = data.archive_file.pantry.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -285,9 +329,10 @@ module "shopping" {
   zip_path        = data.archive_file.shopping.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -389,9 +434,10 @@ module "mealplans" {
   zip_path        = data.archive_file.mealplans.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -457,9 +503,10 @@ module "fermentation" {
   zip_path        = data.archive_file.fermentation.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -549,9 +596,10 @@ module "community" {
   zip_path        = data.archive_file.community.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
@@ -730,21 +778,6 @@ data "archive_file" "images" {
   output_path = "${path.root}/../../../../backend/dist/lambda/images.zip"
 }
 
-locals {
-  images_s3_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["s3:PutObject"]
-        Resource = [
-          "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*",
-          "arn:aws:s3:::souschef-${var.environment}-recipe-images/avatars/*",
-        ]
-      }
-    ]
-  })
-}
 
 module "images" {
   source          = "../../modules/lambda"
@@ -753,15 +786,15 @@ module "images" {
   zip_path        = data.archive_file.images.output_path
   timeout_seconds = 30
   memory_mb       = 256
-  policy_json     = local.images_s3_policy
+  policy_json     = local.images_combined_policy
 
   environment_variables = {
-    DATABASE_URL              = var.database_url
-    NODE_ENV                  = var.environment
-    COGNITO_USER_POOL_ID      = module.cognito.user_pool_id
-    COGNITO_CLIENT_IDS        = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
-    IMAGES_BUCKET_NAME        = aws_s3_bucket.recipe_images.bucket
-    IMAGES_CLOUDFRONT_DOMAIN  = aws_cloudfront_distribution.recipe_images.domain_name
+    DATABASE_SECRET_ARN      = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV                 = var.environment
+    COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS       = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+    IMAGES_BUCKET_NAME       = aws_s3_bucket.recipe_images.bucket
+    IMAGES_CLOUDFRONT_DOMAIN = aws_cloudfront_distribution.recipe_images.domain_name
   }
 }
 
@@ -806,9 +839,10 @@ module "users" {
   zip_path        = data.archive_file.users.output_path
   timeout_seconds = 30
   memory_mb       = 256
+  policy_json     = local.db_secret_policy
 
   environment_variables = {
-    DATABASE_URL         = var.database_url
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"

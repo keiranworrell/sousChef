@@ -15,7 +15,7 @@ export type UserRecord = typeof users.$inferSelect;
  * Throws if a user with the same cognitoId or email already exists.
  */
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
-  const db = getDb();
+  const db = await getDb();
   const [user] = await db.insert(users).values(input).returning();
   if (!user) throw new Error("Insert returned no rows");
   return user;
@@ -27,7 +27,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
 export async function getUserByCognitoId(
   cognitoId: string,
 ): Promise<UserRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [user] = await db
     .select()
     .from(users)
@@ -50,7 +50,7 @@ export async function updateUser(
   id: string,
   input: UpdateUserInput,
 ): Promise<UserRecord | null> {
-  const db = getDb();
+  const db = await getDb();
   const [updated] = await db
     .update(users)
     .set({ ...input, updatedAt: new Date() })
