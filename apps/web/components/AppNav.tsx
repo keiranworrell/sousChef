@@ -29,6 +29,7 @@ export default function AppNav(): React.JSX.Element {
 
   const moreNavItems: NavItem[] = [
     { label: "Fermentation", href: "/fermentation", active: pathname.startsWith("/fermentation") },
+    { label: "Cook History", href: "/cook-history", active: pathname.startsWith("/cook-history") },
     { label: "Profile", href: "/profile", active: pathname.startsWith("/profile") },
   ];
 

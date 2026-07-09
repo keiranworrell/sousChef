@@ -23,6 +23,20 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [addToList, setAddToList] = useState<AddToListState>({ step: "closed" });
   const [copied, setCopied] = useState(false);
+  const [cookLogged, setCookLogged] = useState(false);
+  const [cookLogging, setCookLogging] = useState(false);
+
+  async function handleLogCook(): Promise<void> {
+    setCookLogging(true);
+    try {
+      const api = await getApiClient();
+      await api.recipes.logCook(id);
+      setCookLogged(true);
+      setTimeout(() => setCookLogged(false), 3000);
+    } finally {
+      setCookLogging(false);
+    }
+  }
 
   function handleShare(): void {
     const url = `${window.location.origin}/r/${id}`;
@@ -184,6 +198,13 @@ export default function RecipeDetailPage(): React.JSX.Element {
               Start cooking
             </Link>
           )}
+          <button
+            onClick={() => { void handleLogCook(); }}
+            disabled={cookLogging || cookLogged}
+            className="btn-secondary disabled:opacity-60"
+          >
+            {cookLogged ? "✓ Logged!" : cookLogging ? "Logging…" : "Log cook"}
+          </button>
           {recipe.ingredients.length > 0 && (
             <button onClick={() => { void openAddToList(); }} className="btn-secondary">
               Add to list

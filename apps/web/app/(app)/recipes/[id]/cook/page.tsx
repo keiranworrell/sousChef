@@ -129,6 +129,9 @@ export default function CookPage(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"steps" | "ingredients">("steps");
+  const [showFinish, setShowFinish] = useState(false);
+  const [cookLogging, setCookLogging] = useState(false);
+  const [cookLogged, setCookLogged] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
@@ -157,6 +160,18 @@ export default function CookPage(): React.JSX.Element {
       void wakeLockRef.current?.release();
     };
   }, []);
+
+  async function handleLogCook(): Promise<void> {
+    if (!recipe) return;
+    setCookLogging(true);
+    try {
+      const api = await getApiClient();
+      await api.recipes.logCook(recipe.id);
+      setCookLogged(true);
+    } finally {
+      setCookLogging(false);
+    }
+  }
 
   function handleReplaceIngredient(
     ingredient: RecipeIngredient,
@@ -294,7 +309,7 @@ export default function CookPage(): React.JSX.Element {
             </button>
             {isLast ? (
               <button
-                onClick={() => router.back()}
+                onClick={() => setShowFinish(true)}
                 className="flex-1 rounded-xl bg-orange-500 py-4 font-semibold text-white transition-colors hover:bg-orange-600"
               >
                 Finish 🎉
@@ -309,6 +324,34 @@ export default function CookPage(): React.JSX.Element {
             )}
           </div>
         </>
+      )}
+
+      {/* Finish screen overlay */}
+      {showFinish && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-gray-950 px-8">
+          <div className="text-6xl">🎉</div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white">Nice work!</h2>
+            <p className="mt-2 text-gray-400">{recipe.title}</p>
+          </div>
+          {cookLogged ? (
+            <p className="text-sm font-medium text-orange-400">✓ Cook logged</p>
+          ) : (
+            <button
+              onClick={() => { void handleLogCook(); }}
+              disabled={cookLogging}
+              className="w-full max-w-xs rounded-xl bg-orange-500 py-4 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
+            >
+              {cookLogging ? "Logging…" : "Log this cook"}
+            </button>
+          )}
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-gray-500 hover:text-gray-300"
+          >
+            {cookLogged ? "Done" : "Skip & exit"}
+          </button>
+        </div>
       )}
     </div>
   );
