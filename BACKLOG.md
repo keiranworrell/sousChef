@@ -28,12 +28,12 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 - [x] Recipe tags — starter, main, dessert, baking, cuisine (Mexican, Italian, etc.) — usable for search and filter
 - [ ] Predictive tags based on ingredients (e.g. auto-flag vegetarian/vegan from ingredient list, likely via a simple rules pass or a cheap AI call)
 - [x] Filter and sort on Recipes tab — by tag, difficulty, and sort order (newest/oldest/A–Z)
-- [ ] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
+- [x] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
 - [x] Share button on recipes — generate a shareable link that opens the recipe for non-users (public recipes only)
 - [x] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
 - [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
 - [ ] Add friends — follow/connect with other users
-- [ ] Ingredient substitution assistant — AI agent surfaced while cooking a recipe (agent skeleton already exists in `backend/agents/substitution.ts`)
+- [x] Ingredient substitution assistant — static substitution map; tap ingredient on recipe detail page or cooking mode to see substitutions and replace
 - [x] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
 
 ---

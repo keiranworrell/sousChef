@@ -1,3 +1,5 @@
+export * from "./substitutions";
+
 export const MAX_RECIPE_IMAGES = 10 as const;
 export const MAX_STEP_IMAGES = 1 as const;
 export const DEFAULT_SERVINGS = 4 as const;
