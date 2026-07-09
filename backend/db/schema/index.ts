@@ -4,3 +4,4 @@ export * from "./pantry";
 export * from "./shopping";
 export * from "./fermentation";
 export * from "./meal-plans";
+export * from "./cook-history";

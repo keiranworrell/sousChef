@@ -190,6 +190,18 @@ resource "aws_apigatewayv2_route" "recipes_delete" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_log_cook" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes/{id}/cook"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_cook_history" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /recipes/cook-history"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 # ── Pantry Lambda ──────────────────────────────────────────────────────────────
 
 data "archive_file" "pantry" {

@@ -171,6 +171,26 @@ export type CommunityFeedResponse = {
   offset: number;
 };
 
+// ─── Cook history ──────────────────────────────────────────────────────────────
+
+export type CookHistoryEntry = {
+  id: UUID;
+  userId: UUID;
+  recipeId: UUID;
+  cookedAt: ISODateString;
+  recipe: {
+    title: string;
+    imageUrl: string | null;
+  };
+};
+
+export type CookHistoryResponse = {
+  entries: CookHistoryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 // ─── Pantry ────────────────────────────────────────────────────────────────────
 
 export type PantryItem = {

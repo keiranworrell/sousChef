@@ -12,6 +12,7 @@ import {
   deleteRecipe,
 } from "../db/queries/recipe-queries";
 import { importRecipeFromUrl } from "../agents/recipe-import";
+import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -61,6 +62,11 @@ const ListQuerySchema = z.object({
   sort: z.enum(["newest", "oldest", "title"]).optional(),
 });
 
+
+const CookHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  offset: z.coerce.number().int().nonnegative().optional().default(0),
+});
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -74,6 +80,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const method = event.requestContext.http.method.toUpperCase();
     const recipeId = event.pathParameters?.["id"];
+
+    // GET /recipes/cook-history — must come before generic GET /recipes check
+    // because API Gateway sets no recipeId for this route
+    if (method === "GET" && event.rawPath?.endsWith("/cook-history")) {
+      const query = CookHistoryQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await getCookHistory(user.id, query);
+      return okResponse(result);
+    }
+
+    // POST /recipes/{id}/cook
+    if (method === "POST" && recipeId && event.rawPath?.endsWith("/cook")) {
+      const entry = await logCook(user.id, recipeId);
+      return okResponse(entry, 201);
+    }
 
     // GET /recipes
     if (method === "GET" && !recipeId) {
