@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CreateRecipeInput, RecipeWithDetails } from "@souschef/shared";
+import { predictTags } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
 type Props = {
@@ -229,6 +230,13 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     }
   }
 
+  // Compute dietary tag suggestions from the current ingredient list,
+  // filtered down to ones the user hasn't already added.
+  const suggestedTags = useMemo(() => {
+    const predicted = predictTags(ingredients.map((i) => i.name));
+    return predicted.filter((t) => !tags.includes(t));
+  }, [ingredients, tags]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* URL import (create mode only) */}
@@ -449,6 +457,22 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             }}
           />
           <p className="mt-1 text-xs text-gray-500">Press Enter or type a comma to add a tag</p>
+
+          {suggestedTags.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-gray-400 mr-0.5">Suggested:</span>
+              {suggestedTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => addTag(tag)}
+                  className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-500 hover:text-white hover:border-orange-500"
+                >
+                  + {tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
