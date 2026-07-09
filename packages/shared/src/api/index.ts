@@ -2,6 +2,8 @@ import type {
   ApiResponse,
   UpdateUserInput,
   User,
+  CookHistoryEntry,
+  CookHistoryResponse,
   CommunityFeedParams,
   CommunityFeedResponse,
   CommunityRecipe,
@@ -115,6 +117,19 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
+
+      logCook: (recipeId: string): Promise<ApiResponse<CookHistoryEntry>> =>
+        post<CookHistoryEntry>(`/recipes/${recipeId}/cook`, {}),
+    },
+
+    cookHistory: {
+      list: (params?: { limit?: number; offset?: number }): Promise<ApiResponse<CookHistoryResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<CookHistoryResponse>(`/recipes/cook-history${query}`);
+      },
     },
 
     pantry: {
