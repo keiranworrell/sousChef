@@ -126,7 +126,7 @@ function FollowPanel({
                   {item.displayName}
                 </Link>
                 <p className="text-xs text-gray-400">
-                  {item.followerCount.toLocaleString()} {item.followerCount === 1 ? "follower" : "followers"}
+                  {(item.followerCount ?? 0).toLocaleString()} {(item.followerCount ?? 0) === 1 ? "follower" : "followers"}
                 </p>
               </div>
               <button
