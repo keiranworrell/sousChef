@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { CommunityRecipe, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
@@ -332,8 +332,23 @@ function RecipesTab(): React.JSX.Element {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function CommunityPage(): React.JSX.Element {
-  const [tab, setTab] = useState<Tab>("recipes");
+function CommunityContent(): React.JSX.Element {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const rawTab = searchParams.get("tab");
+  const tab: Tab = rawTab === "people" ? "people" : "recipes";
+
+  function setTab(t: Tab): void {
+    const params = new URLSearchParams(searchParams.toString());
+    if (t === "recipes") {
+      params.delete("tab");
+    } else {
+      params.set("tab", t);
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -363,5 +378,13 @@ export default function CommunityPage(): React.JSX.Element {
 
       {tab === "recipes" ? <RecipesTab /> : <PeopleTab />}
     </div>
+  );
+}
+
+export default function CommunityPage(): React.JSX.Element {
+  return (
+    <React.Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-10"><p className="text-sm text-gray-400">Loading…</p></div>}>
+      <CommunityContent />
+    </React.Suspense>
   );
 }

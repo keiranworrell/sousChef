@@ -67,7 +67,12 @@ async function request<T>(
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
-  return response.json() as Promise<ApiResponse<T>>;
+  // Browsers treat 204 (and other null-body statuses) as having no body,
+  // so response.json() would throw a parse error. Use text() first and
+  // return a safe default for empty responses.
+  const text = await response.text();
+  if (!text) return { data: null } as ApiResponse<T>;
+  return JSON.parse(text) as ApiResponse<T>;
 }
 
 export function createApiClient(baseUrl: string, token?: string) {
