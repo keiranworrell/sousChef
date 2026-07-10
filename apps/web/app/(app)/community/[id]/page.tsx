@@ -6,6 +6,18 @@ import { useParams, useRouter } from "next/navigation";
 import type { CommunityRecipe, UserProfile } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
+function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
+  return filled ? (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  );
+}
+
 export default function CommunityRecipePage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -18,6 +30,11 @@ export default function CommunityRecipePage(): React.JSX.Element {
   const [ownUserId, setOwnUserId] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
 
+  // Like state — initialised from recipe once loaded
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liking, setLiking] = useState(false);
+
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
 
@@ -29,6 +46,8 @@ export default function CommunityRecipePage(): React.JSX.Element {
         if ("error" in recipeRes) throw new Error(recipeRes.error.message);
         const r = recipeRes.data;
         setRecipe(r);
+        setIsLiked(r.isLiked);
+        setLikeCount(r.likeCount);
 
         // Fetch creator profile and own user in parallel
         const [profileRes, meRes] = await Promise.all([
@@ -50,6 +69,28 @@ export default function CommunityRecipePage(): React.JSX.Element {
     }
     void load();
   }, [id]);
+
+  async function handleLike(): Promise<void> {
+    setLiking(true);
+    const wasLiked = isLiked;
+    // Optimistic update
+    setIsLiked(!wasLiked);
+    setLikeCount((prev) => (wasLiked ? Math.max(0, prev - 1) : prev + 1));
+    try {
+      const api = await getApiClient();
+      if (wasLiked) {
+        await api.community.unlike(id);
+      } else {
+        await api.community.like(id);
+      }
+    } catch {
+      // Revert on failure
+      setIsLiked(wasLiked);
+      setLikeCount((prev) => (wasLiked ? prev + 1 : Math.max(0, prev - 1)));
+    } finally {
+      setLiking(false);
+    }
+  }
 
   async function handleFollow(): Promise<void> {
     if (!recipe) return;
@@ -137,16 +178,32 @@ export default function CommunityRecipePage(): React.JSX.Element {
             <p className="mt-2 text-gray-500">{recipe.description}</p>
           )}
         </div>
-        <div className="shrink-0">
-          <button
-            onClick={() => { void handleFork(); }}
-            disabled={forking}
-            className="btn-primary disabled:opacity-50"
-          >
-            {forking ? "Forking…" : "Fork recipe"}
-          </button>
+        <div className="shrink-0 flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            {/* Like button */}
+            <button
+              onClick={() => { void handleLike(); }}
+              disabled={liking}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 ${
+                isLiked
+                  ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
+                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              }`}
+            >
+              <HeartIcon filled={isLiked} />
+              {likeCount.toLocaleString()}
+            </button>
+            {/* Fork button */}
+            <button
+              onClick={() => { void handleFork(); }}
+              disabled={forking}
+              className="btn-primary disabled:opacity-50"
+            >
+              {forking ? "Forking…" : "Fork recipe"}
+            </button>
+          </div>
           {forkError && (
-            <p className="mt-1 text-sm text-red-600">{forkError}</p>
+            <p className="text-sm text-red-600">{forkError}</p>
           )}
         </div>
       </div>
@@ -201,6 +258,9 @@ export default function CommunityRecipePage(): React.JSX.Element {
         {recipe.cookTimeMinutes && <span>{recipe.cookTimeMinutes} min cook</span>}
         {recipe.difficulty && <span className="capitalize">{recipe.difficulty}</span>}
         {recipe.cuisine && <span>{recipe.cuisine}</span>}
+        {recipe.forkCount > 0 && (
+          <span>{recipe.forkCount.toLocaleString()} {recipe.forkCount === 1 ? "fork" : "forks"}</span>
+        )}
       </div>
 
       {/* Tags */}
