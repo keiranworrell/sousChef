@@ -183,6 +183,31 @@ export type CommunityFeedResponse = {
   offset: number;
 };
 
+// ─── Feed ──────────────────────────────────────────────────────────────────────
+
+export type FeedActivityType = "new_recipe" | "cooked_recipe";
+
+export type FeedActivity = {
+  id: string;
+  type: FeedActivityType;
+  occurredAt: ISODateString;
+  user: {
+    id: UUID;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  recipe: {
+    id: UUID;
+    title: string;
+    imageUrl: string | null;
+  };
+};
+
+export type FeedResponse = {
+  activities: FeedActivity[];
+  total: number;
+};
+
 // ─── Rediscover ────────────────────────────────────────────────────────────────
 
 export type RediscoverMode = "cook-again" | "never-tried";

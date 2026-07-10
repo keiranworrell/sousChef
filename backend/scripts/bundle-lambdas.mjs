@@ -55,6 +55,10 @@ const entryPoints = [
     in: resolve(root, "functions/users.ts"),
     out: "users",
   },
+  {
+    in: resolve(root, "functions/feed.ts"),
+    out: "feed",
+  },
 ];
 
 for (const entry of entryPoints) {

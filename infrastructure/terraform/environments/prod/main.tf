@@ -904,3 +904,54 @@ resource "aws_apigatewayv2_route" "users_unfollow" {
   route_key = "DELETE /users/{id}/follow"
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
+
+# ── Feed Lambda ────────────────────────────────────────────────────────────────
+
+data "archive_file" "feed" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/feed.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/feed.zip"
+}
+
+module "feed" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-feed"
+  handler         = "feed.handler"
+  zip_path        = data.archive_file.feed.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = local.db_secret_policy
+
+  environment_variables = {
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "feed" {
+  name              = "/aws/lambda/${module.feed.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "feed_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.feed.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/feed*"
+}
+
+resource "aws_apigatewayv2_integration" "feed" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.feed.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "feed_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /feed"
+  target    = "integrations/${aws_apigatewayv2_integration.feed.id}"
+}

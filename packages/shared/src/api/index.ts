@@ -3,6 +3,7 @@ import type {
   UpdateUserInput,
   User,
   UserProfile,
+  FeedResponse,
   CookHistoryEntry,
   CookHistoryResponse,
   RediscoverMode,
@@ -126,6 +127,16 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       rediscover: (mode: RediscoverMode): Promise<ApiResponse<RediscoverResponse>> =>
         get<RediscoverResponse>(`/recipes/rediscover?mode=${encodeURIComponent(mode)}`),
+    },
+
+    feed: {
+      list: (params?: { limit?: number; offset?: number }): Promise<ApiResponse<FeedResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<FeedResponse>(`/feed${query}`);
+      },
     },
 
     cookHistory: {
