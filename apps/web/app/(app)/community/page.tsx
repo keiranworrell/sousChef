@@ -53,29 +53,36 @@ function PeopleTab(): React.JSX.Element {
 
   async function handleToggle(user: PublicUserListItem): Promise<void> {
     setToggling(user.id);
+    // Optimistic update
+    if (user.isFollowing) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? { ...u, isFollowing: false, followerCount: Math.max(0, u.followerCount - 1) }
+            : u,
+        ),
+      );
+    } else {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id
+            ? { ...u, isFollowing: true, followerCount: u.followerCount + 1 }
+            : u,
+        ),
+      );
+    }
     try {
       const api = await getApiClient();
       if (user.isFollowing) {
         await api.users.unfollow(user.id);
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === user.id
-              ? { ...u, isFollowing: false, followerCount: Math.max(0, u.followerCount - 1) }
-              : u,
-          ),
-        );
       } else {
         await api.users.follow(user.id);
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === user.id
-              ? { ...u, isFollowing: true, followerCount: u.followerCount + 1 }
-              : u,
-          ),
-        );
       }
     } catch {
-      // silently ignore
+      // Revert on failure
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? user : u)),
+      );
     } finally {
       setToggling(null);
     }
