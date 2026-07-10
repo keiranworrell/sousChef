@@ -14,6 +14,20 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 
 type Tab = "recipes" | "people";
 
+// ── Icons ──────────────────────────────────────────────────────────────────────
+
+function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
+  return filled ? (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  );
+}
+
 // ── People tab ─────────────────────────────────────────────────────────────────
 
 function PeopleTab(): React.JSX.Element {
@@ -170,6 +184,8 @@ function PeopleTab(): React.JSX.Element {
 
 // ── Recipes tab ────────────────────────────────────────────────────────────────
 
+type SortMode = "recent" | "popular";
+
 function RecipesTab(): React.JSX.Element {
   const router = useRouter();
 
@@ -182,16 +198,25 @@ function RecipesTab(): React.JSX.Element {
   const [cuisine, setCuisine] = useState("");
   const [tag, setTag] = useState("");
   const [creator, setCreator] = useState("");
+  const [sort, setSort] = useState<SortMode>("recent");
   const [offset, setOffset] = useState(0);
   const limit = 20;
 
   const [forkingId, setForkingId] = useState<string | null>(null);
   const [forkError, setForkError] = useState<string | null>(null);
+  const [likingId, setLikingId] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(
-    async (params: { q: string; cuisine: string; tag: string; creator: string; offset: number }): Promise<void> => {
+    async (params: {
+      q: string;
+      cuisine: string;
+      tag: string;
+      creator: string;
+      offset: number;
+      sort: SortMode;
+    }): Promise<void> => {
       setLoading(true);
       setError(null);
       try {
@@ -201,6 +226,7 @@ function RecipesTab(): React.JSX.Element {
           cuisine: params.cuisine || undefined,
           tag: params.tag || undefined,
           creator: params.creator || undefined,
+          sort: params.sort === "popular" ? "popular" : undefined,
           limit,
           offset: params.offset,
         });
@@ -220,13 +246,13 @@ function RecipesTab(): React.JSX.Element {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setOffset(0);
-      void load({ q, cuisine, tag, creator, offset: 0 });
+      void load({ q, cuisine, tag, creator, offset: 0, sort });
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [q, cuisine, tag, creator, load]);
+  }, [q, cuisine, tag, creator, sort, load]);
 
   useEffect(() => {
-    void load({ q, cuisine, tag, creator, offset });
+    void load({ q, cuisine, tag, creator, offset, sort });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offset]);
 
@@ -244,11 +270,52 @@ function RecipesTab(): React.JSX.Element {
     }
   }
 
+  async function handleLike(recipe: CommunityRecipe): Promise<void> {
+    setLikingId(recipe.id);
+    const wasLiked = recipe.isLiked;
+    // Optimistic update
+    setRecipes((prev) =>
+      prev.map((r) =>
+        r.id === recipe.id
+          ? { ...r, isLiked: !wasLiked, likeCount: wasLiked ? Math.max(0, r.likeCount - 1) : r.likeCount + 1 }
+          : r,
+      ),
+    );
+    try {
+      const api = await getApiClient();
+      if (wasLiked) {
+        await api.community.unlike(recipe.id);
+      } else {
+        await api.community.like(recipe.id);
+      }
+    } catch {
+      // Revert on failure
+      setRecipes((prev) => prev.map((r) => (r.id === recipe.id ? recipe : r)));
+    } finally {
+      setLikingId(null);
+    }
+  }
+
   const totalPages = Math.ceil(total / limit);
   const currentPage = Math.floor(offset / limit) + 1;
 
   return (
     <div>
+      {/* Sort toggle */}
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+        {(["recent", "popular"] as SortMode[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSort(s)}
+            className={`rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors ${
+              sort === s ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {s === "recent" ? "Recent" : "Popular"}
+          </button>
+        ))}
+      </div>
+
       {/* Search / filters */}
       <div className="mb-6 flex flex-col gap-2 sm:flex-row">
         <input type="text" className="input flex-1" placeholder="Search recipes…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -275,44 +342,67 @@ function RecipesTab(): React.JSX.Element {
               {recipe.imageUrl && (
                 <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-40 object-cover" />
               )}
-              <div className="p-5 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <Link href={`/community/${recipe.id}`} className="text-base font-semibold text-gray-900 hover:text-orange-600 leading-snug">
-                    {recipe.title}
-                  </Link>
-                  <Link href={`/users/${recipe.creatorId}`} className="mt-0.5 block text-xs text-gray-400 hover:text-orange-500 transition">
-                    by {recipe.creatorName}
-                  </Link>
-                  {recipe.description && (
-                    <p className="mt-1 text-sm text-gray-500 line-clamp-2">{recipe.description}</p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
-                    <span>{recipe.servings} servings</span>
-                    {totalMins > 0 && <span>{totalMins} min</span>}
-                    {recipe.cuisine && <span>{recipe.cuisine}</span>}
-                    {recipe.difficulty && (
-                      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-600 font-medium">
-                        {DIFFICULTY_LABEL[recipe.difficulty]}
-                      </span>
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/community/${recipe.id}`} className="text-base font-semibold text-gray-900 hover:text-orange-600 leading-snug">
+                      {recipe.title}
+                    </Link>
+                    <Link href={`/users/${recipe.creatorId}`} className="mt-0.5 block text-xs text-gray-400 hover:text-orange-500 transition">
+                      by {recipe.creatorName}
+                    </Link>
+                    {recipe.description && (
+                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">{recipe.description}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
+                      <span>{recipe.servings} servings</span>
+                      {totalMins > 0 && <span>{totalMins} min</span>}
+                      {recipe.cuisine && <span>{recipe.cuisine}</span>}
+                      {recipe.difficulty && (
+                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-600 font-medium">
+                          {DIFFICULTY_LABEL[recipe.difficulty]}
+                        </span>
+                      )}
+                    </div>
+                    {recipe.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {recipe.tags.map((t) => (
+                          <span key={t.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                            {t.tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {recipe.tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {recipe.tags.map((t) => (
-                        <span key={t.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                          {t.tag}
-                        </span>
-                      ))}
-                    </div>
+                  <button
+                    onClick={() => { void handleFork(recipe.id); }}
+                    disabled={forkingId === recipe.id}
+                    className="shrink-0 btn-secondary text-sm disabled:opacity-50"
+                  >
+                    {forkingId === recipe.id ? "Forking…" : "Fork"}
+                  </button>
+                </div>
+
+                {/* Like + fork count row */}
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={() => { void handleLike(recipe); }}
+                    disabled={likingId === recipe.id}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition disabled:opacity-50 ${
+                      recipe.isLiked
+                        ? "bg-red-50 text-red-500 hover:bg-red-100"
+                        : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                    }`}
+                  >
+                    <HeartIcon filled={recipe.isLiked} />
+                    {recipe.likeCount.toLocaleString()}
+                  </button>
+                  {recipe.forkCount > 0 && (
+                    <span className="text-xs text-gray-400">
+                      {recipe.forkCount.toLocaleString()} {recipe.forkCount === 1 ? "fork" : "forks"}
+                    </span>
                   )}
                 </div>
-                <button
-                  onClick={() => { void handleFork(recipe.id); }}
-                  disabled={forkingId === recipe.id}
-                  className="shrink-0 btn-secondary text-sm disabled:opacity-50"
-                >
-                  {forkingId === recipe.id ? "Forking…" : "Fork"}
-                </button>
               </div>
             </div>
           );
