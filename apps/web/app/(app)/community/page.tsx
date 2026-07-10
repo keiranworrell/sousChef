@@ -332,7 +332,7 @@ function RecipesTab(): React.JSX.Element {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function CommunityPage(): React.JSX.Element {
+function CommunityContent(): React.JSX.Element {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -378,5 +378,13 @@ export default function CommunityPage(): React.JSX.Element {
 
       {tab === "recipes" ? <RecipesTab /> : <PeopleTab />}
     </div>
+  );
+}
+
+export default function CommunityPage(): React.JSX.Element {
+  return (
+    <React.Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-10"><p className="text-sm text-gray-400">Loading…</p></div>}>
+      <CommunityContent />
+    </React.Suspense>
   );
 }
