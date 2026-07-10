@@ -62,7 +62,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const body = parseBody(event.body, UpdateUserSchema);
       const updated = await updateUser(user.id, body);
       if (!updated) throw new NotFoundError("User not found");
-      return okResponse(updated);
+      const counts = await getFollowCounts(user.id);
+      return okResponse({ ...updated, ...counts });
     }
 
     // GET /users/{id}/followers  — must come before GET /users/{id}

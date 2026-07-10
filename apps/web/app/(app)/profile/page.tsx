@@ -229,11 +229,11 @@ export default function ProfilePage(): React.JSX.Element {
 
         {/* Follower stats */}
         <section className="flex gap-6">
-          <button onClick={() => { void openPanel("followers"); }} className="text-left hover:text-orange-600 transition">
+          <button type="button" onClick={() => { void openPanel("followers"); }} className="text-left hover:text-orange-600 transition">
             <p className="text-2xl font-bold text-gray-900">{(user.followerCount ?? 0).toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">followers</p>
           </button>
-          <button onClick={() => { void openPanel("following"); }} className="text-left hover:text-orange-600 transition">
+          <button type="button" onClick={() => { void openPanel("following"); }} className="text-left hover:text-orange-600 transition">
             <p className="text-2xl font-bold text-gray-900">{(user.followingCount ?? 0).toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">following</p>
           </button>
