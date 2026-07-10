@@ -1,4 +1,4 @@
-import { count, eq, and, inArray, desc } from "drizzle-orm";
+import { count, eq, and, inArray, desc, ilike, ne, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { follows, users } from "../schema";
 
@@ -214,5 +214,73 @@ export async function getPublicUser(
     ...user,
     ...counts,
     isFollowing: following,
+  };
+}
+
+/**
+ * Search users by display name (or return all sorted by follower count).
+ * Excludes the requesting user from results.
+ */
+export async function searchUsers(
+  requestingUserId: string,
+  { q, limit = 20, offset = 0 }: { q?: string | null; limit?: number; offset?: number } = {},
+): Promise<FollowListResult> {
+  const db = await getDb();
+
+  // Subquery: follower count per user
+  const followerCountSq = db
+    .select({
+      userId: follows.followeeId,
+      cnt: count().as("cnt"),
+    })
+    .from(follows)
+    .groupBy(follows.followeeId)
+    .as("fc");
+
+  const conditions = [ne(users.id, requestingUserId)];
+  if (q) {
+    conditions.push(ilike(users.displayName, `%${q}%`));
+  }
+
+  const where = and(...conditions);
+
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        followerCount: sql<number>`coalesce(${followerCountSq.cnt}, 0)`.mapWith(Number),
+      })
+      .from(users)
+      .leftJoin(followerCountSq, eq(users.id, followerCountSq.userId))
+      .where(where)
+      .orderBy(desc(sql`coalesce(${followerCountSq.cnt}, 0)`))
+      .limit(limit)
+      .offset(offset),
+    db.select({ value: count() }).from(users).where(where),
+  ]);
+
+  if (rows.length === 0) return { users: [], total: countRow?.value ?? 0, limit, offset };
+
+  const ids = rows.map((r) => r.id);
+  const followingRows = await db
+    .select({ followeeId: follows.followeeId })
+    .from(follows)
+    .where(and(eq(follows.followerId, requestingUserId), inArray(follows.followeeId, ids)));
+
+  const followingSet = new Set(followingRows.map((r) => r.followeeId));
+
+  return {
+    users: rows.map((r) => ({
+      id: r.id,
+      displayName: r.displayName,
+      avatarUrl: r.avatarUrl,
+      followerCount: r.followerCount,
+      isFollowing: followingSet.has(r.id),
+    })),
+    total: countRow?.value ?? 0,
+    limit,
+    offset,
   };
 }
