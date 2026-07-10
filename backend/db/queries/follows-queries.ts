@@ -1,4 +1,4 @@
-import { count, eq, and } from "drizzle-orm";
+import { count, eq, and, inArray, desc } from "drizzle-orm";
 import { getDb } from "../client";
 import { follows, users } from "../schema";
 
@@ -70,6 +70,115 @@ export async function getFollowCounts(userId: string): Promise<FollowCounts> {
   return {
     followerCount: followerRow?.value ?? 0,
     followingCount: followingRow?.value ?? 0,
+  };
+}
+
+export type FollowListItem = {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  followerCount: number;
+  isFollowing: boolean;
+};
+
+export type FollowListResult = {
+  users: FollowListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+/**
+ * Get a paginated list of users who follow userId.
+ */
+export async function getFollowers(
+  userId: string,
+  requestingUserId: string,
+  { limit = 20, offset = 0 }: { limit?: number; offset?: number } = {},
+): Promise<FollowListResult> {
+  const db = await getDb();
+
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select({ id: users.id, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(follows)
+      .innerJoin(users, eq(follows.followerId, users.id))
+      .where(eq(follows.followeeId, userId))
+      .orderBy(desc(follows.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ value: count() }).from(follows).where(eq(follows.followeeId, userId)),
+  ]);
+
+  return buildFollowList(rows, requestingUserId, countRow?.value ?? 0, limit, offset);
+}
+
+/**
+ * Get a paginated list of users that userId is following.
+ */
+export async function getFollowing(
+  userId: string,
+  requestingUserId: string,
+  { limit = 20, offset = 0 }: { limit?: number; offset?: number } = {},
+): Promise<FollowListResult> {
+  const db = await getDb();
+
+  const [rows, [countRow]] = await Promise.all([
+    db
+      .select({ id: users.id, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(follows)
+      .innerJoin(users, eq(follows.followeeId, users.id))
+      .where(eq(follows.followerId, userId))
+      .orderBy(desc(follows.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ value: count() }).from(follows).where(eq(follows.followerId, userId)),
+  ]);
+
+  return buildFollowList(rows, requestingUserId, countRow?.value ?? 0, limit, offset);
+}
+
+/**
+ * Shared helper: enrich a list of user rows with follower counts and isFollowing.
+ */
+async function buildFollowList(
+  rows: Array<{ id: string; displayName: string; avatarUrl: string | null }>,
+  requestingUserId: string,
+  total: number,
+  limit: number,
+  offset: number,
+): Promise<FollowListResult> {
+  if (rows.length === 0) return { users: [], total, limit, offset };
+
+  const db = await getDb();
+  const ids = rows.map((r) => r.id);
+
+  const [followerCountRows, followingRows] = await Promise.all([
+    db
+      .select({ followeeId: follows.followeeId, cnt: count() })
+      .from(follows)
+      .where(inArray(follows.followeeId, ids))
+      .groupBy(follows.followeeId),
+    db
+      .select({ followeeId: follows.followeeId })
+      .from(follows)
+      .where(and(eq(follows.followerId, requestingUserId), inArray(follows.followeeId, ids))),
+  ]);
+
+  const countMap = new Map(followerCountRows.map((r) => [r.followeeId, r.cnt]));
+  const followingSet = new Set(followingRows.map((r) => r.followeeId));
+
+  return {
+    users: rows.map((r) => ({
+      id: r.id,
+      displayName: r.displayName,
+      avatarUrl: r.avatarUrl,
+      followerCount: countMap.get(r.id) ?? 0,
+      isFollowing: followingSet.has(r.id),
+    })),
+    total,
+    limit,
+    offset,
   };
 }
 

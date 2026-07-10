@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import type { User } from "@souschef/shared";
+import Link from "next/link";
+import type { User, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
 const DIETARY_SUGGESTIONS = [
@@ -33,6 +34,13 @@ export default function ProfilePage(): React.JSX.Element {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Follow panel
+  const [panel, setPanel] = useState<"followers" | "following" | null>(null);
+  const [panelItems, setPanelItems] = useState<PublicUserListItem[]>([]);
+  const [panelTotal, setPanelTotal] = useState(0);
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [panelLoadingMore, setPanelLoadingMore] = useState(false);
 
   // Avatar upload state
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -71,6 +79,43 @@ export default function ProfilePage(): React.JSX.Element {
 
   function removePreference(pref: string): void {
     setDietaryPreferences((prev) => prev.filter((p) => p !== pref));
+  }
+
+  async function openPanel(type: "followers" | "following"): Promise<void> {
+    if (!user) return;
+    setPanel(type);
+    setPanelItems([]);
+    setPanelTotal(0);
+    setPanelLoading(true);
+    try {
+      const api = await getApiClient();
+      const res = type === "followers"
+        ? await api.users.followers(user.id, { limit: 20, offset: 0 })
+        : await api.users.following(user.id, { limit: 20, offset: 0 });
+      if (!("error" in res)) {
+        setPanelItems(res.data.users);
+        setPanelTotal(res.data.total);
+      }
+    } finally {
+      setPanelLoading(false);
+    }
+  }
+
+  async function loadMorePanel(): Promise<void> {
+    if (!user || !panel) return;
+    setPanelLoadingMore(true);
+    try {
+      const api = await getApiClient();
+      const res = panel === "followers"
+        ? await api.users.followers(user.id, { limit: 20, offset: panelItems.length })
+        : await api.users.following(user.id, { limit: 20, offset: panelItems.length });
+      if (!("error" in res)) {
+        setPanelItems((prev) => [...prev, ...res.data.users]);
+        setPanelTotal(res.data.total);
+      }
+    } finally {
+      setPanelLoadingMore(false);
+    }
   }
 
   async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
@@ -184,14 +229,14 @@ export default function ProfilePage(): React.JSX.Element {
 
         {/* Follower stats */}
         <section className="flex gap-6">
-          <div className="text-center">
+          <button onClick={() => { void openPanel("followers"); }} className="text-left hover:text-orange-600 transition">
             <p className="text-2xl font-bold text-gray-900">{user.followerCount.toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">followers</p>
-          </div>
-          <div className="text-center">
+          </button>
+          <button onClick={() => { void openPanel("following"); }} className="text-left hover:text-orange-600 transition">
             <p className="text-2xl font-bold text-gray-900">{user.followingCount.toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">following</p>
-          </div>
+          </button>
         </section>
 
         {/* Display name */}
@@ -307,6 +352,57 @@ export default function ProfilePage(): React.JSX.Element {
           )}
         </div>
       </form>
+
+      {/* Followers / Following panel */}
+      {panel && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setPanel(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-base font-semibold text-gray-900 capitalize">{panel}</h2>
+              <button onClick={() => setPanel(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 py-3">
+              {panelLoading && <p className="py-6 text-sm text-center text-gray-400">Loading…</p>}
+              {!panelLoading && panelItems.length === 0 && (
+                <p className="py-6 text-sm text-center text-gray-400">Nobody here yet.</p>
+              )}
+              {panelItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+                  <Link href={`/users/${item.id}`} onClick={() => setPanel(null)}>
+                    {item.avatarUrl ? (
+                      <img src={item.avatarUrl} alt={item.displayName} className="h-9 w-9 rounded-full object-cover border border-gray-200 shrink-0" />
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-500 shrink-0">
+                        {item.displayName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/users/${item.id}`} onClick={() => setPanel(null)} className="text-sm font-medium text-gray-900 hover:text-orange-600">
+                      {item.displayName}
+                    </Link>
+                    <p className="text-xs text-gray-400">
+                      {item.followerCount.toLocaleString()} {item.followerCount === 1 ? "follower" : "followers"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {panelItems.length < panelTotal && (
+                <div className="py-4 text-center">
+                  <button
+                    onClick={() => { void loadMorePanel(); }}
+                    disabled={panelLoadingMore}
+                    className="text-sm text-orange-500 hover:underline disabled:opacity-50"
+                  >
+                    {panelLoadingMore ? "Loading…" : "Load more"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

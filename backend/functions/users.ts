@@ -9,7 +9,14 @@ import {
   unfollowUser,
   getPublicUser,
   getFollowCounts,
+  getFollowers,
+  getFollowing,
 } from "../db/queries/follows-queries";
+
+const FollowListQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(50).optional().default(20),
+  offset: z.coerce.number().int().nonnegative().optional().default(0),
+});
 
 const UpdateUserSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
@@ -68,6 +75,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "DELETE" && targetUserId && path.endsWith("/follow")) {
       await unfollowUser(user.id, targetUserId);
       return okResponse(null, 204);
+    }
+
+    // GET /users/{id}/followers
+    if (method === "GET" && targetUserId && path.endsWith("/followers")) {
+      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await getFollowers(targetUserId, user.id, query);
+      return okResponse(result);
+    }
+
+    // GET /users/{id}/following
+    if (method === "GET" && targetUserId && path.endsWith("/following")) {
+      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await getFollowing(targetUserId, user.id, query);
+      return okResponse(result);
     }
 
     return {

@@ -5,6 +5,7 @@ import type { RecipeWithDetails } from "./recipe-queries";
 
 export type CommunityRecipeWithCreator = RecipeWithDetails & {
   creatorName: string;
+  creatorId: string;
 };
 
 export type CommunityFeedParams = {
@@ -13,6 +14,7 @@ export type CommunityFeedParams = {
   cuisine?: string | null;
   tag?: string | null;
   creator?: string | null;
+  creatorId?: string | null;
   limit?: number;
   offset?: number;
 };
@@ -30,7 +32,7 @@ export async function listPublicRecipes(
   params: CommunityFeedParams,
 ): Promise<CommunityFeedResult> {
   const db = await getDb();
-  const { userId, q, cuisine, tag, creator, limit = 20, offset = 0 } = params;
+  const { userId, q, cuisine, tag, creator, creatorId, limit = 20, offset = 0 } = params;
 
   // Build WHERE conditions — exclude the requesting user's own recipes
   const conditions = [eq(recipes.isPublic, true), ne(recipes.userId, userId)];
@@ -67,11 +69,15 @@ export async function listPublicRecipes(
     conditions.push(inArray(recipes.id, creatorSubquery));
   }
 
+  if (creatorId) {
+    conditions.push(eq(recipes.userId, creatorId));
+  }
+
   const where = and(...conditions);
 
   const [rows, [countRow]] = await Promise.all([
     db
-      .select({ recipe: recipes, creatorName: users.displayName })
+      .select({ recipe: recipes, creatorName: users.displayName, creatorId: users.id })
       .from(recipes)
       .innerJoin(users, eq(recipes.userId, users.id))
       .where(where)
@@ -91,6 +97,7 @@ export async function listPublicRecipes(
         recipeIds,
         rows.map((r) => r.recipe),
         rows.map((r) => r.creatorName),
+        rows.map((r) => r.creatorId),
       )
     : [];
 
@@ -101,6 +108,7 @@ async function fetchRecipeDetails(
   ids: string[],
   recipeRows: (typeof recipes.$inferSelect)[],
   creatorNames: string[],
+  creatorIds: string[],
 ): Promise<CommunityRecipeWithCreator[]> {
   const db = await getDb();
 
@@ -127,6 +135,7 @@ async function fetchRecipeDetails(
     steps: allSteps.filter((s) => s.recipeId === recipe.id),
     tags: allTags.filter((t) => t.recipeId === recipe.id),
     creatorName: creatorNames[idx] ?? "Unknown",
+    creatorId: creatorIds[idx] ?? "",
   }));
 }
 
@@ -135,12 +144,17 @@ async function fetchRecipeDetails(
 export async function getPublicRecipe(id: string): Promise<CommunityRecipeWithCreator | null> {
   const db = await getDb();
   const [row] = await db
-    .select({ recipe: recipes, creatorName: users.displayName })
+    .select({ recipe: recipes, creatorName: users.displayName, creatorId: users.id })
     .from(recipes)
     .innerJoin(users, eq(recipes.userId, users.id))
     .where(and(eq(recipes.id, id), eq(recipes.isPublic, true)));
   if (!row) return null;
-  const [result] = await fetchRecipeDetails([row.recipe.id], [row.recipe], [row.creatorName]);
+  const [result] = await fetchRecipeDetails(
+    [row.recipe.id],
+    [row.recipe],
+    [row.creatorName],
+    [row.creatorId],
+  );
   return result ?? null;
 }
 

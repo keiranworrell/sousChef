@@ -171,7 +171,13 @@ export default function CommunityPage(): React.JSX.Element {
                   >
                     {recipe.title}
                   </Link>
-                  <p className="mt-0.5 text-xs text-gray-400">by {recipe.creatorName}</p>
+                  <Link
+                    href={`/users/${recipe.creatorId}`}
+                    className="mt-0.5 text-xs text-gray-400 hover:text-orange-500 transition"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    by {recipe.creatorName}
+                  </Link>
                   {recipe.description && (
                     <p className="mt-1 text-sm text-gray-500 line-clamp-2">
                       {recipe.description}

@@ -57,6 +57,21 @@ export type UserProfile = {
   isFollowing: boolean;
 };
 
+export type PublicUserListItem = {
+  id: UUID;
+  displayName: string;
+  avatarUrl: string | null;
+  followerCount: number;
+  isFollowing: boolean;
+};
+
+export type UserFollowListResponse = {
+  users: PublicUserListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export type UpdateUserInput = {
   displayName?: string;
   avatarUrl?: string | null;
@@ -168,12 +183,14 @@ export type CommunityFeedParams = {
   cuisine?: string;
   tag?: string;
   creator?: string;
+  creatorId?: string;
   limit?: number;
   offset?: number;
 };
 
 export type CommunityRecipe = RecipeWithDetails & {
   creatorName: string;
+  creatorId: string;
 };
 
 export type CommunityFeedResponse = {

@@ -165,7 +165,9 @@ export default function CommunityRecipePage(): React.JSX.Element {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900">{creatorProfile.displayName}</p>
+            <Link href={`/users/${recipe.userId}`} className="text-sm font-medium text-gray-900 hover:text-orange-600 transition">
+              {creatorProfile.displayName}
+            </Link>
             <p className="text-xs text-gray-400">
               {creatorProfile.followerCount.toLocaleString()} {creatorProfile.followerCount === 1 ? "follower" : "followers"}
             </p>
