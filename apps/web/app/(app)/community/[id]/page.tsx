@@ -17,7 +17,6 @@ export default function CommunityRecipePage(): React.JSX.Element {
   const [creatorProfile, setCreatorProfile] = useState<UserProfile | null>(null);
   const [ownUserId, setOwnUserId] = useState<string | null>(null);
   const [following, setFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
@@ -54,37 +53,39 @@ export default function CommunityRecipePage(): React.JSX.Element {
 
   async function handleFollow(): Promise<void> {
     if (!recipe) return;
-    setFollowLoading(true);
+    // Optimistic update
+    setFollowing(true);
+    setCreatorProfile((prev) =>
+      prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev,
+    );
     try {
       const api = await getApiClient();
-      const res = await api.users.follow(recipe.userId);
-      if ("error" in res) throw new Error(res.error.message);
-      setFollowing(true);
-      setCreatorProfile((prev) =>
-        prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev,
-      );
+      await api.users.follow(recipe.userId);
     } catch {
-      // silently ignore — button will stay in current state
-    } finally {
-      setFollowLoading(false);
+      // Revert on failure
+      setFollowing(false);
+      setCreatorProfile((prev) =>
+        prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev,
+      );
     }
   }
 
   async function handleUnfollow(): Promise<void> {
     if (!recipe) return;
-    setFollowLoading(true);
+    // Optimistic update
+    setFollowing(false);
+    setCreatorProfile((prev) =>
+      prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev,
+    );
     try {
       const api = await getApiClient();
-      const res = await api.users.unfollow(recipe.userId);
-      if ("error" in res) throw new Error(res.error.message);
-      setFollowing(false);
-      setCreatorProfile((prev) =>
-        prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev,
-      );
+      await api.users.unfollow(recipe.userId);
     } catch {
-      // silently ignore
-    } finally {
-      setFollowLoading(false);
+      // Revert on failure
+      setFollowing(true);
+      setCreatorProfile((prev) =>
+        prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev,
+      );
     }
   }
 
@@ -175,14 +176,13 @@ export default function CommunityRecipePage(): React.JSX.Element {
           {!isOwnRecipe && (
             <button
               onClick={() => { void (following ? handleUnfollow() : handleFollow()); }}
-              disabled={followLoading}
-              className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${
+              className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                 following
                   ? "border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600"
                   : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
               }`}
             >
-              {followLoading ? "…" : following ? "Following" : "Follow"}
+              {following ? "Following" : "Follow"}
             </button>
           )}
           {isOwnRecipe && (

@@ -55,30 +55,39 @@ function FollowPanel({
 
   async function handleToggle(item: PublicUserListItem): Promise<void> {
     setToggling(item.id);
+    // Optimistic update
+    if (item.isFollowing) {
+      setItems((prev) =>
+        prev.map((u) =>
+          u.id === item.id
+            ? { ...u, isFollowing: false, followerCount: Math.max(0, u.followerCount - 1) }
+            : u,
+        ),
+      );
+    } else {
+      setItems((prev) =>
+        prev.map((u) =>
+          u.id === item.id
+            ? { ...u, isFollowing: true, followerCount: u.followerCount + 1 }
+            : u,
+        ),
+      );
+    }
     try {
       const api = await getApiClient();
       if (item.isFollowing) {
         await api.users.unfollow(item.id);
-        setItems((prev) =>
-          prev.map((u) =>
-            u.id === item.id
-              ? { ...u, isFollowing: false, followerCount: Math.max(0, u.followerCount - 1) }
-              : u,
-          ),
-        );
       } else {
         await api.users.follow(item.id);
-        setItems((prev) =>
-          prev.map((u) =>
-            u.id === item.id
-              ? { ...u, isFollowing: true, followerCount: u.followerCount + 1 }
-              : u,
-          ),
-        );
       }
       onFollowChange();
     } catch {
-      // silently ignore
+      // Revert on failure
+      setItems((prev) =>
+        prev.map((u) =>
+          u.id === item.id ? item : u,
+        ),
+      );
     } finally {
       setToggling(null);
     }
@@ -168,7 +177,6 @@ export default function UserProfilePage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   const [following, setFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
   const [panel, setPanel] = useState<"followers" | "following" | null>(null);
 
@@ -216,30 +224,30 @@ export default function UserProfilePage(): React.JSX.Element {
   }, [loadRecipes]);
 
   async function handleFollow(): Promise<void> {
-    setFollowLoading(true);
+    // Optimistic update
+    setFollowing(true);
+    setProfile((prev) => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev);
     try {
       const api = await getApiClient();
       await api.users.follow(id);
-      setFollowing(true);
-      setProfile((prev) => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev);
     } catch {
-      // silently ignore
-    } finally {
-      setFollowLoading(false);
+      // Revert on failure
+      setFollowing(false);
+      setProfile((prev) => prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev);
     }
   }
 
   async function handleUnfollow(): Promise<void> {
-    setFollowLoading(true);
+    // Optimistic update
+    setFollowing(false);
+    setProfile((prev) => prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev);
     try {
       const api = await getApiClient();
       await api.users.unfollow(id);
-      setFollowing(false);
-      setProfile((prev) => prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev);
     } catch {
-      // silently ignore
-    } finally {
-      setFollowLoading(false);
+      // Revert on failure
+      setFollowing(true);
+      setProfile((prev) => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev);
     }
   }
 
@@ -304,14 +312,13 @@ export default function UserProfilePage(): React.JSX.Element {
             ) : (
               <button
                 onClick={() => { void (following ? handleUnfollow() : handleFollow()); }}
-                disabled={followLoading}
-                className={`shrink-0 rounded-lg border px-4 py-1.5 text-sm font-medium transition disabled:opacity-50 ${
+                className={`shrink-0 rounded-lg border px-4 py-1.5 text-sm font-medium transition ${
                   following
                     ? "border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600"
                     : "border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
                 }`}
               >
-                {followLoading ? "…" : following ? "Following" : "Follow"}
+                {following ? "Following" : "Follow"}
               </button>
             )}
           </div>

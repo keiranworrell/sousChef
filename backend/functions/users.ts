@@ -65,6 +65,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse(updated);
     }
 
+    // GET /users/{id}/followers  — must come before GET /users/{id}
+    if (method === "GET" && targetUserId && path.endsWith("/followers")) {
+      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await getFollowers(targetUserId, user.id, query);
+      return okResponse(result);
+    }
+
+    // GET /users/{id}/following  — must come before GET /users/{id}
+    if (method === "GET" && targetUserId && path.endsWith("/following")) {
+      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await getFollowing(targetUserId, user.id, query);
+      return okResponse(result);
+    }
+
     // GET /users/{id}
     if (method === "GET" && targetUserId && !path.endsWith("/me")) {
       const profile = await getPublicUser(targetUserId, user.id);
@@ -89,20 +103,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "DELETE" && targetUserId && path.endsWith("/follow")) {
       await unfollowUser(user.id, targetUserId);
       return okResponse(null, 204);
-    }
-
-    // GET /users/{id}/followers
-    if (method === "GET" && targetUserId && path.endsWith("/followers")) {
-      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
-      const result = await getFollowers(targetUserId, user.id, query);
-      return okResponse(result);
-    }
-
-    // GET /users/{id}/following
-    if (method === "GET" && targetUserId && path.endsWith("/following")) {
-      const query = FollowListQuerySchema.parse(event.queryStringParameters ?? {});
-      const result = await getFollowing(targetUserId, user.id, query);
-      return okResponse(result);
     }
 
     return {
