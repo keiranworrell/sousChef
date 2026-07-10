@@ -875,6 +875,12 @@ resource "aws_apigatewayv2_integration" "users" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_route" "users_search" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
 resource "aws_apigatewayv2_route" "users_me_get" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /users/me"

@@ -180,6 +180,15 @@ export function createApiClient(baseUrl: string, token?: string) {
       unfollow: (userId: string): Promise<ApiResponse<null>> =>
         del<null>(`/users/${userId}/follow`),
 
+      search: (params?: { q?: string; limit?: number; offset?: number }): Promise<ApiResponse<UserFollowListResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.q) qs.set("q", params.q);
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<UserFollowListResponse>(`/users${query}`);
+      },
+
       followers: (
         userId: string,
         params?: { limit?: number; offset?: number },

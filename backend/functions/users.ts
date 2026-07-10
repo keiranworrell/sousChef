@@ -11,7 +11,14 @@ import {
   getFollowCounts,
   getFollowers,
   getFollowing,
+  searchUsers,
 } from "../db/queries/follows-queries";
+
+const UserSearchQuerySchema = z.object({
+  q: z.string().optional(),
+  limit: z.coerce.number().int().positive().max(50).optional().default(20),
+  offset: z.coerce.number().int().nonnegative().optional().default(0),
+});
 
 const FollowListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
@@ -36,6 +43,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const method = event.requestContext.http.method.toUpperCase();
     const path = event.rawPath ?? "";
     const targetUserId = event.pathParameters?.["id"];
+
+    // GET /users (search)
+    if (method === "GET" && path.endsWith("/users")) {
+      const query = UserSearchQuerySchema.parse(event.queryStringParameters ?? {});
+      const result = await searchUsers(user.id, query);
+      return okResponse(result);
+    }
 
     // GET /users/me
     if (method === "GET" && path.endsWith("/users/me")) {
