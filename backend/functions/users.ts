@@ -4,6 +4,12 @@ import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
 import { getUserByCognitoId, updateUser } from "../db/queries/user-queries";
+import {
+  followUser,
+  unfollowUser,
+  getPublicUser,
+  getFollowCounts,
+} from "../db/queries/follows-queries";
 
 const UpdateUserSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
@@ -22,10 +28,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const method = event.requestContext.http.method.toUpperCase();
     const path = event.rawPath ?? "";
+    const targetUserId = event.pathParameters?.["id"];
 
     // GET /users/me
     if (method === "GET" && path.endsWith("/users/me")) {
-      return okResponse(user);
+      const counts = await getFollowCounts(user.id);
+      return okResponse({ ...user, ...counts });
     }
 
     // PATCH /users/me
@@ -34,6 +42,32 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const updated = await updateUser(user.id, body);
       if (!updated) throw new NotFoundError("User not found");
       return okResponse(updated);
+    }
+
+    // GET /users/{id}
+    if (method === "GET" && targetUserId && !path.endsWith("/me")) {
+      const profile = await getPublicUser(targetUserId, user.id);
+      if (!profile) throw new NotFoundError("User not found");
+      return okResponse(profile);
+    }
+
+    // POST /users/{id}/follow
+    if (method === "POST" && targetUserId && path.endsWith("/follow")) {
+      if (targetUserId === user.id) {
+        return {
+          statusCode: 400,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: "CANNOT_FOLLOW_SELF", message: "You cannot follow yourself" } }),
+        };
+      }
+      await followUser(user.id, targetUserId);
+      return okResponse(null, 204);
+    }
+
+    // DELETE /users/{id}/follow
+    if (method === "DELETE" && targetUserId && path.endsWith("/follow")) {
+      await unfollowUser(user.id, targetUserId);
+      return okResponse(null, 204);
     }
 
     return {

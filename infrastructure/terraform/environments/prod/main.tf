@@ -886,3 +886,21 @@ resource "aws_apigatewayv2_route" "users_me_update" {
   route_key = "PATCH /users/me"
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
+
+resource "aws_apigatewayv2_route" "users_profile_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_follow" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /users/{id}/follow"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_unfollow" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /users/{id}/follow"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
