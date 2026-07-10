@@ -43,6 +43,18 @@ export type User = {
   dietaryPreferences: string[] | null;
   createdAt: ISODateString;
   updatedAt: ISODateString;
+  followerCount: number;
+  followingCount: number;
+};
+
+export type UserProfile = {
+  id: UUID;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
 };
 
 export type UpdateUserInput = {

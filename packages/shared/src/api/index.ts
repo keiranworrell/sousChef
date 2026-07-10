@@ -2,6 +2,7 @@ import type {
   ApiResponse,
   UpdateUserInput,
   User,
+  UserProfile,
   CookHistoryEntry,
   CookHistoryResponse,
   RediscoverMode,
@@ -157,6 +158,15 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       update: (input: UpdateUserInput): Promise<ApiResponse<User>> =>
         patch<User>("/users/me", input),
+
+      profile: (userId: string): Promise<ApiResponse<UserProfile>> =>
+        get<UserProfile>(`/users/${userId}`),
+
+      follow: (userId: string): Promise<ApiResponse<null>> =>
+        post<null>(`/users/${userId}/follow`, {}),
+
+      unfollow: (userId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/users/${userId}/follow`),
     },
 
     images: {
