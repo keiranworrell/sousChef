@@ -184,6 +184,7 @@ export type CommunityFeedParams = {
   tag?: string;
   creator?: string;
   creatorId?: string;
+  sort?: "popular";
   limit?: number;
   offset?: number;
 };
@@ -191,6 +192,9 @@ export type CommunityFeedParams = {
 export type CommunityRecipe = RecipeWithDetails & {
   creatorName: string;
   creatorId: string;
+  likeCount: number;
+  isLiked: boolean;
+  forkCount: number;
 };
 
 export type CommunityFeedResponse = {

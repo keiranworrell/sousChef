@@ -6,3 +6,4 @@ export * from "./fermentation";
 export * from "./meal-plans";
 export * from "./cook-history";
 export * from "./follows";
+export * from "./recipe-likes";
