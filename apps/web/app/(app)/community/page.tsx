@@ -134,7 +134,7 @@ function PeopleTab(): React.JSX.Element {
                 {user.displayName}
               </Link>
               <p className="text-xs text-gray-400 mt-0.5">
-                {user.followerCount.toLocaleString()} {user.followerCount === 1 ? "follower" : "followers"}
+                {(user.followerCount ?? 0).toLocaleString()} {(user.followerCount ?? 0) === 1 ? "follower" : "followers"}
               </p>
             </div>
 
