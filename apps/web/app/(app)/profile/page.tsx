@@ -182,6 +182,18 @@ export default function ProfilePage(): React.JSX.Element {
           </div>
         </section>
 
+        {/* Follower stats */}
+        <section className="flex gap-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">{user.followerCount.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-0.5">followers</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">{user.followingCount.toLocaleString()}</p>
+            <p className="text-xs text-gray-400 mt-0.5">following</p>
+          </div>
+        </section>
+
         {/* Display name */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Basic info</h2>
