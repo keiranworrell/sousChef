@@ -171,6 +171,26 @@ export type CommunityFeedResponse = {
   offset: number;
 };
 
+// ─── Rediscover ────────────────────────────────────────────────────────────────
+
+export type RediscoverMode = "cook-again" | "never-tried";
+
+export type RediscoverRecipe = {
+  id: UUID;
+  title: string;
+  imageUrl: string | null;
+  cuisine: string | null;
+  difficulty: "easy" | "medium" | "hard" | null;
+  cookTimeMinutes: number | null;
+  tags: string[];
+  lastCookedAt: ISODateString | null;
+};
+
+export type RediscoverResponse = {
+  recipes: RediscoverRecipe[];
+  mode: RediscoverMode;
+};
+
 // ─── Cook history ──────────────────────────────────────────────────────────────
 
 export type CookHistoryEntry = {

@@ -245,6 +245,12 @@ resource "aws_apigatewayv2_route" "recipes_cook_history" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_rediscover" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /recipes/rediscover"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 # ── Pantry Lambda ──────────────────────────────────────────────────────────────
 
 data "archive_file" "pantry" {

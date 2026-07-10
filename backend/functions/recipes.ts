@@ -13,6 +13,7 @@ import {
 } from "../db/queries/recipe-queries";
 import { importRecipeFromUrl } from "../agents/recipe-import";
 import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
+import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -67,6 +68,10 @@ const CookHistoryQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
   offset: z.coerce.number().int().nonnegative().optional().default(0),
 });
+
+const RediscoverQuerySchema = z.object({
+  mode: z.enum(["cook-again", "never-tried"]).default("cook-again"),
+});
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -87,6 +92,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const query = CookHistoryQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await getCookHistory(user.id, query);
       return okResponse(result);
+    }
+
+    // GET /recipes/rediscover
+    if (method === "GET" && event.rawPath?.endsWith("/rediscover")) {
+      const { mode } = RediscoverQuerySchema.parse(event.queryStringParameters ?? {});
+      const recipes = await getRediscoverRecipes(user.id, mode);
+      return okResponse({ recipes, mode });
     }
 
     // POST /recipes/{id}/cook

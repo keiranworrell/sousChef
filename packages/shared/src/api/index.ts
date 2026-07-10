@@ -4,6 +4,8 @@ import type {
   User,
   CookHistoryEntry,
   CookHistoryResponse,
+  RediscoverMode,
+  RediscoverResponse,
   CommunityFeedParams,
   CommunityFeedResponse,
   CommunityRecipe,
@@ -120,6 +122,9 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       logCook: (recipeId: string): Promise<ApiResponse<CookHistoryEntry>> =>
         post<CookHistoryEntry>(`/recipes/${recipeId}/cook`, {}),
+
+      rediscover: (mode: RediscoverMode): Promise<ApiResponse<RediscoverResponse>> =>
+        get<RediscoverResponse>(`/recipes/rediscover?mode=${encodeURIComponent(mode)}`),
     },
 
     cookHistory: {
