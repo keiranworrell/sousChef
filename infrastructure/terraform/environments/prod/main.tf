@@ -658,6 +658,18 @@ resource "aws_apigatewayv2_route" "community_fork" {
   target    = "integrations/${aws_apigatewayv2_integration.community.id}"
 }
 
+resource "aws_apigatewayv2_route" "community_like" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /community/recipes/{recipeId}/like"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}
+
+resource "aws_apigatewayv2_route" "community_unlike" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /community/recipes/{recipeId}/like"
+  target    = "integrations/${aws_apigatewayv2_integration.community.id}"
+}
+
 resource "aws_apigatewayv2_route" "public_recipe_get" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /public/recipes/{recipeId}"

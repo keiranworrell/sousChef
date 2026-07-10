@@ -235,6 +235,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         if (params?.tag) qs.set("tag", params.tag);
         if (params?.creator) qs.set("creator", params.creator);
         if (params?.creatorId) qs.set("creatorId", params.creatorId);
+        if (params?.sort) qs.set("sort", params.sort);
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
         if (params?.offset !== undefined) qs.set("offset", String(params.offset));
         const query = qs.toString() ? `?${qs.toString()}` : "";
@@ -246,6 +247,12 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       fork: (recipeId: string): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>(`/community/recipes/${recipeId}/fork`, {}),
+
+      like: (recipeId: string): Promise<ApiResponse<null>> =>
+        post<null>(`/community/recipes/${recipeId}/like`, {}),
+
+      unlike: (recipeId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/community/recipes/${recipeId}/like`),
     },
 
     fermentation: {
