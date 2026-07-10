@@ -58,6 +58,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
         cuisine: qs["cuisine"] ?? null,
         tag: qs["tag"] ?? null,
         creator: qs["creator"] ?? null,
+        creatorId: qs["creatorId"] ?? null,
         limit,
         offset,
       });

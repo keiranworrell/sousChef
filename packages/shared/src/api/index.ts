@@ -3,6 +3,7 @@ import type {
   UpdateUserInput,
   User,
   UserProfile,
+  UserFollowListResponse,
   FeedResponse,
   CookHistoryEntry,
   CookHistoryResponse,
@@ -178,6 +179,28 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       unfollow: (userId: string): Promise<ApiResponse<null>> =>
         del<null>(`/users/${userId}/follow`),
+
+      followers: (
+        userId: string,
+        params?: { limit?: number; offset?: number },
+      ): Promise<ApiResponse<UserFollowListResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<UserFollowListResponse>(`/users/${userId}/followers${query}`);
+      },
+
+      following: (
+        userId: string,
+        params?: { limit?: number; offset?: number },
+      ): Promise<ApiResponse<UserFollowListResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<UserFollowListResponse>(`/users/${userId}/following${query}`);
+      },
     },
 
     images: {
@@ -197,6 +220,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         if (params?.cuisine) qs.set("cuisine", params.cuisine);
         if (params?.tag) qs.set("tag", params.tag);
         if (params?.creator) qs.set("creator", params.creator);
+        if (params?.creatorId) qs.set("creatorId", params.creatorId);
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
         if (params?.offset !== undefined) qs.set("offset", String(params.offset));
         const query = qs.toString() ? `?${qs.toString()}` : "";
