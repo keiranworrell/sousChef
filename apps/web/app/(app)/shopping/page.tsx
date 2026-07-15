@@ -18,6 +18,7 @@ export default function ShoppingPage(): React.JSX.Element {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [householdName, setHouseholdName] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -26,9 +27,15 @@ export default function ShoppingPage(): React.JSX.Element {
   async function load(): Promise<void> {
     try {
       const api = await getApiClient();
-      const res = await api.shopping.list();
+      const [res, householdRes] = await Promise.all([
+        api.shopping.list(),
+        api.households.get(),
+      ]);
       if ("error" in res) throw new Error(res.error.message);
       setLists(res.data.lists);
+      if (!("error" in householdRes) && householdRes.data) {
+        setHouseholdName(householdRes.data.name);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load shopping lists");
     } finally {
@@ -70,7 +77,9 @@ export default function ShoppingPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Shopping lists</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {householdName != null ? `${householdName}'s shopping` : "Shopping lists"}
+        </h1>
         {!creating && (
           <button className="btn-primary" onClick={() => setCreating(true)}>
             + New list
