@@ -923,18 +923,6 @@ resource "aws_apigatewayv2_route" "users_unfollow" {
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
 
-resource "aws_apigatewayv2_route" "users_followers" {
-  api_id    = module.api_gateway.api_id
-  route_key = "GET /users/{id}/followers"
-  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
-}
-
-resource "aws_apigatewayv2_route" "users_following" {
-  api_id    = module.api_gateway.api_id
-  route_key = "GET /users/{id}/following"
-  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
-}
-
 # ── Households Lambda ──────────────────────────────────────────────────────────
 
 data "archive_file" "households" {

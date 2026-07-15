@@ -42,7 +42,6 @@ import type {
   UpdateShoppingListItemInput,
   Household,
   HouseholdInvite,
-  Notification,
   NotificationListResponse,
 } from "../types";
 
