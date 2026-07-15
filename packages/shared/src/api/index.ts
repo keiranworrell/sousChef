@@ -349,6 +349,12 @@ export function createApiClient(baseUrl: string, token?: string) {
       create: (name: string): Promise<ApiResponse<Household>> =>
         post<Household>("/households", { name }),
 
+      rename: (name: string): Promise<ApiResponse<Household>> =>
+        patch<Household>("/households/me", { name }),
+
+      delete: (): Promise<ApiResponse<null>> =>
+        del<null>("/households/me"),
+
       invite: (inviteeId: string): Promise<ApiResponse<HouseholdInvite>> =>
         post<HouseholdInvite>("/households/invites", { inviteeId }),
 

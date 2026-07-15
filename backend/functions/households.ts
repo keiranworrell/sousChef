@@ -11,11 +11,17 @@ import {
   acceptHouseholdInvite,
   declineHouseholdInvite,
   leaveHousehold,
+  renameHousehold,
+  deleteHousehold,
 } from "../db/queries/household-queries";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 const CreateHouseholdSchema = z.object({
+  name: z.string().min(1).max(100).trim(),
+});
+
+const RenameHouseholdSchema = z.object({
   name: z.string().min(1).max(100).trim(),
 });
 
@@ -89,6 +95,35 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "POST" && path.endsWith("/households/me/leave")) {
       await leaveHousehold(user.id);
       return okResponse(null, 204);
+    }
+
+    // PATCH /households/me  — rename (owner only)
+    if (method === "PATCH" && path.endsWith("/households/me")) {
+      const body = parseBody(event.body, RenameHouseholdSchema);
+      try {
+        const household = await renameHousehold(user.id, body.name);
+        return okResponse(household);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === "NOT_IN_HOUSEHOLD") throw new BadRequestError("You are not in a household");
+          if (err.message === "NOT_OWNER") throw new BadRequestError("Only the household owner can rename it");
+        }
+        throw err;
+      }
+    }
+
+    // DELETE /households/me  — delete household (owner only)
+    if (method === "DELETE" && path.endsWith("/households/me")) {
+      try {
+        await deleteHousehold(user.id);
+        return okResponse(null, 204);
+      } catch (err) {
+        if (err instanceof Error) {
+          if (err.message === "NOT_IN_HOUSEHOLD") throw new BadRequestError("You are not in a household");
+          if (err.message === "NOT_OWNER") throw new BadRequestError("Only the household owner can delete it");
+        }
+        throw err;
+      }
     }
 
     // GET /households/me

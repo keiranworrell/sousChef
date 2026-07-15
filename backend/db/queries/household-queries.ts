@@ -227,6 +227,61 @@ export async function declineHouseholdInvite(
   if (result.length === 0) throw new Error("INVITE_NOT_FOUND");
 }
 
+// ── Rename ────────────────────────────────────────────────────────────────────
+
+/**
+ * Renames a household. Only the owner may rename.
+ * Throws if the user is not in a household or is not the owner.
+ */
+export async function renameHousehold(
+  userId: string,
+  name: string,
+): Promise<HouseholdWithMembers> {
+  const db = await getDb();
+
+  const householdId = await getUserHouseholdId(userId);
+  if (!householdId) throw new Error("NOT_IN_HOUSEHOLD");
+
+  const [household] = await db
+    .select()
+    .from(households)
+    .where(eq(households.id, householdId));
+
+  if (!household) throw new Error("NOT_IN_HOUSEHOLD");
+  if (household.ownerId !== userId) throw new Error("NOT_OWNER");
+
+  await db
+    .update(households)
+    .set({ name: name.trim() })
+    .where(eq(households.id, householdId));
+
+  return getHouseholdById(householdId) as Promise<HouseholdWithMembers>;
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+/**
+ * Permanently deletes a household. Only the owner may delete.
+ * Cascade deletes all household_members, household_invites, notifications,
+ * and any pantry/shopping/meal-plan items scoped to the household.
+ */
+export async function deleteHousehold(userId: string): Promise<void> {
+  const db = await getDb();
+
+  const householdId = await getUserHouseholdId(userId);
+  if (!householdId) throw new Error("NOT_IN_HOUSEHOLD");
+
+  const [household] = await db
+    .select()
+    .from(households)
+    .where(eq(households.id, householdId));
+
+  if (!household) throw new Error("NOT_IN_HOUSEHOLD");
+  if (household.ownerId !== userId) throw new Error("NOT_OWNER");
+
+  await db.delete(households).where(eq(households.id, householdId));
+}
+
 // ── Leave ─────────────────────────────────────────────────────────────────────
 
 /**

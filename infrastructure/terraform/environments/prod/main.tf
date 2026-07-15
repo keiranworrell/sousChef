@@ -1004,6 +1004,18 @@ resource "aws_apigatewayv2_route" "households_invite_decline" {
   target    = "integrations/${aws_apigatewayv2_integration.households.id}"
 }
 
+resource "aws_apigatewayv2_route" "households_me_rename" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /households/me"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_me_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /households/me"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
 # ── Notifications Lambda ───────────────────────────────────────────────────────
 
 data "archive_file" "notifications" {
