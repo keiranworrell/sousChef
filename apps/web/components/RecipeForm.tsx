@@ -185,34 +185,9 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Import failed");
-      setShowAiFallback(true);
     } finally {
       setImportLoading(false);
       setImportStatus("idle");
-    }
-  }
-
-  async function handleAiImport(): Promise<void> {
-    const url = importUrl.trim();
-    if (!url) return;
-    setAiImportError(null);
-    setAiImportLoading(true);
-    try {
-      const api = await getApiClient();
-      const res = await api.recipes.importAi({ url });
-      if ("error" in res) {
-        setAiImportError(
-          res.error.code === "PREMIUM_REQUIRED"
-            ? "AI import is a premium feature. Upgrade to use it."
-            : res.error.message,
-        );
-        return;
-      }
-      applyImportedRecipe(res.data);
-    } catch (err) {
-      setAiImportError(err instanceof Error ? err.message : "AI import failed");
-    } finally {
-      setAiImportLoading(false);
     }
   }
 
@@ -351,32 +326,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             </div>
           )}
           {importError && (
-            <div className="space-y-2">
-              <p className="text-xs text-red-600">{importError}</p>
-              {showAiFallback && (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => { void handleAiImport(); }}
-                    disabled={aiImportLoading}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 transition disabled:opacity-50"
-                  >
-                    {aiImportLoading ? (
-                      "Analysing with AI…"
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                          <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
-                        </svg>
-                        Try AI import ✨
-                      </>
-                    )}
-                  </button>
-                  <span className="text-xs text-gray-400">Premium — Claude will analyse the page</span>
-                </div>
-              )}
-              {aiImportError && <p className="text-xs text-red-600">{aiImportError}</p>}
-            </div>
+            <p className="text-xs text-red-600">{importError}</p>
           )}
         </section>
       )}
