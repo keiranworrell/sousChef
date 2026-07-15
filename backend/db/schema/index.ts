@@ -7,3 +7,5 @@ export * from "./meal-plans";
 export * from "./cook-history";
 export * from "./follows";
 export * from "./recipe-likes";
+export * from "./households";
+export * from "./notifications";

@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { shoppingLists, shoppingListItems, pantryItems } from "../schema";
 
@@ -9,6 +9,7 @@ export type ShoppingListItemRecord = typeof shoppingListItems.$inferSelect;
 
 export type CreateShoppingListInput = {
   userId: string;
+  householdId?: string | null;
   name: string;
 };
 
@@ -33,26 +34,39 @@ export type ShoppingListWithItems = ShoppingListRecord & {
   items: ShoppingListItemRecord[];
 };
 
+// ── Ownership helper ──────────────────────────────────────────────────────────
+
+function ownerWhere(userId: string, householdId: string | null) {
+  return householdId
+    ? eq(shoppingLists.householdId, householdId)
+    : and(eq(shoppingLists.userId, userId), isNull(shoppingLists.householdId));
+}
+
 // ── Lists ─────────────────────────────────────────────────────────────────────
 
-export async function listShoppingLists(userId: string): Promise<ShoppingListRecord[]> {
+export async function listShoppingLists(
+  userId: string,
+  householdId: string | null,
+): Promise<ShoppingListRecord[]> {
   const db = await getDb();
   return db
     .select()
     .from(shoppingLists)
-    .where(eq(shoppingLists.userId, userId))
+    .where(ownerWhere(userId, householdId))
     .orderBy(asc(shoppingLists.createdAt));
 }
 
 export async function getShoppingListWithItems(
   id: string,
   userId: string,
+  householdId: string | null,
 ): Promise<ShoppingListWithItems | null> {
   const db = await getDb();
-  const [list] = await db
-    .select()
-    .from(shoppingLists)
-    .where(and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId)));
+  const where = householdId
+    ? and(eq(shoppingLists.id, id), eq(shoppingLists.householdId, householdId))
+    : and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId));
+
+  const [list] = await db.select().from(shoppingLists).where(where);
   if (!list) return null;
 
   const items = await db
@@ -76,22 +90,33 @@ export async function createShoppingList(
 export async function updateShoppingList(
   id: string,
   userId: string,
+  householdId: string | null,
   input: UpdateShoppingListInput,
 ): Promise<ShoppingListRecord | null> {
   const db = await getDb();
+  const where = householdId
+    ? and(eq(shoppingLists.id, id), eq(shoppingLists.householdId, householdId))
+    : and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId));
   const [updated] = await db
     .update(shoppingLists)
     .set({ ...input, updatedAt: new Date() })
-    .where(and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId)))
+    .where(where)
     .returning();
   return updated ?? null;
 }
 
-export async function deleteShoppingList(id: string, userId: string): Promise<boolean> {
+export async function deleteShoppingList(
+  id: string,
+  userId: string,
+  householdId: string | null,
+): Promise<boolean> {
   const db = await getDb();
+  const where = householdId
+    ? and(eq(shoppingLists.id, id), eq(shoppingLists.householdId, householdId))
+    : and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId));
   const result = await db
     .delete(shoppingLists)
-    .where(and(eq(shoppingLists.id, id), eq(shoppingLists.userId, userId)))
+    .where(where)
     .returning({ id: shoppingLists.id });
   return result.length > 0;
 }
@@ -176,6 +201,7 @@ export async function bulkAddShoppingListItems(
 
 export type BulkCreateShoppingListInput = {
   userId: string;
+  householdId?: string | null;
   name: string;
   items: Array<{
     name: string;
@@ -194,7 +220,7 @@ export async function createShoppingListWithItems(
 
   const [list] = await db
     .insert(shoppingLists)
-    .values({ userId: input.userId, name: input.name })
+    .values({ userId: input.userId, householdId: input.householdId ?? null, name: input.name })
     .returning();
 
   if (!list) throw new Error("Failed to create shopping list");
@@ -220,7 +246,7 @@ export async function createShoppingListWithItems(
 }
 
 /**
- * Upserts all checked shopping list items into the user's pantry, then deletes the list.
+ * Upserts all checked shopping list items into the pantry, then deletes the list.
  * Matching is by name (case-insensitive) + unit (case-insensitive).
  * If a pantry item already exists, quantities are summed (when both are numeric).
  * Returns the number of pantry items created or updated.
@@ -228,17 +254,20 @@ export async function createShoppingListWithItems(
 export async function completeShoppingList(
   listId: string,
   userId: string,
+  householdId: string | null,
 ): Promise<{ pantryItemsAffected: number } | null> {
   const db = await getDb();
 
-  // Verify ownership
+  const listWhere = householdId
+    ? and(eq(shoppingLists.id, listId), eq(shoppingLists.householdId, householdId))
+    : and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId));
+
   const [list] = await db
     .select({ id: shoppingLists.id })
     .from(shoppingLists)
-    .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+    .where(listWhere);
   if (!list) return null;
 
-  // Fetch checked items
   const checkedItems = await db
     .select()
     .from(shoppingListItems)
@@ -246,24 +275,26 @@ export async function completeShoppingList(
 
   let affected = 0;
 
+  const pantryOwnerWhere = householdId
+    ? eq(pantryItems.householdId, householdId)
+    : and(eq(pantryItems.userId, userId), isNull(pantryItems.householdId));
+
   for (const item of checkedItems) {
     const normName = item.name.trim();
     const normUnit = (item.unit ?? "").trim();
 
-    // Look for an existing pantry item with matching name + unit (case-insensitive)
     const [existing] = await db
       .select()
       .from(pantryItems)
       .where(
         and(
-          eq(pantryItems.userId, userId),
+          pantryOwnerWhere,
           sql`lower(trim(${pantryItems.name})) = lower(${normName})`,
           sql`lower(trim(coalesce(${pantryItems.unit}, ''))) = lower(${normUnit})`,
         ),
       );
 
     if (existing) {
-      // Add quantities if both are numeric
       const newQty =
         existing.quantity !== null && item.quantity !== null
           ? existing.quantity + item.quantity
@@ -275,6 +306,7 @@ export async function completeShoppingList(
     } else {
       await db.insert(pantryItems).values({
         userId,
+        householdId: householdId ?? null,
         name: normName,
         quantity: item.quantity ?? null,
         unit: item.unit ?? null,
@@ -284,10 +316,7 @@ export async function completeShoppingList(
     affected += 1;
   }
 
-  // Delete the list (cascade removes items)
-  await db
-    .delete(shoppingLists)
-    .where(and(eq(shoppingLists.id, listId), eq(shoppingLists.userId, userId)));
+  await db.delete(shoppingLists).where(listWhere);
 
   return { pantryItemsAffected: affected };
 }

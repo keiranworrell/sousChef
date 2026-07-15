@@ -1,6 +1,7 @@
 import { pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { recipes } from "./recipes";
+import { households } from "./households";
 
 export const dayOfWeekEnum = pgEnum("day_of_week", [
   "0", "1", "2", "3", "4", "5", "6",
@@ -16,6 +17,7 @@ export const mealTypeEnum = pgEnum("meal_type", [
 export const mealPlans = pgTable("meal_plans", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  householdId: uuid("household_id").references(() => households.id, { onDelete: "cascade" }),
   weekStartDate: timestamp("week_start_date", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

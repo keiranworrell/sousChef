@@ -435,3 +435,60 @@ export type CreateMealPlanEntryInput = {
   dayOfWeek: DayOfWeek;
   mealType: MealType;
 };
+
+// ─── Households ────────────────────────────────────────────────────────────────
+
+export type HouseholdMember = {
+  id: UUID;
+  userId: UUID;
+  displayName: string;
+  avatarUrl: string | null;
+  joinedAt: ISODateString;
+};
+
+export type Household = {
+  id: UUID;
+  name: string;
+  ownerId: UUID;
+  createdAt: ISODateString;
+  members: HouseholdMember[];
+};
+
+export type HouseholdInviteStatus = "pending" | "accepted" | "declined";
+
+export type HouseholdInvite = {
+  id: UUID;
+  householdId: UUID;
+  inviterId: UUID;
+  inviteeId: UUID;
+  status: HouseholdInviteStatus;
+  createdAt: ISODateString;
+};
+
+// ─── Notifications ─────────────────────────────────────────────────────────────
+
+export type NotificationType = "household_invite";
+
+export type NotificationData = {
+  inviteId?:      UUID;
+  householdId?:   UUID;
+  householdName?: string;
+  inviterId?:     UUID;
+  inviterName?:   string;
+  [key: string]:  unknown;
+};
+
+export type Notification = {
+  id: UUID;
+  userId: UUID;
+  type: NotificationType;
+  referenceId: UUID | null;
+  data: NotificationData | null;
+  seenAt: ISODateString | null;
+  createdAt: ISODateString;
+};
+
+export type NotificationListResponse = {
+  notifications: Notification[];
+  unreadCount: number;
+};

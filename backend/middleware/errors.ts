@@ -9,6 +9,20 @@ export class NotFoundError extends Error {
   }
 }
 
+export class ConflictError extends Error {
+  constructor(message = "Conflict") {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
+export class BadRequestError extends Error {
+  constructor(message = "Bad request") {
+    super(message);
+    this.name = "BadRequestError";
+  }
+}
+
 type ErrorResponse = {
   statusCode: number;
   body: string;
@@ -35,6 +49,22 @@ export function handleError(err: unknown): APIGatewayProxyResultV2 {
       statusCode: 404,
       headers: JSON_HEADERS,
       body: errorBody("NOT_FOUND", err.message),
+    };
+  }
+
+  if (err instanceof ConflictError) {
+    return {
+      statusCode: 409,
+      headers: JSON_HEADERS,
+      body: errorBody("CONFLICT", err.message),
+    };
+  }
+
+  if (err instanceof BadRequestError) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: errorBody("BAD_REQUEST", err.message),
     };
   }
 

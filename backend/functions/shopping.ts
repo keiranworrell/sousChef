@@ -4,6 +4,7 @@ import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
 import { getUserByCognitoId } from "../db/queries/user-queries";
+import { getUserHouseholdId } from "../db/queries/household-queries";
 import {
   listShoppingLists,
   getShoppingListWithItems,
@@ -61,6 +62,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const user = await getUserByCognitoId(auth.cognitoId);
     if (!user) throw new NotFoundError("User not found");
 
+    const householdId = await getUserHouseholdId(user.id);
+
     const method = event.requestContext.http.method.toUpperCase();
     const path = event.rawPath ?? "";
 
@@ -68,7 +71,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const bulkMatch = path.match(/\/shopping\/([^/]+)\/items\/bulk$/);
     if (bulkMatch && method === "POST") {
       const listId = bulkMatch[1]!;
-      const list = await getShoppingListWithItems(listId, user.id);
+      const list = await getShoppingListWithItems(listId, user.id, householdId);
       if (!list) throw new NotFoundError("Shopping list not found");
       const body = parseBody(event.body, BulkAddItemsSchema);
       const startIndex = await getNextOrderIndex(listId);
@@ -82,8 +85,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const listId = itemsMatch[1]!;
       const itemId = itemsMatch[2];
 
-      // Verify the list belongs to this user
-      const list = await getShoppingListWithItems(listId, user.id);
+      const list = await getShoppingListWithItems(listId, user.id, householdId);
       if (!list) throw new NotFoundError("Shopping list not found");
 
       // POST /shopping/{listId}/items
@@ -114,7 +116,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const completeMatch = path.match(/\/shopping\/([^/]+)\/complete$/);
     if (completeMatch && method === "POST") {
       const listId = completeMatch[1]!;
-      const result = await completeShoppingList(listId, user.id);
+      const result = await completeShoppingList(listId, user.id, householdId);
       if (!result) throw new NotFoundError("Shopping list not found");
       return okResponse(result);
     }
@@ -124,20 +126,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // GET /shopping
     if (method === "GET" && !listId) {
-      const lists = await listShoppingLists(user.id);
+      const lists = await listShoppingLists(user.id, householdId);
       return okResponse({ lists });
     }
 
     // POST /shopping
     if (method === "POST" && !listId) {
       const body = parseBody(event.body, CreateListSchema);
-      const list = await createShoppingList({ ...body, userId: user.id });
+      const list = await createShoppingList({ ...body, userId: user.id, householdId });
       return okResponse(list, 201);
     }
 
     // GET /shopping/{listId}
     if (method === "GET" && listId) {
-      const list = await getShoppingListWithItems(listId, user.id);
+      const list = await getShoppingListWithItems(listId, user.id, householdId);
       if (!list) throw new NotFoundError("Shopping list not found");
       return okResponse(list);
     }
@@ -145,14 +147,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     // PATCH /shopping/{listId}
     if (method === "PATCH" && listId) {
       const body = parseBody(event.body, UpdateListSchema);
-      const list = await updateShoppingList(listId, user.id, body);
+      const list = await updateShoppingList(listId, user.id, householdId, body);
       if (!list) throw new NotFoundError("Shopping list not found");
       return okResponse(list);
     }
 
     // DELETE /shopping/{listId}
     if (method === "DELETE" && listId) {
-      const deleted = await deleteShoppingList(listId, user.id);
+      const deleted = await deleteShoppingList(listId, user.id, householdId);
       if (!deleted) throw new NotFoundError("Shopping list not found");
       return okResponse(null, 204);
     }
