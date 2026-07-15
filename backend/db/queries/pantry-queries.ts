@@ -1,4 +1,4 @@
-import { and, eq, desc, isNull, or } from "drizzle-orm";
+import { and, eq, desc, isNull } from "drizzle-orm";
 import { getDb } from "../client";
 import { pantryItems } from "../schema";
 

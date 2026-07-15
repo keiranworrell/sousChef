@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../client";
 import { households, householdMembers, householdInvites, notifications, users } from "../schema";
 
