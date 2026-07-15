@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CreateRecipeInput, RecipeWithDetails } from "@souschef/shared";
 import { predictTags } from "@souschef/shared";
@@ -97,19 +97,29 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     }
   }
 
+  // Premium plan check — fetched on mount so the AI fallback can fire automatically
+  const [isPremium, setIsPremium] = useState(false);
+  useEffect(() => {
+    getApiClient()
+      .then((api) => api.users.me())
+      .then((res) => {
+        if (!("error" in res)) setIsPremium(res.data.planTier === "premium");
+      })
+      .catch(() => { /* non-critical, leave false */ });
+  }, []);
+
   // Import state (create mode only)
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
+  const [importStatus, setImportStatus] = useState<"idle" | "schema" | "ai">("idle");
   const [importError, setImportError] = useState<string | null>(null);
-  const [showAiFallback, setShowAiFallback] = useState(false);
-  const [aiImportLoading, setAiImportLoading] = useState(false);
-  const [aiImportError, setAiImportError] = useState<string | null>(null);
+  const [importedWithAi, setImportedWithAi] = useState(false);
   const [imported, setImported] = useState(false);
 
   function applyImportedRecipe(r: CreateRecipeInput): void {
     if (r.title) setTitle(r.title);
     if (r.description) setDescription(r.description);
-    if ("imageUrl" in r && r.imageUrl) setImageUrl(r.imageUrl);
+    if (r.imageUrl) setImageUrl(r.imageUrl);
     if (r.servings) setServings(String(r.servings));
     if (r.prepTimeMinutes != null) setPrepTime(String(r.prepTimeMinutes));
     if (r.cookTimeMinutes != null) setCookTime(String(r.cookTimeMinutes));
@@ -134,7 +144,6 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
         })),
       );
     }
-    setImported(true);
   }
 
   async function handleImport(e: React.FormEvent): Promise<void> {
@@ -142,23 +151,44 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     const url = importUrl.trim();
     if (!url) return;
     setImportError(null);
-    setShowAiFallback(false);
-    setAiImportError(null);
+    setImported(false);
+    setImportedWithAi(false);
     setImportLoading(true);
+    setImportStatus("schema");
+
     try {
       const api = await getApiClient();
+
+      // Try standard Schema.org import first
       const res = await api.recipes.parse({ url });
-      if ("error" in res) {
-        setImportError(res.error.message);
-        setShowAiFallback(true);
+
+      if (!("error" in res)) {
+        // Standard import succeeded
+        applyImportedRecipe(res.data);
+        setImported(true);
         return;
       }
-      applyImportedRecipe(res.data);
+
+      // Standard import failed — try AI automatically if user is premium
+      if (isPremium) {
+        setImportStatus("ai");
+        const aiRes = await api.recipes.importAi({ url });
+        if (!("error" in aiRes)) {
+          applyImportedRecipe(aiRes.data);
+          setImported(true);
+          setImportedWithAi(true);
+          return;
+        }
+        setImportError(aiRes.error.message);
+      } else {
+        setImportError(res.error.message);
+      }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Import failed");
       setShowAiFallback(true);
     } finally {
       setImportLoading(false);
+      setImportStatus("idle");
     }
   }
 
@@ -287,10 +317,14 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
           </div>
           {imported ? (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-green-600 font-medium">✓ Recipe imported — review and edit below</p>
+              <p className="text-sm text-green-600 font-medium">
+                {importedWithAi
+                  ? "✓ Imported with AI — review and edit below"
+                  : "✓ Recipe imported — review and edit below"}
+              </p>
               <button
                 type="button"
-                onClick={() => { setImported(false); setImportUrl(""); }}
+                onClick={() => { setImported(false); setImportedWithAi(false); setImportUrl(""); setImportError(null); }}
                 className="text-xs text-gray-400 hover:text-gray-600"
               >
                 Import a different URL
@@ -312,7 +346,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
                 disabled={importLoading || !importUrl.trim()}
                 className="btn-secondary text-sm disabled:opacity-50"
               >
-                {importLoading ? "Importing…" : "Import"}
+                {importStatus === "ai" ? "Analysing with AI…" : importLoading ? "Importing…" : "Import"}
               </button>
             </div>
           )}
