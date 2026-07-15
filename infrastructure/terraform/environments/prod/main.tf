@@ -31,13 +31,17 @@ provider "aws" {
 
 # ── Secrets Manager ────────────────────────────────────────────────────────────
 
-# Reference the manually-created secret — value is never stored in Terraform state
+# Reference the manually-created secrets — values are never stored in Terraform state
 data "aws_secretsmanager_secret" "database_url" {
   name = "souschef-prod-database-url"
 }
 
+data "aws_secretsmanager_secret" "anthropic_api_key" {
+  name = "souschef-prod-anthropic-api-key"
+}
+
 locals {
-  # IAM policy granting GetSecretValue on the DB secret — applied to all Lambdas
+  # IAM policy granting GetSecretValue on the DB secret — applied to most Lambdas
   db_secret_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -45,6 +49,21 @@ locals {
         Effect   = "Allow"
         Action   = "secretsmanager:GetSecretValue"
         Resource = data.aws_secretsmanager_secret.database_url.arn
+      }
+    ]
+  })
+
+  # Recipes Lambda also needs access to the Anthropic API key for AI import
+  recipes_combined_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = [
+          data.aws_secretsmanager_secret.database_url.arn,
+          data.aws_secretsmanager_secret.anthropic_api_key.arn,
+        ]
       }
     ]
   })
@@ -68,6 +87,20 @@ locals {
       }
     ]
   })
+}
+
+# ── Alerting — SNS topic ───────────────────────────────────────────────────────
+
+resource "aws_sns_topic" "alerts" {
+  name = "souschef-${var.environment}-alerts"
+  tags = { Name = "souschef-${var.environment}-alerts" }
+}
+
+resource "aws_sns_topic_subscription" "alerts_email" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = "worrellkeiran@gmail.com"
+  # NOTE: AWS will send a confirmation email — you must click the link to activate this subscription.
 }
 
 # ── Cognito post-confirmation trigger ─────────────────────────────────────────
@@ -156,16 +189,43 @@ module "recipes" {
   function_name   = "souschef-${var.environment}-recipes"
   handler         = "recipes.handler"
   zip_path        = data.archive_file.recipes.output_path
-  timeout_seconds = 30
+  timeout_seconds = 60 # AI import can take up to ~30s — increased from 30
   memory_mb       = 256
-  policy_json     = local.db_secret_policy
+  policy_json     = local.recipes_combined_policy
 
   environment_variables = {
     DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    ANTHROPIC_SECRET_ARN = data.aws_secretsmanager_secret.anthropic_api_key.arn
     NODE_ENV             = var.environment
     COGNITO_USER_POOL_ID = module.cognito.user_pool_id
     COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
   }
+}
+
+# ── CloudWatch alarm — recipes Lambda errors ───────────────────────────────────
+# Fires if the recipes Lambda produces 5+ errors in any 5-minute window.
+# This catches AI import failures, rate-limit errors, and unexpected crashes.
+
+resource "aws_cloudwatch_metric_alarm" "recipes_errors" {
+  alarm_name          = "souschef-${var.environment}-recipes-errors"
+  alarm_description   = "Recipes Lambda error rate elevated — check AI import or DB connectivity"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 5
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = module.recipes.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+
+  tags = { Name = "souschef-${var.environment}-recipes-errors" }
 }
 
 resource "aws_cloudwatch_log_group" "recipes" {
@@ -248,6 +308,12 @@ resource "aws_apigatewayv2_route" "recipes_cook_history" {
 resource "aws_apigatewayv2_route" "recipes_rediscover" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /recipes/rediscover"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_import_ai" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes/import/ai"
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
@@ -1140,4 +1206,34 @@ resource "aws_apigatewayv2_route" "feed_list" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /feed"
   target    = "integrations/${aws_apigatewayv2_integration.feed.id}"
+}
+
+# ── AWS Budget — monthly spend alert ──────────────────────────────────────────
+# Sends an email alert when actual AWS spend hits 80% of the $50 monthly limit.
+# Adjust limit_amount as usage grows.
+
+resource "aws_budgets_budget" "monthly" {
+  name         = "souschef-${var.environment}-monthly"
+  budget_type  = "COST"
+  limit_amount = "50"
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["worrellkeiran@gmail.com"]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["worrellkeiran@gmail.com"]
+  }
+
+  tags = { Name = "souschef-${var.environment}-monthly-budget" }
 }
