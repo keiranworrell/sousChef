@@ -23,6 +23,23 @@ export class BadRequestError extends Error {
   }
 }
 
+export class PremiumRequiredError extends Error {
+  constructor(message = "This feature requires a premium subscription") {
+    super(message);
+    this.name = "PremiumRequiredError";
+  }
+}
+
+/**
+ * Throws PremiumRequiredError if the user's planTier is not 'premium'.
+ * Call this at the top of any premium-gated route handler.
+ */
+export function assertPremium(planTier: string): void {
+  if (planTier !== "premium") {
+    throw new PremiumRequiredError();
+  }
+}
+
 type ErrorResponse = {
   statusCode: number;
   body: string;
@@ -65,6 +82,14 @@ export function handleError(err: unknown): APIGatewayProxyResultV2 {
       statusCode: 400,
       headers: JSON_HEADERS,
       body: errorBody("BAD_REQUEST", err.message),
+    };
+  }
+
+  if (err instanceof PremiumRequiredError) {
+    return {
+      statusCode: 402,
+      headers: JSON_HEADERS,
+      body: errorBody("PREMIUM_REQUIRED", err.message),
     };
   }
 

@@ -34,6 +34,8 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 // ─── User ──────────────────────────────────────────────────────────────────────
 
+export type PlanTier = "free" | "premium";
+
 export type User = {
   id: UUID;
   email: string;
@@ -41,6 +43,7 @@ export type User = {
   avatarUrl: string | null;
   bio: string | null;
   dietaryPreferences: string[] | null;
+  planTier: PlanTier;
   createdAt: ISODateString;
   updatedAt: ISODateString;
   followerCount: number;
