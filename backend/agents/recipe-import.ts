@@ -6,7 +6,7 @@
  * A Claude fallback for non-standard sites can be layered on top later.
  */
 
-import type { CreateRecipeInput } from "../db/queries/recipe-queries";
+import type { CreateRecipeInput } from "@souschef/shared";
 
 // ── Schema.org types ───────────────────────────────────────────────────────────
 
@@ -141,11 +141,15 @@ function findSchemaRecipe(html: string): SchemaRecipe | null {
 // ── Public API ─────────────────────────────────────────────────────────────────
 
 export type ImportResult =
-  | { ok: true; recipe: Omit<CreateRecipeInput, "userId"> }
+  | { ok: true; recipe: CreateRecipeInput }
   | { ok: false; error: string };
 
-export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
-  // Validate URL
+export type FetchResult =
+  | { ok: true; html: string }
+  | { ok: false; error: string };
+
+/** Validates and fetches a URL, returning the raw HTML. */
+export async function fetchPageHtml(url: string): Promise<FetchResult> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -157,8 +161,6 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
     return { ok: false, error: "URL must use http or https" };
   }
 
-  // Fetch the page
-  let html: string;
   try {
     const response = await fetch(url, {
       headers: {
@@ -170,34 +172,32 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
     });
 
     if (!response.ok) {
-      return {
-        ok: false,
-        error: `Failed to fetch URL (HTTP ${response.status})`,
-      };
+      return { ok: false, error: `Failed to fetch URL (HTTP ${response.status})` };
     }
 
-    html = await response.text();
+    return { ok: true, html: await response.text() };
   } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to fetch URL",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to fetch URL" };
   }
+}
 
-  // Extract Schema.org data
+/** Tries to extract a recipe from pre-fetched HTML using Schema.org structured data. */
+export function parseRecipeFromHtml(
+  url: string,
+  html: string,
+): ImportResult {
   const schema = findSchemaRecipe(html);
 
   if (!schema?.name) {
     return {
       ok: false,
-      error:
-        "No recipe data found on this page. The site may not support structured data.",
+      error: "No recipe data found on this page. The site may not support structured data.",
     };
   }
 
   const instructions = parseInstructions(schema.recipeInstructions);
 
-  const recipe: Omit<CreateRecipeInput, "userId"> = {
+  const recipe: CreateRecipeInput = {
     title: schema.name.trim(),
     description: schema.description?.trim() ?? null,
     imageUrl: parseImage(schema.image),
@@ -231,4 +231,11 @@ export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
   };
 
   return { ok: true, recipe };
+}
+
+/** Fetches a URL and tries to extract a recipe via Schema.org structured data. */
+export async function importRecipeFromUrl(url: string): Promise<ImportResult> {
+  const fetched = await fetchPageHtml(url);
+  if (!fetched.ok) return fetched;
+  return parseRecipeFromHtml(url, fetched.html);
 }

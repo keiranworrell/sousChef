@@ -1,7 +1,7 @@
 import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
-import { handleError, okResponse, NotFoundError } from "../middleware/errors";
+import { handleError, okResponse, NotFoundError, assertPremium } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
 import { getUserByCognitoId } from "../db/queries/user-queries";
 import {
@@ -11,7 +11,8 @@ import {
   updateRecipe,
   deleteRecipe,
 } from "../db/queries/recipe-queries";
-import { importRecipeFromUrl } from "../agents/recipe-import";
+import { importRecipeFromUrl, fetchPageHtml, parseRecipeFromHtml } from "../agents/recipe-import";
+import { importRecipeWithAi } from "../agents/recipe-import-ai";
 import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 
@@ -112,6 +113,39 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const query = ListQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await listRecipes(user.id, query);
       return okResponse(result);
+    }
+
+    // POST /recipes/import/ai — AI fallback, premium only, parse only, no save
+    if (method === "POST" && event.rawPath?.endsWith("/import/ai")) {
+      assertPremium(user.planTier);
+      const body = parseBody(event.body, ImportRecipeSchema);
+
+      // Fetch the HTML once
+      const fetched = await fetchPageHtml(body.url);
+      if (!fetched.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: "IMPORT_FAILED", message: fetched.error } }),
+        };
+      }
+
+      // Try Schema.org first — no AI call needed if it works
+      const schemaResult = parseRecipeFromHtml(body.url, fetched.html);
+      if (schemaResult.ok) {
+        return okResponse(schemaResult.recipe);
+      }
+
+      // Schema.org failed — fall back to AI
+      const aiResult = await importRecipeWithAi(body.url, fetched.html);
+      if (!aiResult.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: "AI_IMPORT_FAILED", message: aiResult.error } }),
+        };
+      }
+      return okResponse(aiResult.recipe);
     }
 
     // POST /recipes/import/parse — parse only, no save

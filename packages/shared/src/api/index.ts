@@ -128,6 +128,9 @@ export function createApiClient(baseUrl: string, token?: string) {
       parse: (input: ImportRecipeInput): Promise<ApiResponse<CreateRecipeInput>> =>
         post<CreateRecipeInput>("/recipes/import/parse", input),
 
+      importAi: (input: ImportRecipeInput): Promise<ApiResponse<CreateRecipeInput>> =>
+        post<CreateRecipeInput>("/recipes/import/ai", input),
+
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
 
