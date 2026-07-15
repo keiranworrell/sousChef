@@ -52,6 +52,7 @@ export default function PantryPage(): React.JSX.Element {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [householdName, setHouseholdName] = useState<string | null>(null);
 
   // Add form
   const [adding, setAdding] = useState(false);
@@ -75,9 +76,15 @@ export default function PantryPage(): React.JSX.Element {
   async function load(): Promise<void> {
     try {
       const api = await getApiClient();
-      const res = await api.pantry.list();
+      const [res, householdRes] = await Promise.all([
+        api.pantry.list(),
+        api.households.get(),
+      ]);
       if ("error" in res) throw new Error(res.error.message);
       setItems(res.data.items);
+      if (!("error" in householdRes) && householdRes.data) {
+        setHouseholdName(householdRes.data.name);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load pantry");
     } finally {
@@ -165,7 +172,9 @@ export default function PantryPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Pantry</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {householdName != null ? `${householdName}'s pantry` : "Pantry"}
+        </h1>
         {!adding && (
           <button className="btn-primary" onClick={() => setAdding(true)}>
             + Add item

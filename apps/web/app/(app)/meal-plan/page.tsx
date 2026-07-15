@@ -67,6 +67,22 @@ export default function MealPlanPage(): React.JSX.Element {
   const [addingEntry, setAddingEntry] = useState(false);
 
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [householdName, setHouseholdName] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadHousehold(): Promise<void> {
+      try {
+        const api = await getApiClient();
+        const res = await api.households.get();
+        if (!("error" in res) && res.data) {
+          setHouseholdName(res.data.name);
+        }
+      } catch {
+        // Non-fatal — header just shows plain title
+      }
+    }
+    void loadHousehold();
+  }, []);
 
   useEffect(() => {
     void loadPlan();
@@ -185,7 +201,9 @@ export default function MealPlanPage(): React.JSX.Element {
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* Header + week nav */}
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Meal Plan</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {householdName != null ? `${householdName}'s meal plan` : "Meal Plan"}
+        </h1>
         <div className="flex items-center gap-3 flex-wrap">
           <button
             className="btn-secondary py-1.5 px-3 text-sm"
