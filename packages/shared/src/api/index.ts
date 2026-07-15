@@ -40,6 +40,10 @@ import type {
   UpdateRecipeInput,
   UpdateShoppingListInput,
   UpdateShoppingListItemInput,
+  Household,
+  HouseholdInvite,
+  Notification,
+  NotificationListResponse,
 } from "../types";
 
 type RequestOptions = {
@@ -337,6 +341,37 @@ export function createApiClient(baseUrl: string, token?: string) {
         delete: (listId: string, itemId: string): Promise<ApiResponse<null>> =>
           del<null>(`/shopping/${listId}/items/${itemId}`),
       },
+    },
+
+    households: {
+      get: (): Promise<ApiResponse<Household | null>> =>
+        get<Household | null>("/households/me"),
+
+      create: (name: string): Promise<ApiResponse<Household>> =>
+        post<Household>("/households", { name }),
+
+      invite: (inviteeId: string): Promise<ApiResponse<HouseholdInvite>> =>
+        post<HouseholdInvite>("/households/invites", { inviteeId }),
+
+      acceptInvite: (inviteId: string): Promise<ApiResponse<Household>> =>
+        post<Household>(`/households/invites/${inviteId}/accept`, {}),
+
+      declineInvite: (inviteId: string): Promise<ApiResponse<null>> =>
+        post<null>(`/households/invites/${inviteId}/decline`, {}),
+
+      leave: (): Promise<ApiResponse<null>> =>
+        post<null>("/households/me/leave", {}),
+    },
+
+    notifications: {
+      list: (): Promise<ApiResponse<NotificationListResponse>> =>
+        get<NotificationListResponse>("/notifications"),
+
+      markSeen: (notificationId: string): Promise<ApiResponse<null>> =>
+        post<null>(`/notifications/${notificationId}/seen`, {}),
+
+      markAllSeen: (): Promise<ApiResponse<null>> =>
+        post<null>("/notifications/seen-all", {}),
     },
   };
 }

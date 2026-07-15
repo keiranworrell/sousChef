@@ -4,6 +4,7 @@ import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
 import { getUserByCognitoId } from "../db/queries/user-queries";
+import { getUserHouseholdId } from "../db/queries/household-queries";
 import {
   listPantryItems,
   createPantryItem,
@@ -34,12 +35,14 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const user = await getUserByCognitoId(auth.cognitoId);
     if (!user) throw new NotFoundError("User not found");
 
+    const householdId = await getUserHouseholdId(user.id);
+
     const method = event.requestContext.http.method.toUpperCase();
     const itemId = event.pathParameters?.["id"];
 
     // GET /pantry
     if (method === "GET" && !itemId) {
-      const items = await listPantryItems(user.id);
+      const items = await listPantryItems(user.id, householdId);
       return okResponse({ items });
     }
 
@@ -49,6 +52,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const item = await createPantryItem({
         ...body,
         userId: user.id,
+        householdId,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
       });
       return okResponse(item, 201);
@@ -58,7 +62,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "PATCH" && itemId) {
       const body = parseBody(event.body, UpdatePantryItemSchema);
       const { expiryDate, ...rest } = body;
-      const item = await updatePantryItem(itemId, user.id, {
+      const item = await updatePantryItem(itemId, user.id, householdId, {
         ...rest,
         ...(expiryDate !== undefined
           ? { expiryDate: expiryDate ? new Date(expiryDate) : null }
@@ -70,7 +74,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // DELETE /pantry/{id}
     if (method === "DELETE" && itemId) {
-      const deleted = await deletePantryItem(itemId, user.id);
+      const deleted = await deletePantryItem(itemId, user.id, householdId);
       if (!deleted) throw new NotFoundError("Pantry item not found");
       return okResponse(null, 204);
     }

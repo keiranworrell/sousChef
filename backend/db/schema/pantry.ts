@@ -1,9 +1,11 @@
 import { pgTable, real, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { users } from "./users";
+import { households } from "./households";
 
 export const pantryItems = pgTable("pantry_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  householdId: uuid("household_id").references(() => households.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   quantity: real("quantity"),
   unit: text("unit"),

@@ -935,6 +935,162 @@ resource "aws_apigatewayv2_route" "users_following" {
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
 
+# ── Households Lambda ──────────────────────────────────────────────────────────
+
+data "archive_file" "households" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/households.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/households.zip"
+}
+
+module "households" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-households"
+  handler         = "households.handler"
+  zip_path        = data.archive_file.households.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = local.db_secret_policy
+
+  environment_variables = {
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "households" {
+  name              = "/aws/lambda/${module.households.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "households_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.households.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/households*"
+}
+
+resource "aws_apigatewayv2_integration" "households" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.households.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "households_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /households"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_me_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /households/me"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_me_leave" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /households/me/leave"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_invite" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /households/invites"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_invite_accept" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /households/invites/{inviteId}/accept"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+resource "aws_apigatewayv2_route" "households_invite_decline" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /households/invites/{inviteId}/decline"
+  target    = "integrations/${aws_apigatewayv2_integration.households.id}"
+}
+
+# ── Notifications Lambda ───────────────────────────────────────────────────────
+
+data "archive_file" "notifications" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/notifications.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/notifications.zip"
+}
+
+module "notifications" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-notifications"
+  handler         = "notifications.handler"
+  zip_path        = data.archive_file.notifications.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = local.db_secret_policy
+
+  environment_variables = {
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "notifications" {
+  name              = "/aws/lambda/${module.notifications.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "notifications_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.notifications.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/notifications*"
+}
+
+resource "aws_apigatewayv2_integration" "notifications" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.notifications.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "notifications_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /notifications"
+  target    = "integrations/${aws_apigatewayv2_integration.notifications.id}"
+}
+
+resource "aws_apigatewayv2_route" "notifications_seen_all" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /notifications/seen-all"
+  target    = "integrations/${aws_apigatewayv2_integration.notifications.id}"
+}
+
+resource "aws_apigatewayv2_route" "notifications_seen_one" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /notifications/{notificationId}/seen"
+  target    = "integrations/${aws_apigatewayv2_integration.notifications.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_followers" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/{id}/followers"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
+resource "aws_apigatewayv2_route" "users_following" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/{id}/following"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
 # ── Feed Lambda ────────────────────────────────────────────────────────────────
 
 data "archive_file" "feed" {
