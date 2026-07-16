@@ -170,6 +170,10 @@ export type ImportRecipeInput = {
   url: string;
 };
 
+export type ImportRecipeTextInput = {
+  text: string;
+};
+
 export type UpdateRecipeInput = Partial<
   Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
 > & { tags?: string[] };
