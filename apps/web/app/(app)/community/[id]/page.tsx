@@ -38,6 +38,8 @@ export default function CommunityRecipePage(): React.JSX.Element {
   const [forking, setForking] = useState(false);
   const [forkError, setForkError] = useState<string | null>(null);
 
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     async function load(): Promise<void> {
       try {
@@ -130,6 +132,14 @@ export default function CommunityRecipePage(): React.JSX.Element {
     }
   }
 
+  function handleShare(): void {
+    const url = `${window.location.origin}/r/${id}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
+
   async function handleFork(): Promise<void> {
     setForking(true);
     setForkError(null);
@@ -192,6 +202,13 @@ export default function CommunityRecipePage(): React.JSX.Element {
             >
               <HeartIcon filled={isLiked} />
               {likeCount.toLocaleString()}
+            </button>
+            {/* Share button */}
+            <button
+              onClick={handleShare}
+              className="btn-secondary"
+            >
+              {copied ? "✓ Copied!" : "Share"}
             </button>
             {/* Fork button */}
             <button
