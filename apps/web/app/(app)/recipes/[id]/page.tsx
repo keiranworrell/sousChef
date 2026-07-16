@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { RecipeIngredient, RecipeWithDetails, ShoppingList, Substitution } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
+import ActionMenu from "@/components/ActionMenu";
 
 type AddToListState =
   | { step: "closed" }
@@ -192,42 +193,32 @@ export default function RecipeDetailPage(): React.JSX.Element {
             </a>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {recipe.steps.length > 0 && (
-            <Link href={`/recipes/${id}/cook`} className="btn-primary">
-              Start cooking
-            </Link>
-          )}
-          <button
-            onClick={() => { void handleLogCook(); }}
-            disabled={cookLogging || cookLogged}
-            className="btn-secondary disabled:opacity-60"
-          >
-            {cookLogged ? "✓ Logged!" : cookLogging ? "Logging…" : "Log cook"}
-          </button>
-          {recipe.ingredients.length > 0 && (
-            <button onClick={() => { void openAddToList(); }} className="btn-secondary">
-              Add to list
-            </button>
-          )}
-          {recipe.isPublic && (
-            <button
-              onClick={handleShare}
-              className="btn-secondary"
-            >
-              {copied ? "✓ Copied!" : "Share"}
-            </button>
-          )}
-          <Link href={`/recipes/${id}/edit`} className="btn-secondary">
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 disabled:opacity-50"
-          >
-            {deleting ? "Deleting…" : "Delete"}
-          </button>
+        <div className="shrink-0">
+          <ActionMenu
+            primary={recipe.steps.length > 0 ? { label: "Start cooking", href: `/recipes/${id}/cook` } : undefined}
+            actions={[
+              {
+                label: cookLogged ? "✓ Logged!" : cookLogging ? "Logging…" : "Log cook",
+                onClick: () => { void handleLogCook(); },
+                disabled: cookLogging || cookLogged,
+              },
+              ...(recipe.ingredients.length > 0 ? [{
+                label: "Add to list",
+                onClick: () => { void openAddToList(); },
+              }] : []),
+              ...(recipe.isPublic ? [{
+                label: copied ? "✓ Copied!" : "Share",
+                onClick: handleShare,
+              }] : []),
+              { label: "Edit", href: `/recipes/${id}/edit` },
+              {
+                label: deleting ? "Deleting…" : "Delete",
+                onClick: () => { void handleDelete(); },
+                disabled: deleting,
+                danger: true,
+              },
+            ]}
+          />
         </div>
       </div>
 
