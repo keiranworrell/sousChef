@@ -44,9 +44,7 @@ export type CreateRecipeInput = {
   tags?: string[];
 };
 
-export type UpdateRecipeInput = Partial<
-  Omit<CreateRecipeInput, "userId" | "ingredients" | "steps" | "tags">
-> & { tags?: string[] };
+export type UpdateRecipeInput = Partial<Omit<CreateRecipeInput, "userId">>;
 
 export type ListRecipesResult = {
   recipes: (RecipeRecord & { tags: string[] })[];
@@ -193,10 +191,10 @@ export async function updateRecipe(
   id: string,
   userId: string,
   input: UpdateRecipeInput,
-): Promise<RecipeRecord | null> {
+): Promise<RecipeWithDetails | null> {
   const db = await getDb();
 
-  const { tags, ...recipeFields } = input;
+  const { tags, ingredients, steps, ...recipeFields } = input;
 
   const [updated] = await db
     .update(recipes)
@@ -213,7 +211,25 @@ export async function updateRecipe(
     }
   }
 
-  return updated;
+  if (ingredients !== undefined) {
+    await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, id));
+    if (ingredients.length > 0) {
+      await db
+        .insert(recipeIngredients)
+        .values(ingredients.map((i) => ({ ...i, recipeId: id })));
+    }
+  }
+
+  if (steps !== undefined) {
+    await db.delete(recipeSteps).where(eq(recipeSteps.recipeId, id));
+    if (steps.length > 0) {
+      await db
+        .insert(recipeSteps)
+        .values(steps.map((s) => ({ ...s, recipeId: id })));
+    }
+  }
+
+  return getRecipeById(id, userId);
 }
 
 export async function deleteRecipe(

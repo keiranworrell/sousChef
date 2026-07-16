@@ -62,7 +62,7 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
 
         {recipe.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {recipe.tags.map((tag) => (
+            {recipe.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
                 className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600"
@@ -70,6 +70,11 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
                 {tag}
               </span>
             ))}
+            {recipe.tags.length > 3 && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                +{recipe.tags.length - 3} more
+              </span>
+            )}
           </div>
         )}
       </div>
