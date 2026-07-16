@@ -114,6 +114,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   const [importUrl, setImportUrl] = useState("");
   const [importStatus, setImportStatus] = useState<"idle" | "schema" | "ai">("idle");
   const [importLoading, setImportLoading] = useState(false);
+  const [importStatus, setImportStatus] = useState<"idle" | "schema" | "ai">("idle");
   const [importError, setImportError] = useState<string | null>(null);
   const [importedWithAi, setImportedWithAi] = useState(false);
   const [imported, setImported] = useState(false);
@@ -168,6 +169,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       const res = await api.recipes.parse({ url });
 
       if (!("error" in res)) {
+        // Standard import succeeded
         applyImportedRecipe(res.data);
         setImported(true);
         return;
