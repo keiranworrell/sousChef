@@ -12,7 +12,7 @@ import {
   deleteRecipe,
 } from "../db/queries/recipe-queries";
 import { importRecipeFromUrl, fetchPageHtml, parseRecipeFromHtml } from "../agents/recipe-import";
-import { importRecipeWithAi } from "../agents/recipe-import-ai";
+import { importRecipeWithAi, importRecipeFromText } from "../agents/recipe-import-ai";
 import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 
@@ -34,6 +34,10 @@ const StepSchema = z.object({
 
 const ImportRecipeSchema = z.object({
   url: z.string().url(),
+});
+
+const ImportRecipeTextSchema = z.object({
+  text: z.string().min(1).max(50_000),
 });
 
 const CreateRecipeSchema = z.object({
@@ -146,6 +150,21 @@ export const handler: APIGatewayProxyHandlerV2 = async (
         };
       }
       return okResponse(aiResult.recipe);
+    }
+
+    // POST /recipes/import/text — AI extract from pasted note, premium only, no save
+    if (method === "POST" && event.rawPath?.endsWith("/import/text")) {
+      assertPremium(user.planTier);
+      const body = parseBody(event.body, ImportRecipeTextSchema);
+      const result = await importRecipeFromText(body.text);
+      if (!result.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: "TEXT_IMPORT_FAILED", message: result.error } }),
+        };
+      }
+      return okResponse(result.recipe);
     }
 
     // POST /recipes/import/parse — parse only, no save

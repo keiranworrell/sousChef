@@ -109,12 +109,17 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   }, []);
 
   // Import state (create mode only)
+  type ImportMode = "url" | "note";
+  const [importMode, setImportMode] = useState<ImportMode>("url");
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
   const [importStatus, setImportStatus] = useState<"idle" | "schema" | "ai">("idle");
   const [importError, setImportError] = useState<string | null>(null);
   const [importedWithAi, setImportedWithAi] = useState(false);
   const [imported, setImported] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [noteImportLoading, setNoteImportLoading] = useState(false);
+  const [noteImportError, setNoteImportError] = useState<string | null>(null);
 
   function applyImportedRecipe(r: CreateRecipeInput): void {
     if (r.title) setTitle(r.title);
@@ -188,6 +193,32 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     } finally {
       setImportLoading(false);
       setImportStatus("idle");
+    }
+  }
+
+  async function handleNoteImport(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    const text = noteText.trim();
+    if (!text) return;
+    setNoteImportError(null);
+    setImported(false);
+    setImportedWithAi(false);
+    setNoteImportLoading(true);
+
+    try {
+      const api = await getApiClient();
+      const res = await api.recipes.importText({ text });
+      if ("error" in res) {
+        setNoteImportError(res.error.message);
+        return;
+      }
+      applyImportedRecipe(res.data);
+      setImported(true);
+      setImportedWithAi(true);
+    } catch (err) {
+      setNoteImportError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setNoteImportLoading(false);
     }
   }
 
@@ -281,15 +312,30 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* URL import (create mode only) */}
+      {/* Import (create mode only) */}
       {!isEdit && (
         <section className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
-          <div>
-            <p className="text-sm font-medium text-gray-700">Import from a URL</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Supported: {SUPPORTED_SOURCES.join(", ")}.
-            </p>
+          {/* Mode toggle */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700">Import recipe</p>
+            <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => { setImportMode("url"); setImportError(null); setNoteImportError(null); setImported(false); }}
+                className={`px-3 py-1.5 transition ${importMode === "url" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                From URL
+              </button>
+              <button
+                type="button"
+                onClick={() => { setImportMode("note"); setImportError(null); setNoteImportError(null); setImported(false); }}
+                className={`px-3 py-1.5 transition ${importMode === "note" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                From note
+              </button>
+            </div>
           </div>
+
           {imported ? (
             <div className="flex items-center justify-between">
               <p className="text-sm text-green-600 font-medium">
@@ -299,34 +345,66 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
               </p>
               <button
                 type="button"
-                onClick={() => { setImported(false); setImportedWithAi(false); setImportUrl(""); setImportError(null); }}
+                onClick={() => {
+                  setImported(false);
+                  setImportedWithAi(false);
+                  setImportUrl("");
+                  setNoteText("");
+                  setImportError(null);
+                  setNoteImportError(null);
+                }}
                 className="text-xs text-gray-400 hover:text-gray-600"
               >
-                Import a different URL
+                Import another
               </button>
             </div>
+          ) : importMode === "url" ? (
+            <>
+              <p className="text-xs text-gray-400">
+                Supported: {SUPPORTED_SOURCES.join(", ")}.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  className="input flex-1 text-sm"
+                  placeholder="https://www.bbcgoodfood.com/recipes/…"
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  disabled={importLoading}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => { void handleImport(e); }}
+                  disabled={importLoading || !importUrl.trim()}
+                  className="btn-secondary text-sm disabled:opacity-50"
+                >
+                  {importStatus === "ai" ? "Analysing with AI…" : importLoading ? "Importing…" : "Import"}
+                </button>
+              </div>
+              {importError && <p className="text-xs text-red-600">{importError}</p>}
+            </>
           ) : (
-            <div className="flex gap-2">
-              <input
-                type="url"
-                className="input flex-1 text-sm"
-                placeholder="https://www.bbcgoodfood.com/recipes/…"
-                value={importUrl}
-                onChange={(e) => setImportUrl(e.target.value)}
-                disabled={importLoading}
+            <>
+              <p className="text-xs text-gray-400">
+                Paste a recipe from your notes app — ingredients, steps, and timings will be extracted automatically.
+              </p>
+              <textarea
+                className="input w-full min-h-[160px] resize-y text-sm font-mono"
+                placeholder={"e.g.\n\nBiscoff Banana Bread\n\nIngredients:\n3 ripe bananas\n150g Biscoff spread\n…\n\nMethod:\n1. Preheat oven to 180°C\n…"}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                disabled={noteImportLoading}
               />
               <button
                 type="button"
-                onClick={(e) => { void handleImport(e); }}
-                disabled={importLoading || !importUrl.trim()}
+                onClick={(e) => { void handleNoteImport(e); }}
+                disabled={noteImportLoading || !noteText.trim()}
                 className="btn-secondary text-sm disabled:opacity-50"
               >
-                {importStatus === "ai" ? "Analysing with AI…" : importLoading ? "Importing…" : "Import"}
+                {noteImportLoading ? "Analysing…" : "Import from note"}
               </button>
-            </div>
-          )}
-          {importError && (
-            <p className="text-xs text-red-600">{importError}</p>
+              {noteImportError && <p className="text-xs text-red-600">{noteImportError}</p>}
+            </>
           )}
         </section>
       )}

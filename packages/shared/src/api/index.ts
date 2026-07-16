@@ -23,6 +23,7 @@ import type {
   FermentationBatchWithLogs,
   FermentationLog,
   ImportRecipeInput,
+  ImportRecipeTextInput,
   ListFermentationBatchesResponse,
   ListPantryItemsResponse,
   ListRecipesResponse,
@@ -130,6 +131,9 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       importAi: (input: ImportRecipeInput): Promise<ApiResponse<CreateRecipeInput>> =>
         post<CreateRecipeInput>("/recipes/import/ai", input),
+
+      importText: (input: ImportRecipeTextInput): Promise<ApiResponse<CreateRecipeInput>> =>
+        post<CreateRecipeInput>("/recipes/import/text", input),
 
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
