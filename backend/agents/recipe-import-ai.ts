@@ -100,22 +100,16 @@ function htmlToText(html: string): string {
     .slice(0, 40_000); // Stay well within context limits
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+// ── Shared agent caller ────────────────────────────────────────────────────────
 
 /**
- * Extracts a recipe from pre-fetched HTML using Claude as a fallback.
- * The caller is responsible for premium-gating this function.
+ * Calls Claude with a prepared user message and returns a parsed ImportResult.
+ * sourceUrl is included in the recipe when provided (URL imports), omitted for text imports.
  */
-export async function importRecipeWithAi(
-  url: string,
-  html: string,
+async function callRecipeAgent(
+  userMessage: string,
+  sourceUrl?: string,
 ): Promise<ImportResult> {
-  const text = htmlToText(html);
-
-  if (text.length < 100) {
-    return { ok: false, error: "Page content too short to extract a recipe from." };
-  }
-
   let client;
   try {
     client = await getAnthropicClient();
@@ -129,12 +123,7 @@ export async function importRecipeWithAi(
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Extract the recipe from this webpage. URL: ${url}\n\nPage content:\n${text}`,
-        },
-      ],
+      messages: [{ role: "user", content: userMessage }],
     });
 
     const block = message.content[0];
@@ -146,7 +135,6 @@ export async function importRecipeWithAi(
     return { ok: false, error: err instanceof Error ? err.message : "AI extraction failed" };
   }
 
-  // Try to parse the response
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawResponse);
@@ -154,13 +142,11 @@ export async function importRecipeWithAi(
     return { ok: false, error: "AI returned an unexpected response format." };
   }
 
-  // Check for an error response
   const errorCheck = AiErrorResponseSchema.safeParse(parsed);
   if (errorCheck.success) {
     return { ok: false, error: errorCheck.data.error };
   }
 
-  // Validate the recipe response
   const result = AiRecipeResponseSchema.safeParse(parsed);
   if (!result.success) {
     return { ok: false, error: "AI returned incomplete recipe data." };
@@ -171,14 +157,14 @@ export async function importRecipeWithAi(
   const recipe: CreateRecipeInput = {
     title: data.title,
     description: data.description ?? null,
-    imageUrl: null, // AI doesn't reliably extract image URLs from text
+    imageUrl: null,
     servings: data.servings ?? 4,
     prepTimeMinutes: data.prepTimeMinutes ?? null,
     cookTimeMinutes: data.cookTimeMinutes ?? null,
     difficulty: data.difficulty ?? null,
     cuisine: data.cuisine ?? null,
     isPublic: false,
-    sourceUrl: url,
+    sourceUrl: sourceUrl ?? null,
     ingredients: data.ingredients.map((ing, idx) => ({
       name: ing.name,
       quantity: ing.quantity ?? null,
@@ -194,4 +180,40 @@ export async function importRecipeWithAi(
   };
 
   return { ok: true, recipe };
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
+
+/**
+ * Extracts a recipe from plain text (e.g. a pasted note) using Claude.
+ * The caller is responsible for premium-gating this function.
+ */
+export async function importRecipeFromText(text: string): Promise<ImportResult> {
+  const trimmed = text.trim();
+
+  if (trimmed.length < 20) {
+    return { ok: false, error: "Note is too short to extract a recipe from." };
+  }
+
+  return callRecipeAgent(`Extract the recipe from this note:\n\n${trimmed}`);
+}
+
+/**
+ * Extracts a recipe from pre-fetched HTML using Claude as a fallback.
+ * The caller is responsible for premium-gating this function.
+ */
+export async function importRecipeWithAi(
+  url: string,
+  html: string,
+): Promise<ImportResult> {
+  const text = htmlToText(html);
+
+  if (text.length < 100) {
+    return { ok: false, error: "Page content too short to extract a recipe from." };
+  }
+
+  return callRecipeAgent(
+    `Extract the recipe from this webpage. URL: ${url}\n\nPage content:\n${text}`,
+    url,
+  );
 }
