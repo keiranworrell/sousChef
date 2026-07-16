@@ -54,11 +54,7 @@ const CreateRecipeSchema = z.object({
   tags: z.array(z.string().min(1)).optional(),
 });
 
-const UpdateRecipeSchema = CreateRecipeSchema.partial().omit({
-  ingredients: true,
-  steps: true,
-  tags: true,
-});
+const UpdateRecipeSchema = CreateRecipeSchema.partial();
 
 const ListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(20),

@@ -8,7 +8,7 @@ const { runWithAmplifyServerContext } = createServerRunner({
 });
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/sign-in", "/sign-up", "/confirm"];
+const PUBLIC_ROUTES = ["/sign-in", "/sign-up", "/confirm", "/r"];
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -30,6 +30,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!isAuthenticated && !isPublicRoute) {
+    // Community recipe detail pages are publicly viewable via /r/[id].
+    // Redirect unauthenticated users there instead of to sign-in.
+    const communityRecipeMatch = pathname.match(/^\/community\/([^/]+)$/);
+    if (communityRecipeMatch) {
+      return NextResponse.redirect(new URL(`/r/${communityRecipeMatch[1]}`, request.url));
+    }
+
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(signInUrl);

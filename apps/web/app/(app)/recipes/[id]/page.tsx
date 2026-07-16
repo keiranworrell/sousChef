@@ -167,12 +167,12 @@ export default function RecipeDetailPage(): React.JSX.Element {
         />
       )}
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <Link href="/recipes" className="text-sm text-orange-500 hover:underline">
             ← Recipes
           </Link>
           <div className="mt-2 flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 break-words">{recipe.title}</h1>
             {recipe.isPublic && (
               <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">
                 Public
