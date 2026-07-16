@@ -26,13 +26,13 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 ## 🔨 Medium features
 
 - [x] Recipe tags — starter, main, dessert, baking, cuisine (Mexican, Italian, etc.) — usable for search and filter
-- [ ] Predictive tags based on ingredients (e.g. auto-flag vegetarian/vegan from ingredient list, likely via a simple rules pass or a cheap AI call)
+- [x] Predictive tags based on ingredients (e.g. auto-flag vegetarian/vegan from ingredient list, likely via a simple rules pass or a cheap AI call)
 - [x] Filter and sort on Recipes tab — by tag, difficulty, and sort order (newest/oldest/A–Z)
 - [x] Recipe images — upload and store in S3, link in recipe record, display when recipe is loaded (S3 bucket already in infra plan)
 - [x] Share button on recipes — generate a shareable link that opens the recipe for non-users (public recipes only)
 - [x] My Profile page — display name, dietary requirements/preferences, profile bio, avatar
-- [ ] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
-- [ ] Add friends — follow/connect with other users
+- [x] Add a "Rediscover" view — surfaces recipes you haven't made in a while / used to make regularly (based on cook history)
+- [x] Add friends — follow/connect with other users
 - [x] Ingredient substitution assistant — static substitution map; tap ingredient on recipe detail page or cooking mode to see substitutions and replace
 - [x] "Add to shopping list" button on recipe view — adds all ingredients from a single recipe directly to an existing or new shopping list
 
@@ -40,7 +40,7 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 ## 🏗️ Large features
 
-- [ ] Shared shopping lists, meal plans, and pantries between friends
+- [x] Shared shopping lists, meal plans, and pantries between friends
 - [ ] Menus / Events — structured event planner with courses (starters, mains, desserts, drinks, canapés etc.), separate from the weekly meal plan
 - [ ] Collaborative menus — share and co-edit an event menu with other users (build on top of Events above)
 - [ ] Links to supermarket websites for ingredient prices / availability
@@ -62,5 +62,5 @@ Roughly ordered by priority within each section. Cross off items as they ship.
 
 - S3 bucket for recipe/fermentation images is already defined in the Terraform infra plan.
 - AI agent stubs exist for substitution, scaling, dietary adaptation, fermentation troubleshoot, and recipe import — these are partially or fully unimplemented on the frontend.
-- "Add friends" is a prerequisite for most of the social/collaborative features.
+- Follow/friends system is shipped — users can follow each other, view profiles, and share a household for collaborative pantry/shopping/meal plans.
 - Tags are a prerequisite for meaningful filter/sort on recipes.
