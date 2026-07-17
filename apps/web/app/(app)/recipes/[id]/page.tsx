@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { RecipeIngredient, RecipeWithDetails, ShoppingList, Substitution } from "@souschef/shared";
+import { scaleQuantity } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
@@ -26,6 +27,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [copied, setCopied] = useState(false);
   const [cookLogged, setCookLogged] = useState(false);
   const [cookLogging, setCookLogging] = useState(false);
+  const [adjustedServings, setAdjustedServings] = useState<number | null>(null);
 
   async function handleLogCook(): Promise<void> {
     setCookLogging(true);
@@ -223,14 +225,50 @@ export default function RecipeDetailPage(): React.JSX.Element {
       </div>
 
       {/* Meta */}
-      <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-500">
-        <span>{recipe.servings} servings</span>
-        {totalMins > 0 && <span>{totalMins} min total</span>}
-        {recipe.prepTimeMinutes && <span>{recipe.prepTimeMinutes} min prep</span>}
-        {recipe.cookTimeMinutes && <span>{recipe.cookTimeMinutes} min cook</span>}
-        {recipe.difficulty && <span className="capitalize">{recipe.difficulty}</span>}
-        {recipe.cuisine && <span>{recipe.cuisine}</span>}
-      </div>
+      {(() => {
+        const servings = adjustedServings ?? recipe.servings;
+        const isScaled = servings !== recipe.servings;
+        return (
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+            {/* Serving adjuster */}
+            <span className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setAdjustedServings(Math.max(1, servings - 1))}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
+                aria-label="Decrease servings"
+              >
+                −
+              </button>
+              <span className={`font-medium tabular-nums ${isScaled ? "text-orange-600" : "text-gray-700"}`}>
+                {servings} {servings === 1 ? "serving" : "servings"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setAdjustedServings(Math.min(200, servings + 1))}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
+                aria-label="Increase servings"
+              >
+                +
+              </button>
+              {isScaled && (
+                <button
+                  type="button"
+                  onClick={() => setAdjustedServings(null)}
+                  className="ml-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                >
+                  Reset
+                </button>
+              )}
+            </span>
+            {totalMins > 0 && <span>{totalMins} min total</span>}
+            {recipe.prepTimeMinutes && <span>{recipe.prepTimeMinutes} min prep</span>}
+            {recipe.cookTimeMinutes && <span>{recipe.cookTimeMinutes} min cook</span>}
+            {recipe.difficulty && <span className="capitalize">{recipe.difficulty}</span>}
+            {recipe.cuisine && <span>{recipe.cuisine}</span>}
+          </div>
+        );
+      })()}
 
       {recipe.tags.length > 0 && (
         <div className="mb-8 flex flex-wrap gap-1.5 border-b border-gray-100 pb-6">
@@ -254,13 +292,21 @@ export default function RecipeDetailPage(): React.JSX.Element {
             <span className="text-xs text-gray-400">Tap an ingredient to see substitutions</span>
           </div>
           <ul className="space-y-2">
-            {recipe.ingredients.map((ing) => (
-              <IngredientWithSubs
-                key={ing.id}
-                ingredient={ing}
-                onReplace={handleReplaceIngredient}
-              />
-            ))}
+            {recipe.ingredients.map((ing) => {
+              const scaleFactor = adjustedServings !== null
+                ? adjustedServings / recipe.servings
+                : 1;
+              return (
+                <IngredientWithSubs
+                  key={ing.id}
+                  ingredient={ing}
+                  onReplace={handleReplaceIngredient}
+                  scaledQuantity={scaleFactor !== 1
+                    ? scaleQuantity(ing.quantity, ing.name, scaleFactor)
+                    : undefined}
+                />
+              );
+            })}
           </ul>
         </section>
       )}
