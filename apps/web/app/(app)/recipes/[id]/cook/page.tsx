@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { RecipeIngredient, RecipeStep, RecipeWithDetails, Substitution } from "@souschef/shared";
+import { scaleQuantity } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 
@@ -97,9 +98,11 @@ function StepTimer({ step }: { step: RecipeStep }): React.JSX.Element {
 function IngredientsTab({
   ingredients,
   onReplace,
+  scaleFactor,
 }: {
   ingredients: RecipeIngredient[];
   onReplace: (ingredient: RecipeIngredient, sub: Substitution) => void;
+  scaleFactor: number;
 }): React.JSX.Element {
   return (
     <div className="flex flex-1 flex-col px-6 py-6 overflow-y-auto">
@@ -113,6 +116,9 @@ function IngredientsTab({
             ingredient={ing}
             onReplace={onReplace}
             className="text-gray-200"
+            scaledQuantity={scaleFactor !== 1
+              ? scaleQuantity(ing.quantity, ing.name, scaleFactor)
+              : undefined}
           />
         ))}
       </ul>
@@ -125,6 +131,7 @@ function IngredientsTab({
 export default function CookPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
@@ -210,6 +217,13 @@ export default function CookPage(): React.JSX.Element {
 
   const steps = [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber);
   const step = steps[stepIndex]!;
+
+  const requestedServings = searchParams.get("servings");
+  const scaleFactor =
+    requestedServings !== null && recipe.servings > 0
+      ? Math.max(0.1, parseInt(requestedServings, 10)) / recipe.servings
+      : 1;
+  const scaledServings = requestedServings !== null ? parseInt(requestedServings, 10) : recipe.servings;
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
   const progress = ((stepIndex + 1) / steps.length) * 100;
@@ -237,6 +251,11 @@ export default function CookPage(): React.JSX.Element {
           {activeTab === "ingredients" && (
             <p className="mt-0.5 text-sm font-medium text-gray-300">
               {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? "s" : ""}
+            </p>
+          )}
+          {scaleFactor !== 1 && (
+            <p className="mt-0.5 text-xs font-medium text-orange-400">
+              Scaled to {scaledServings} {scaledServings === 1 ? "serving" : "servings"}
             </p>
           )}
         </div>
@@ -284,6 +303,7 @@ export default function CookPage(): React.JSX.Element {
         <IngredientsTab
           ingredients={recipe.ingredients}
           onReplace={handleReplaceIngredient}
+          scaleFactor={scaleFactor}
         />
       ) : (
         <>
