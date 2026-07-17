@@ -374,6 +374,12 @@ resource "aws_apigatewayv2_integration" "pantry" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_route" "pantry_suggestions" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /pantry/suggestions"
+  target    = "integrations/${aws_apigatewayv2_integration.pantry.id}"
+}
+
 resource "aws_apigatewayv2_route" "pantry_list" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /pantry"

@@ -11,6 +11,7 @@ import {
   updatePantryItem,
   deletePantryItem,
 } from "../db/queries/pantry-queries";
+import { getPantrySuggestions } from "../db/queries/pantry-suggestions-queries";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -39,6 +40,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     const method = event.requestContext.http.method.toUpperCase();
     const itemId = event.pathParameters?.["id"];
+
+    // GET /pantry/suggestions — must come before generic GET /pantry
+    if (method === "GET" && event.rawPath?.endsWith("/suggestions")) {
+      const result = await getPantrySuggestions(user.id, householdId);
+      return okResponse(result);
+    }
 
     // GET /pantry
     if (method === "GET" && !itemId) {
