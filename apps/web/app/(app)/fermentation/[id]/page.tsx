@@ -19,9 +19,9 @@ function daysUntil(dateStr: string): number {
 }
 
 const STATUS_STYLES: Record<FermentationStatus, string> = {
-  active: "bg-orange-50 text-orange-600 border-orange-200",
-  complete: "bg-green-50 text-green-700 border-green-200",
-  abandoned: "bg-gray-100 text-gray-500 border-gray-200",
+  active: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800",
+  complete: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
+  abandoned: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700",
 };
 
 type LogForm = {
@@ -138,7 +138,7 @@ export default function BatchDetailPage(): React.JSX.Element {
       {/* Header */}
       <Link href="/fermentation" className="text-sm text-orange-500 hover:underline">← Fermentation</Link>
       <div className="mt-3 flex items-center gap-3 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">{batch.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{batch.name}</h1>
         <span className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full border ${STATUS_STYLES[batch.status]}`}>
           {batch.status.charAt(0).toUpperCase() + batch.status.slice(1)}
         </span>
@@ -189,7 +189,7 @@ export default function BatchDetailPage(): React.JSX.Element {
       {/* Log section */}
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Log entries</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Log entries</h2>
           {!addingLog && (
             <button className="btn-primary text-sm" onClick={() => setAddingLog(true)}>
               + Add entry
@@ -200,9 +200,9 @@ export default function BatchDetailPage(): React.JSX.Element {
         {addingLog && (
           <form
             onSubmit={(e) => { void handleAddLog(e); }}
-            className="mb-6 rounded-xl border border-orange-100 bg-white p-4 shadow-sm"
+            className="mb-6 rounded-xl border border-orange-100 bg-white dark:bg-gray-900 p-4 shadow-sm"
           >
-            <p className="mb-3 text-sm font-medium text-gray-600">Fill in any measurements taken today:</p>
+            <p className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">Fill in any measurements taken today:</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
                 <label className="label">pH</label>
@@ -245,10 +245,10 @@ export default function BatchDetailPage(): React.JSX.Element {
           {[...batch.logs].reverse().map((log, i) => (
             <li
               key={log.id}
-              className={`rounded-xl border bg-white p-4 shadow-sm ${i === 0 ? "border-orange-200" : "border-gray-200"}`}
+              className={`rounded-xl border bg-white dark:bg-gray-900 p-4 shadow-sm ${i === 0 ? "border-orange-200" : "border-gray-200 dark:border-gray-800"}`}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   {new Date(log.loggedAt).toLocaleDateString("en-GB", {
                     weekday: "short", day: "numeric", month: "short", year: "numeric",
                   })}
@@ -267,7 +267,7 @@ export default function BatchDetailPage(): React.JSX.Element {
                 {log.temperatureCelsius != null && <Stat label="Temp" value={`${log.temperatureCelsius}°C`} />}
                 {log.weightGrams != null && <Stat label="Weight" value={`${log.weightGrams}g`} />}
               </div>
-              {log.notes && <p className="text-sm text-gray-600">{log.notes}</p>}
+              {log.notes && <p className="text-sm text-gray-600 dark:text-gray-400">{log.notes}</p>}
             </li>
           ))}
         </ul>
@@ -278,9 +278,9 @@ export default function BatchDetailPage(): React.JSX.Element {
 
 function Stat({ label, value }: { label: string; value: string }): React.JSX.Element {
   return (
-    <div className="rounded-lg bg-gray-50 px-3 py-1.5">
+    <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-1.5">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="text-sm font-bold text-gray-900">{value}</p>
+      <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{value}</p>
     </div>
   );
 }

@@ -397,8 +397,8 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     return (
       <>
         <div className="mx-auto max-w-3xl px-4 py-10">
-          <p className="text-base font-semibold text-gray-900 mb-1">Recipe created!</p>
-          <p className="text-sm text-gray-500 mb-4">Add it to a collection, or skip to view it now.</p>
+          <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Recipe created!</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Add it to a collection, or skip to view it now.</p>
           <button
             type="button"
             className="text-sm text-orange-500 hover:underline"
@@ -419,11 +419,11 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Import (create mode only) */}
       {!isEdit && (
-        <section className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
+        <section className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
           {/* Mode toggle */}
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700">Import recipe</p>
-            <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-xs font-medium">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Import recipe</p>
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden text-xs font-medium">
               <button
                 type="button"
                 onClick={() => { setImportMode("url"); setImportError(null); setNoteImportError(null); setPhotoImportError(null); setImported(false); }}
@@ -510,7 +510,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
 
                   {/* File picker */}
                   {photoEntries.length < 10 && (
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition">
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -680,7 +680,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
                 onChange={(e) => setIsPublic(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 accent-orange-500"
               />
-              <span className="text-sm text-gray-700">Make public</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Make public</span>
             </label>
           </div>
         </div>
@@ -706,7 +706,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
               </div>
             )}
             <div className="flex-1">
-              <label className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition ${imageUploading ? "opacity-50 pointer-events-none" : ""}`}>
+              <label className={`flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition ${imageUploading ? "opacity-50 pointer-events-none" : ""}`}>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -727,7 +727,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700"
+                className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-950 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400"
               >
                 {tag}
                 <button
@@ -760,7 +760,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
               }
             }}
           />
-          <p className="mt-1 text-xs text-gray-500">Press Enter or type a comma to add a tag</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Press Enter or type a comma to add a tag</p>
 
           {suggestedTags.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">

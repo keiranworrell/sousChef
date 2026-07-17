@@ -241,14 +241,14 @@ export default function MealPlanPage(): React.JSX.Element {
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* Header + week nav */}
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {householdName != null ? `${householdName}'s meal plan` : "Meal Plan"}
         </h1>
         <div className="flex items-center gap-3 flex-wrap">
           <button className="btn-secondary py-1.5 px-3 text-sm" onClick={prevWeek}>
             ← Prev
           </button>
-          <span className="text-sm font-medium text-gray-700 min-w-[200px] text-center">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[200px] text-center">
             {formatWeekRange(weekStart)}
           </span>
           <button className="btn-secondary py-1.5 px-3 text-sm" onClick={nextWeek}>
@@ -312,7 +312,7 @@ export default function MealPlanPage(): React.JSX.Element {
                         className={`py-2 px-1 text-center text-xs font-semibold uppercase tracking-wide ${isToday ? "text-orange-500" : "text-gray-400"}`}
                       >
                         <span className="block">{day?.short}</span>
-                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700"}`}>
+                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}>
                           {date.getUTCDate()}
                         </span>
                       </th>
@@ -322,7 +322,7 @@ export default function MealPlanPage(): React.JSX.Element {
               </thead>
               <tbody>
                 {MEAL_TYPES.map((mealType) => (
-                  <tr key={mealType} className="border-t border-gray-100">
+                  <tr key={mealType} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="py-3 pr-2 text-xs font-semibold capitalize text-gray-400 align-top pt-3.5">
                       {mealType}
                     </td>
@@ -332,8 +332,8 @@ export default function MealPlanPage(): React.JSX.Element {
                       return (
                         <td key={dayIdx} className="p-1 align-top">
                           {entry ? (
-                            <div className="group relative rounded-lg bg-orange-50 border border-orange-100 p-2 min-h-[56px]">
-                              <p className="text-xs font-medium text-gray-800 leading-snug pr-4 break-words">
+                            <div className="group relative rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-100 dark:border-orange-900 p-2 min-h-[56px]">
+                              <p className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug pr-4 break-words">
                                 {entry.recipe.title}
                               </p>
                               <button
@@ -350,7 +350,7 @@ export default function MealPlanPage(): React.JSX.Element {
                           ) : (
                             <button
                               onClick={() => { void openPicker({ dayOfWeek: dayIdx, mealType }); }}
-                              className="w-full rounded-lg border border-dashed border-gray-200 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
+                              className="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
                               aria-label={`Add ${mealType}`}
                             >
                               <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
@@ -382,7 +382,7 @@ export default function MealPlanPage(): React.JSX.Element {
                         className={`py-2 px-1 text-center text-xs font-semibold uppercase tracking-wide ${isToday ? "text-orange-500" : "text-gray-400"}`}
                       >
                         <span className="block">{day.short}</span>
-                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700"}`}>
+                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}>
                           {date.getUTCDate()}
                         </span>
                       </th>
@@ -392,7 +392,7 @@ export default function MealPlanPage(): React.JSX.Element {
               </thead>
               <tbody>
                 {MEAL_TYPES.map((mealType) => (
-                  <tr key={mealType} className="border-t border-gray-100">
+                  <tr key={mealType} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="py-3 pr-3 text-xs font-semibold capitalize text-gray-400 align-top pt-3.5">
                       {mealType}
                     </td>
@@ -420,7 +420,7 @@ export default function MealPlanPage(): React.JSX.Element {
                           ) : (
                             <button
                               onClick={() => { void openPicker({ dayOfWeek: day, mealType }); }}
-                              className="w-full rounded-lg border border-dashed border-gray-200 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
+                              className="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
                               aria-label={`Add ${mealType}`}
                             >
                               <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
@@ -442,9 +442,9 @@ export default function MealPlanPage(): React.JSX.Element {
       {/* Generate shopping list modal */}
       {showGenerate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">Generate shopping list</h2>
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 shadow-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="font-semibold text-gray-900 dark:text-gray-100">Generate shopping list</h2>
               <button
                 onClick={() => setShowGenerate(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -475,7 +475,7 @@ export default function MealPlanPage(): React.JSX.Element {
                   checked={genDeductPantry}
                   onChange={(e) => setGenDeductPantry(e.target.checked)}
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   Deduct items already in pantry
                 </span>
               </label>
@@ -500,10 +500,10 @@ export default function MealPlanPage(): React.JSX.Element {
       {/* Recipe picker overlay */}
       {pickerTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <div>
-                <h2 className="font-semibold text-gray-900">Choose a recipe</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-gray-100">Choose a recipe</h2>
                 <p className="text-xs text-gray-400 mt-0.5 capitalize">
                   {DAYS[pickerTarget.dayOfWeek]?.label} · {pickerTarget.mealType}
                 </p>
@@ -517,7 +517,7 @@ export default function MealPlanPage(): React.JSX.Element {
                 </svg>
               </button>
             </div>
-            <div className="px-5 py-3 border-b border-gray-100">
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
               <input
                 className="input"
                 placeholder="Search recipes…"
@@ -541,11 +541,11 @@ export default function MealPlanPage(): React.JSX.Element {
               {filteredRecipes.map((recipe) => (
                 <li key={recipe.id}>
                   <button
-                    className="w-full text-left px-5 py-3 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                    className="w-full text-left px-5 py-3 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
                     onClick={() => { void handleAddEntry(recipe.id); }}
                     disabled={addingEntry}
                   >
-                    <span className="text-sm font-medium text-gray-900">{recipe.title}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{recipe.title}</span>
                     {recipe.cuisine && (
                       <span className="ml-2 text-xs text-gray-400">{recipe.cuisine}</span>
                     )}

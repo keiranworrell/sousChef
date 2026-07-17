@@ -184,7 +184,7 @@ export default function ProfilePage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Profile</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">Profile</h1>
 
       <form onSubmit={(e) => { void handleSave(e); }} className="space-y-8">
 
@@ -204,7 +204,7 @@ export default function ProfilePage(): React.JSX.Element {
             )}
           </div>
           <div>
-            <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition ${avatarUploading ? "opacity-50 pointer-events-none" : ""}`}>
+            <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:border-orange-400 hover:text-orange-500 transition ${avatarUploading ? "opacity-50 pointer-events-none" : ""}`}>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -230,11 +230,11 @@ export default function ProfilePage(): React.JSX.Element {
         {/* Follower stats */}
         <section className="flex gap-6">
           <button type="button" onClick={() => { void openPanel("followers"); }} className="text-left hover:text-orange-600 transition">
-            <p className="text-2xl font-bold text-gray-900">{(user.followerCount ?? 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{(user.followerCount ?? 0).toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">followers</p>
           </button>
           <button type="button" onClick={() => { void openPanel("following"); }} className="text-left hover:text-orange-600 transition">
-            <p className="text-2xl font-bold text-gray-900">{(user.followingCount ?? 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{(user.followingCount ?? 0).toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-0.5">following</p>
           </button>
         </section>
@@ -256,7 +256,7 @@ export default function ProfilePage(): React.JSX.Element {
           <div>
             <label className="label">Email</label>
             <input
-              className="input bg-gray-50 text-gray-400 cursor-not-allowed"
+              className="input bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
               value={user.email}
               disabled
             />
@@ -284,7 +284,7 @@ export default function ProfilePage(): React.JSX.Element {
             {dietaryPreferences.map((pref) => (
               <span
                 key={pref}
-                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700"
+                className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-950 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400"
               >
                 {pref}
                 <button
@@ -329,7 +329,7 @@ export default function ProfilePage(): React.JSX.Element {
                 key={s}
                 type="button"
                 onClick={() => addPreference(s)}
-                className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs text-gray-500 hover:border-orange-300 hover:text-orange-600 transition"
+                className="rounded-full border border-gray-200 dark:border-gray-700 px-2.5 py-0.5 text-xs text-gray-500 dark:text-gray-400 hover:border-orange-300 hover:text-orange-600 transition"
               >
                 + {s}
               </button>
@@ -357,9 +357,9 @@ export default function ProfilePage(): React.JSX.Element {
       {panel && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setPanel(null)} />
-          <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900 capitalize">{panel}</h2>
+          <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 capitalize">{panel}</h2>
               <button onClick={() => setPanel(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
             </div>
             <div className="overflow-y-auto flex-1 px-5 py-3">
@@ -368,7 +368,7 @@ export default function ProfilePage(): React.JSX.Element {
                 <p className="py-6 text-sm text-center text-gray-400">Nobody here yet.</p>
               )}
               {panelItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+                <div key={item.id} className="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
                   <Link href={`/users/${item.id}`} onClick={() => setPanel(null)}>
                     {item.avatarUrl ? (
                       <img src={item.avatarUrl} alt={item.displayName} className="h-9 w-9 rounded-full object-cover border border-gray-200 shrink-0" />
@@ -379,7 +379,7 @@ export default function ProfilePage(): React.JSX.Element {
                     )}
                   </Link>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/users/${item.id}`} onClick={() => setPanel(null)} className="text-sm font-medium text-gray-900 hover:text-orange-600">
+                    <Link href={`/users/${item.id}`} onClick={() => setPanel(null)} className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600">
                       {item.displayName}
                     </Link>
                     <p className="text-xs text-gray-400">

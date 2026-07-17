@@ -141,8 +141,8 @@ export default function CollectionDetailPage(): React.JSX.Element {
 
       {/* Header */}
       {editing ? (
-        <form onSubmit={(e) => { void handleEdit(e); }} className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">Edit collection</h2>
+        <form onSubmit={(e) => { void handleEdit(e); }} className="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Edit collection</h2>
           <div>
             <label className="label">Name *</label>
             <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required autoFocus />
@@ -158,7 +158,7 @@ export default function CollectionDetailPage(): React.JSX.Element {
               onChange={(e) => setEditPublic(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 accent-orange-500"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-700 dark:text-gray-300">
               Public
               {!collection.isPublic && editPublic && (
                 <span className="ml-1 text-xs text-orange-500">(all recipes will be made public)</span>
@@ -177,13 +177,13 @@ export default function CollectionDetailPage(): React.JSX.Element {
         <div className="mt-4 mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900 break-words">{collection.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{collection.name}</h1>
               {collection.isPublic && (
-                <span className="shrink-0 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">Public</span>
+                <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">Public</span>
               )}
             </div>
             {collection.description && (
-              <p className="mt-1 text-sm text-gray-500">{collection.description}</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{collection.description}</p>
             )}
             <p className="mt-2 text-xs text-gray-400">{collection.recipeCount} {collection.recipeCount === 1 ? "recipe" : "recipes"}</p>
           </div>
@@ -202,7 +202,7 @@ export default function CollectionDetailPage(): React.JSX.Element {
 
       {/* Recipe list */}
       {collection.items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
           <p className="text-sm text-gray-400">No recipes yet.</p>
           <p className="mt-1 text-xs text-gray-300">Add recipes from any recipe page using the &ldquo;Add to collection&rdquo; button.</p>
         </div>
@@ -211,17 +211,17 @@ export default function CollectionDetailPage(): React.JSX.Element {
           {collection.items.map((item: CollectionRecipeItem) => (
             <div
               key={item.recipeId}
-              className="flex items-center gap-3 rounded-lg border border-gray-100 p-3"
+              className="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3"
             >
               {item.imageUrl ? (
                 <img src={item.imageUrl} alt={item.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
               ) : (
-                <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-xl">🍽️</div>
+                <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl">🍽️</div>
               )}
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/recipes/${item.recipeId}`}
-                  className="truncate text-sm font-medium text-gray-900 hover:text-orange-600 transition-colors"
+                  className="truncate text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600 transition-colors"
                 >
                   {item.title}
                 </Link>

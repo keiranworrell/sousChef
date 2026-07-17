@@ -26,13 +26,13 @@ function ActivityCard({ activity }: { activity: FeedActivity }): React.JSX.Eleme
     type === "new_recipe" ? "shared a new recipe" : "cooked";
 
   return (
-    <div className="flex gap-4 py-5 border-b border-gray-100 last:border-0">
+    <div className="flex gap-4 py-5 border-b border-gray-100 dark:border-gray-800 last:border-0">
       {/* Avatar */}
       {user.avatarUrl ? (
         <img
           src={user.avatarUrl}
           alt={user.displayName}
-          className="h-9 w-9 rounded-full object-cover border border-gray-200 shrink-0"
+          className="h-9 w-9 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0"
         />
       ) : (
         <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-500 shrink-0">
@@ -42,8 +42,8 @@ function ActivityCard({ activity }: { activity: FeedActivity }): React.JSX.Eleme
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700">
-          <span className="font-semibold text-gray-900">{user.displayName}</span>
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          <span className="font-semibold text-gray-900 dark:text-gray-100">{user.displayName}</span>
           {" "}{actionText}{" "}
           <Link
             href={`/community/${recipe.id}`}
@@ -59,7 +59,7 @@ function ActivityCard({ activity }: { activity: FeedActivity }): React.JSX.Eleme
             <img
               src={recipe.imageUrl}
               alt={recipe.title}
-              className="h-24 w-40 rounded-lg object-cover border border-gray-100"
+              className="h-24 w-40 rounded-lg object-cover border border-gray-100 dark:border-gray-800"
             />
           </Link>
         )}
@@ -128,11 +128,11 @@ export default function FeedPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Feed</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Feed</h1>
 
       {activities.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 px-8 py-14 text-center">
-          <p className="text-gray-900 font-medium mb-1">Nothing here yet</p>
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 px-8 py-14 text-center">
+          <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">Nothing here yet</p>
           <p className="text-sm text-gray-400 mb-5">
             Follow some cooks to see when they share or cook recipes.
           </p>
@@ -156,7 +156,7 @@ export default function FeedPage(): React.JSX.Element {
               <button
                 onClick={() => { void handleLoadMore(); }}
                 disabled={loadingMore}
-                className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50"
+                className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
               >
                 {loadingMore ? "Loading…" : "Load more"}
               </button>

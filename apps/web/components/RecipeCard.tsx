@@ -20,7 +20,7 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
   return (
     <Link
       href={`/recipes/${recipe.id}`}
-      className="block rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md overflow-hidden"
+      className="block rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md overflow-hidden dark:border-gray-800 dark:bg-gray-900"
     >
       {recipe.imageUrl && (
         <img
@@ -31,17 +31,17 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
       )}
       <div className="p-5">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900 leading-snug">
+          <h2 className="text-base font-semibold text-gray-900 leading-snug dark:text-gray-100">
             {recipe.title}
           </h2>
           <div className="flex shrink-0 gap-1.5">
             {recipe.isPublic && (
-              <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-950 dark:text-green-400">
                 Public
               </span>
             )}
             {recipe.difficulty && (
-              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
+              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600 dark:bg-orange-950 dark:text-orange-400">
                 {DIFFICULTY_LABEL[recipe.difficulty]}
               </span>
             )}
@@ -49,7 +49,7 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
         </div>
 
         {recipe.description && (
-          <p className="mt-1.5 text-sm text-gray-500 line-clamp-2">
+          <p className="mt-1.5 text-sm text-gray-500 line-clamp-2 dark:text-gray-400">
             {recipe.description}
           </p>
         )}
@@ -65,13 +65,13 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
             {recipe.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600"
+                className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600 dark:bg-orange-950 dark:text-orange-400"
               >
                 {tag}
               </span>
             ))}
             {recipe.tags.length > 3 && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                 +{recipe.tags.length - 3} more
               </span>
             )}

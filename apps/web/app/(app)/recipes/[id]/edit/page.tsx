@@ -53,7 +53,7 @@ export default function EditRecipePage(): React.JSX.Element {
       <Link href={`/recipes/${id}`} className="text-sm text-orange-500 hover:underline">
         ← Back to recipe
       </Link>
-      <h1 className="mt-2 mb-8 text-2xl font-bold text-gray-900">Edit recipe</h1>
+      <h1 className="mt-2 mb-8 text-2xl font-bold text-gray-900 dark:text-gray-100">Edit recipe</h1>
       <RecipeForm initial={recipe} />
     </div>
   );

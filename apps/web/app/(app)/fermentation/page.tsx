@@ -11,9 +11,9 @@ function daysAgo(dateStr: string): number {
 }
 
 const STATUS_STYLES: Record<FermentationStatus, string> = {
-  active: "bg-orange-50 text-orange-600 border-orange-200",
-  complete: "bg-green-50 text-green-700 border-green-200",
-  abandoned: "bg-gray-100 text-gray-500 border-gray-200",
+  active: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800",
+  complete: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
+  abandoned: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700",
 };
 
 export default function FermentationPage(): React.JSX.Element {
@@ -87,7 +87,7 @@ export default function FermentationPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Fermentation</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Fermentation</h1>
         {!creating && (
           <button className="btn-primary" onClick={() => setCreating(true)}>
             + New batch
@@ -98,9 +98,9 @@ export default function FermentationPage(): React.JSX.Element {
       {creating && (
         <form
           onSubmit={(e) => { void handleCreate(e); }}
-          className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
         >
-          <h2 className="mb-4 text-sm font-semibold text-gray-700">New batch</h2>
+          <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">New batch</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="sm:col-span-3">
               <label className="label">Name *</label>
@@ -151,8 +151,8 @@ export default function FermentationPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && batches.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No batches yet.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No batches yet.</p>
           <button className="mt-4 btn-primary" onClick={() => setCreating(true)}>
             Start your first batch
           </button>
@@ -165,14 +165,14 @@ export default function FermentationPage(): React.JSX.Element {
           return (
             <li
               key={batch.id}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm"
             >
               <Link
                 href={`/fermentation/${batch.id}`}
                 className="flex-1 min-w-0"
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-gray-900 hover:text-orange-600 transition-colors">
+                  <span className="font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600 transition-colors">
                     {batch.name}
                   </span>
                   <span

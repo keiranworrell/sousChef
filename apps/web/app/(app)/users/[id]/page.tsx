@@ -99,9 +99,9 @@ function FollowPanel({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
 
@@ -111,7 +111,7 @@ function FollowPanel({
             <p className="py-6 text-sm text-center text-gray-400">Nobody here yet.</p>
           )}
           {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+            <div key={item.id} className="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
               <Link href={`/users/${item.id}`} onClick={onClose}>
                 {item.avatarUrl ? (
                   <img src={item.avatarUrl} alt={item.displayName} className="h-9 w-9 rounded-full object-cover border border-gray-200 shrink-0" />
@@ -122,7 +122,7 @@ function FollowPanel({
                 )}
               </Link>
               <div className="flex-1 min-w-0">
-                <Link href={`/users/${item.id}`} onClick={onClose} className="text-sm font-medium text-gray-900 hover:text-orange-600">
+                <Link href={`/users/${item.id}`} onClick={onClose} className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600">
                   {item.displayName}
                 </Link>
                 <p className="text-xs text-gray-400">
@@ -288,7 +288,7 @@ export default function UserProfilePage(): React.JSX.Element {
           <img
             src={profile.avatarUrl}
             alt={profile.displayName}
-            className="h-20 w-20 rounded-full object-cover border border-gray-200 shrink-0"
+            className="h-20 w-20 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0"
           />
         ) : (
           <div className="h-20 w-20 rounded-full bg-orange-100 flex items-center justify-center text-2xl font-bold text-orange-500 shrink-0">
@@ -299,13 +299,13 @@ export default function UserProfilePage(): React.JSX.Element {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{profile.displayName}</h1>
-              {profile.bio && <p className="mt-1 text-sm text-gray-500">{profile.bio}</p>}
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{profile.displayName}</h1>
+              {profile.bio && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{profile.bio}</p>}
             </div>
             {isOwnProfile ? (
               <Link
                 href="/profile"
-                className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-gray-400 hover:text-gray-900 transition"
+                className="shrink-0 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:border-gray-400 hover:text-gray-900 transition"
               >
                 Edit profile
               </Link>
@@ -329,14 +329,14 @@ export default function UserProfilePage(): React.JSX.Element {
               onClick={() => setPanel("followers")}
               className="text-left hover:text-orange-600 transition"
             >
-              <span className="text-lg font-bold text-gray-900">{profile.followerCount.toLocaleString()}</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{profile.followerCount.toLocaleString()}</span>
               <span className="ml-1 text-sm text-gray-400">followers</span>
             </button>
             <button
               onClick={() => setPanel("following")}
               className="text-left hover:text-orange-600 transition"
             >
-              <span className="text-lg font-bold text-gray-900">{profile.followingCount.toLocaleString()}</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{profile.followingCount.toLocaleString()}</span>
               <span className="ml-1 text-sm text-gray-400">following</span>
             </button>
           </div>
@@ -344,10 +344,10 @@ export default function UserProfilePage(): React.JSX.Element {
       </div>
 
       {/* Recipes */}
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Recipes</h2>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recipes</h2>
 
       {recipes.length === 0 && !loadingRecipes && (
-        <div className="rounded-xl border border-dashed border-gray-200 px-8 py-12 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 px-8 py-12 text-center">
           <p className="text-sm text-gray-400">No public recipes yet.</p>
         </div>
       )}
@@ -358,23 +358,23 @@ export default function UserProfilePage(): React.JSX.Element {
           return (
             <div
               key={recipe.id}
-              className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden cursor-pointer hover:border-orange-200 transition"
+              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden cursor-pointer hover:border-orange-200 transition"
               onClick={() => router.push(`/community/${recipe.id}`)}
             >
               {recipe.imageUrl && (
                 <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-36 object-cover" />
               )}
               <div className="p-4">
-                <p className="font-semibold text-gray-900 leading-snug">{recipe.title}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 leading-snug">{recipe.title}</p>
                 {recipe.description && (
-                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">{recipe.description}</p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{recipe.description}</p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
                   <span>{recipe.servings} servings</span>
                   {totalMins > 0 && <span>{totalMins} min</span>}
                   {recipe.cuisine && <span>{recipe.cuisine}</span>}
                   {recipe.difficulty && (
-                    <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-600 font-medium capitalize">
+                    <span className="rounded-full bg-orange-50 dark:bg-orange-950 px-2 py-0.5 text-orange-600 dark:text-orange-400 font-medium capitalize">
                       {recipe.difficulty}
                     </span>
                   )}
@@ -390,7 +390,7 @@ export default function UserProfilePage(): React.JSX.Element {
           <button
             onClick={() => { void loadRecipes(recipesOffset + PAGE_SIZE); }}
             disabled={loadingRecipes}
-            className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
           >
             {loadingRecipes ? "Loading…" : "Load more"}
           </button>

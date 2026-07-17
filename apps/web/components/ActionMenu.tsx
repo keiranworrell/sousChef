@@ -117,13 +117,13 @@ export default function ActionMenu({ primary, actions }: Props): React.JSX.Eleme
               ···
             </button>
             {open && (
-              <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
                 {actions.map((action, i) => (
                   <React.Fragment key={i}>
                     {action.href ? (
                       <Link
                         href={action.href}
-                        className={`block px-4 py-2.5 text-sm ${action.danger ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"}`}
+                        className={`block px-4 py-2.5 text-sm ${action.danger ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-950" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"}`}
                         onClick={() => setOpen(false)}
                       >
                         {action.label}
@@ -133,7 +133,7 @@ export default function ActionMenu({ primary, actions }: Props): React.JSX.Eleme
                         type="button"
                         disabled={action.disabled}
                         onClick={() => { action.onClick?.(); setOpen(false); }}
-                        className={`block w-full text-left px-4 py-2.5 text-sm ${action.danger ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"} disabled:opacity-50`}
+                        className={`block w-full text-left px-4 py-2.5 text-sm ${action.danger ? "text-red-600 hover:bg-red-50 dark:hover:bg-red-950" : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"} disabled:opacity-50`}
                       >
                         {action.label}
                       </button>

@@ -18,9 +18,9 @@ function MatchBadge({ matchCount, totalIngredients, matchRatio }: {
 }): React.JSX.Element {
   const pct = Math.round(matchRatio * 100);
   const colour =
-    pct >= 80 ? "bg-green-100 text-green-700" :
-    pct >= 50 ? "bg-orange-100 text-orange-700" :
-    "bg-gray-100 text-gray-500";
+    pct >= 80 ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400" :
+    pct >= 50 ? "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400" :
+    "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${colour}`}>
@@ -33,7 +33,7 @@ function RecipeRow({ recipe, href }: { recipe: SuggestedRecipe; href: string }):
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 hover:border-orange-200 hover:bg-orange-50 transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 hover:border-orange-200 hover:bg-orange-50 transition-colors dark:border-gray-800 dark:hover:border-orange-800 dark:hover:bg-orange-950"
     >
       {recipe.imageUrl ? (
         <img
@@ -42,12 +42,12 @@ function RecipeRow({ recipe, href }: { recipe: SuggestedRecipe; href: string }):
           className="h-14 w-14 shrink-0 rounded-lg object-cover"
         />
       ) : (
-        <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-xl">
+        <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-xl dark:bg-gray-800">
           🍽️
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-900">{recipe.title}</p>
+        <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{recipe.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <MatchBadge
             matchCount={recipe.matchCount}
@@ -95,17 +95,17 @@ export default function WhatCanICookModal({ onClose }: Props): React.JSX.Element
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-xl" style={{ maxHeight: "80vh" }}>
+      <div className="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-xl dark:bg-gray-900" style={{ maxHeight: "80vh" }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">What can I cook?</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">What can I cook?</h2>
             <p className="text-xs text-gray-400">Based on what&apos;s in your pantry</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             aria-label="Close"
           >
             ✕
@@ -113,19 +113,19 @@ export default function WhatCanICookModal({ onClose }: Props): React.JSX.Element
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-gray-100 dark:border-gray-800">
           <button
             type="button"
             onClick={() => setTab("saved")}
             className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
               tab === "saved"
                 ? "border-b-2 border-orange-500 text-orange-600"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             My recipes
             {!loading && savedRecipes.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-600">
+              <span className="ml-1.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-600 dark:bg-orange-950 dark:text-orange-400">
                 {savedRecipes.length}
               </span>
             )}
@@ -136,12 +136,12 @@ export default function WhatCanICookModal({ onClose }: Props): React.JSX.Element
             className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
               tab === "community"
                 ? "border-b-2 border-orange-500 text-orange-600"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
             Community
             {!loading && communityRecipes.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-600">
+              <span className="ml-1.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-600 dark:bg-orange-950 dark:text-orange-400">
                 {communityRecipes.length}
               </span>
             )}

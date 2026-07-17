@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
 import NotificationPanel from "./NotificationPanel";
+import { useTheme } from "./ThemeProvider";
 import { getApiClient } from "@/lib/api";
 
 type NavItem = {
@@ -31,8 +32,33 @@ function BellIcon(): React.JSX.Element {
   );
 }
 
+function SunIcon(): React.JSX.Element {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon(): React.JSX.Element {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
 export default function AppNav(): React.JSX.Element {
   const pathname = usePathname();
+  const { theme, toggle } = useTheme();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -115,7 +141,7 @@ export default function AppNav(): React.JSX.Element {
 
   return (
     <>
-      <nav className="sticky top-0 z-10 border-b border-gray-200 bg-white">
+      <nav className="sticky top-0 z-10 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 h-14">
           {/* Brand */}
           <Link
@@ -134,8 +160,8 @@ export default function AppNav(): React.JSX.Element {
                 href={item.href}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   item.active
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 {item.label}
@@ -148,8 +174,8 @@ export default function AppNav(): React.JSX.Element {
                 onClick={() => setMoreOpen((o) => !o)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   moreActive
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 More
@@ -166,15 +192,15 @@ export default function AppNav(): React.JSX.Element {
                 </svg>
               </button>
               {moreOpen && (
-                <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
                   {moreNavItems.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`block px-4 py-2 text-sm font-medium transition-colors ${
                         item.active
-                          ? "bg-orange-50 text-orange-600"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          ? "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800"
                       }`}
                     >
                       {item.label}
@@ -185,23 +211,32 @@ export default function AppNav(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Desktop right side: bell + sign out */}
+          {/* Desktop right side: theme toggle + bell + sign out */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
+            {/* Theme toggle */}
+            <button
+              onClick={toggle}
+              aria-label="Toggle dark mode"
+              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+            >
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            </button>
+
             {/* Bell */}
             <button
               onClick={handleBellClick}
               aria-label="Notifications"
-              className="relative text-gray-500 hover:text-gray-900 transition-colors"
+              className="relative text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
             >
               <BellIcon />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white" />
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white dark:ring-gray-900" />
               )}
             </button>
 
             <button
               onClick={() => { void handleSignOut(); }}
-              className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              className="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
             >
               Sign out
             </button>
@@ -211,18 +246,27 @@ export default function AppNav(): React.JSX.Element {
           <div className="flex md:hidden items-center gap-2" ref={menuRef}>
             {/* Show active section label */}
             {activeItem != null && (
-              <span className="text-sm font-medium text-gray-700">{activeItem.label}</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{activeItem.label}</span>
             )}
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggle}
+              aria-label="Toggle dark mode"
+              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors p-1"
+            >
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            </button>
 
             {/* Bell */}
             <button
               onClick={handleBellClick}
               aria-label="Notifications"
-              className="relative text-gray-500 hover:text-gray-900 transition-colors p-1"
+              className="relative text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors p-1"
             >
               <BellIcon />
               {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white" />
+                <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-white dark:ring-gray-900" />
               )}
             </button>
 
@@ -250,24 +294,24 @@ export default function AppNav(): React.JSX.Element {
             </button>
 
             {menuOpen && (
-              <div className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-sm py-2 px-4 flex flex-col">
+              <div className="absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-sm py-2 px-4 flex flex-col dark:bg-gray-900 dark:border-gray-800">
                 {allNavItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
                       item.active
-                        ? "bg-orange-50 text-orange-600"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        ? "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
                     {item.label}
                   </Link>
                 ))}
-                <div className="border-t border-gray-100 mt-2 pt-2">
+                <div className="border-t border-gray-100 mt-2 pt-2 dark:border-gray-800">
                   <button
                     onClick={() => { void handleSignOut(); }}
-                    className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                    className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800"
                   >
                     Sign out
                   </button>

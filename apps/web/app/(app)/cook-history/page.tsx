@@ -68,17 +68,17 @@ export default function CookHistoryPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Cook history</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Cook history</h1>
         {total > 0 && (
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {total} {total === 1 ? "session" : "sessions"} logged
           </p>
         )}
       </div>
 
       {entries.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 px-8 py-16 text-center">
-          <p className="text-gray-500">No cooks logged yet.</p>
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 px-8 py-16 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No cooks logged yet.</p>
           <p className="mt-1 text-sm text-gray-400">
             Finish a recipe and tap <span className="font-medium">Log this cook</span> to start tracking.
           </p>
@@ -96,7 +96,7 @@ export default function CookHistoryPage(): React.JSX.Element {
               <li key={entry.id}>
                 <Link
                   href={`/recipes/${entry.recipeId}`}
-                  className="flex items-center gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                  className="flex items-center gap-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm transition-shadow hover:shadow-md"
                 >
                   {entry.recipe.imageUrl ? (
                     <img
@@ -110,7 +110,7 @@ export default function CookHistoryPage(): React.JSX.Element {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gray-900">{entry.recipe.title}</p>
+                    <p className="truncate font-medium text-gray-900 dark:text-gray-100">{entry.recipe.title}</p>
                     <p className="mt-0.5 text-sm text-gray-400">{formatDate(entry.cookedAt)}</p>
                   </div>
                   <span className="shrink-0 text-gray-300">→</span>

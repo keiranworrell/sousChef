@@ -73,7 +73,7 @@ export default function RecipesPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My recipes</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">My recipes</h1>
         <Link href="/recipes/new" className="btn-primary">
           + New recipe
         </Link>
@@ -130,8 +130,8 @@ export default function RecipesPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && recipes.length === 0 && !hasFilters && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No recipes yet.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No recipes yet.</p>
           <Link href="/recipes/new" className="mt-4 inline-block btn-primary">
             Add your first recipe
           </Link>
@@ -139,7 +139,7 @@ export default function RecipesPage(): React.JSX.Element {
       )}
 
       {!loading && !error && recipes.length === 0 && hasFilters && (
-        <p className="text-sm text-gray-500">No recipes match your filters.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No recipes match your filters.</p>
       )}
 
       <div className="grid gap-4">

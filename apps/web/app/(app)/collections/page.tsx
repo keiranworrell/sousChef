@@ -68,7 +68,7 @@ export default function CollectionsPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Collections</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Collections</h1>
         {!creating && (
           <button className="btn-primary" onClick={() => setCreating(true)}>
             + New collection
@@ -80,9 +80,9 @@ export default function CollectionsPage(): React.JSX.Element {
       {creating && (
         <form
           onSubmit={(e) => { void handleCreate(e); }}
-          className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm space-y-3"
         >
-          <h2 className="text-sm font-semibold text-gray-700">New collection</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">New collection</h2>
           <div>
             <label className="label">Name *</label>
             <input
@@ -110,7 +110,7 @@ export default function CollectionsPage(): React.JSX.Element {
               onChange={(e) => setNewPublic(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 accent-orange-500"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-700 dark:text-gray-300">
               Make public
               <span className="ml-1 text-xs text-gray-400">(all recipes in this collection will also be made public)</span>
             </span>
@@ -130,7 +130,7 @@ export default function CollectionsPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {collections.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
           <p className="text-sm text-gray-400">No collections yet.</p>
           <p className="mt-1 text-xs text-gray-300">Create a collection to organise your recipes into folders.</p>
         </div>
@@ -140,10 +140,10 @@ export default function CollectionsPage(): React.JSX.Element {
             <Link
               key={col.id}
               href={`/collections/${col.id}`}
-              className="group rounded-xl border border-gray-100 bg-white overflow-hidden hover:border-orange-200 hover:shadow-sm transition-all"
+              className="group rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden hover:border-orange-200 hover:shadow-sm transition-all"
             >
               {/* Cover image */}
-              <div className="h-32 bg-gray-100 overflow-hidden">
+              <div className="h-32 bg-gray-100 dark:bg-gray-800 overflow-hidden">
                 {col.coverImageUrl ? (
                   <img
                     src={col.coverImageUrl}
@@ -157,13 +157,13 @@ export default function CollectionsPage(): React.JSX.Element {
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h2 className="truncate font-semibold text-gray-900">{col.name}</h2>
+                    <h2 className="truncate font-semibold text-gray-900 dark:text-gray-100">{col.name}</h2>
                     {col.description && (
                       <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">{col.description}</p>
                     )}
                   </div>
                   {col.isPublic && (
-                    <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
+                    <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                       Public
                     </span>
                   )}
