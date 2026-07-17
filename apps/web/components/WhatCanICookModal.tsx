@@ -100,7 +100,7 @@ export default function WhatCanICookModal({ onClose }: Props): React.JSX.Element
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-gray-900">What can I cook?</h2>
-            <p className="text-xs text-gray-400">Based on what's in your pantry</p>
+            <p className="text-xs text-gray-400">Based on what&apos;s in your pantry</p>
           </div>
           <button
             type="button"
