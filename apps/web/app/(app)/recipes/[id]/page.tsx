@@ -197,7 +197,12 @@ export default function RecipeDetailPage(): React.JSX.Element {
         </div>
         <div className="shrink-0">
           <ActionMenu
-            primary={recipe.steps.length > 0 ? { label: "Start cooking", href: `/recipes/${id}/cook` } : undefined}
+            primary={recipe.steps.length > 0 ? {
+              label: "Start cooking",
+              href: adjustedServings !== null && adjustedServings !== recipe.servings
+                ? `/recipes/${id}/cook?servings=${adjustedServings}`
+                : `/recipes/${id}/cook`,
+            } : undefined}
             actions={[
               {
                 label: cookLogged ? "✓ Logged!" : cookLogging ? "Logging…" : "Log cook",
