@@ -45,13 +45,13 @@ export default function SignUpPage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Create account</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow dark:bg-gray-900">
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Create account</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Name
             </label>
             <input
@@ -61,12 +61,12 @@ export default function SignUpPage(): React.JSX.Element {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Email
             </label>
             <input
@@ -76,12 +76,12 @@ export default function SignUpPage(): React.JSX.Element {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Password
             </label>
             <input
@@ -92,15 +92,15 @@ export default function SignUpPage(): React.JSX.Element {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Min 8 characters, including uppercase and a number
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Confirm password
             </label>
             <input
@@ -110,10 +110,10 @@ export default function SignUpPage(): React.JSX.Element {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={`mt-1 block w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+              className={`mt-1 block w-full rounded border px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-800 dark:text-gray-100 ${
                 passwordMismatch
                   ? "border-red-400 focus:border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  : "border-gray-300 focus:border-orange-500 focus:ring-orange-500 dark:border-gray-700"
               }`}
             />
             {passwordMismatch && (
@@ -134,7 +134,7 @@ export default function SignUpPage(): React.JSX.Element {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{" "}
           <Link href="/sign-in" className="text-orange-500 hover:underline">
             Sign in

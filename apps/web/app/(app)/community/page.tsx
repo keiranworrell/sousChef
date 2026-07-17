@@ -115,8 +115,8 @@ function PeopleTab(): React.JSX.Element {
       {loading && <p className="text-sm text-gray-400">Loading…</p>}
 
       {!loading && users.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No people found.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No people found.</p>
         </div>
       )}
 
@@ -124,7 +124,7 @@ function PeopleTab(): React.JSX.Element {
         {users.map((user) => (
           <div
             key={user.id}
-            className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            className="flex items-center gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"
           >
             <Link href={`/users/${user.id}`} className="shrink-0">
               {user.avatarUrl ? (
@@ -143,7 +143,7 @@ function PeopleTab(): React.JSX.Element {
             <div className="flex-1 min-w-0">
               <Link
                 href={`/users/${user.id}`}
-                className="text-sm font-semibold text-gray-900 hover:text-orange-600 transition"
+                className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-orange-600 transition"
               >
                 {user.displayName}
               </Link>
@@ -172,7 +172,7 @@ function PeopleTab(): React.JSX.Element {
           <button
             onClick={() => { void search(q, users.length); }}
             disabled={loadingMore}
-            className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
           >
             {loadingMore ? "Loading…" : "Load more"}
           </button>
@@ -302,13 +302,13 @@ function RecipesTab(): React.JSX.Element {
   return (
     <div>
       {/* Sort toggle */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1 w-fit">
         {(["recent", "popular"] as SortMode[]).map((s) => (
           <button
             key={s}
             onClick={() => setSort(s)}
             className={`rounded-md px-3 py-1 text-sm font-medium capitalize transition-colors ${
-              sort === s ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              sort === s ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 hover:text-gray-700"
             }`}
           >
             {s === "recent" ? "Recent" : "Popular"}
@@ -329,8 +329,8 @@ function RecipesTab(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && recipes.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No public recipes found.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No public recipes found.</p>
         </div>
       )}
 
@@ -338,28 +338,28 @@ function RecipesTab(): React.JSX.Element {
         {recipes.map((recipe) => {
           const totalMins = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
           return (
-            <div key={recipe.id} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div key={recipe.id} className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
               {recipe.imageUrl && (
                 <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-40 object-cover" />
               )}
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Link href={`/community/${recipe.id}`} className="text-base font-semibold text-gray-900 hover:text-orange-600 leading-snug">
+                    <Link href={`/community/${recipe.id}`} className="text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-orange-600 leading-snug">
                       {recipe.title}
                     </Link>
                     <Link href={`/users/${recipe.creatorId}`} className="mt-0.5 block text-xs text-gray-400 hover:text-orange-500 transition">
                       by {recipe.creatorName}
                     </Link>
                     {recipe.description && (
-                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">{recipe.description}</p>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{recipe.description}</p>
                     )}
                     <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-400">
                       <span>{recipe.servings} servings</span>
                       {totalMins > 0 && <span>{totalMins} min</span>}
                       {recipe.cuisine && <span>{recipe.cuisine}</span>}
                       {recipe.difficulty && (
-                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-600 font-medium">
+                        <span className="rounded-full bg-orange-50 dark:bg-orange-950 px-2 py-0.5 text-orange-600 dark:text-orange-400 font-medium">
                           {DIFFICULTY_LABEL[recipe.difficulty]}
                         </span>
                       )}
@@ -367,7 +367,7 @@ function RecipesTab(): React.JSX.Element {
                     {recipe.tags.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {recipe.tags.map((t) => (
-                          <span key={t.id} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                          <span key={t.id} className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
                             {t.tag}
                           </span>
                         ))}
@@ -391,7 +391,7 @@ function RecipesTab(): React.JSX.Element {
                     className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition disabled:opacity-50 ${
                       recipe.isLiked
                         ? "bg-red-50 text-red-500 hover:bg-red-100"
-                        : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                     }`}
                   >
                     <HeartIcon filled={recipe.isLiked} />
@@ -468,8 +468,8 @@ function CollectionsTab(): React.JSX.Element {
 
   if (collections.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-        <p className="text-gray-500">No public collections yet.</p>
+      <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+        <p className="text-gray-500 dark:text-gray-400">No public collections yet.</p>
       </div>
     );
   }
@@ -481,7 +481,7 @@ function CollectionsTab(): React.JSX.Element {
           <Link
             key={col.id}
             href={`/community/collections/${col.id}`}
-            className="group flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden hover:border-orange-300 transition-colors"
+            className="group flex flex-col rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden hover:border-orange-300 transition-colors"
           >
             {/* Cover image or placeholder */}
             {col.coverImageUrl ? (
@@ -496,11 +496,11 @@ function CollectionsTab(): React.JSX.Element {
               </div>
             )}
             <div className="p-4">
-              <p className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+              <p className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-600 transition-colors line-clamp-1">
                 {col.name}
               </p>
               {col.description && (
-                <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">{col.description}</p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{col.description}</p>
               )}
               <p className="mt-2 text-xs text-gray-400">
                 by {col.ownerName} · {col.recipeCount} {col.recipeCount === 1 ? "recipe" : "recipes"}
@@ -515,7 +515,7 @@ function CollectionsTab(): React.JSX.Element {
           <button
             onClick={() => { void loadMore(); }}
             disabled={loadingMore}
-            className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
           >
             {loadingMore ? "Loading…" : "Load more"}
           </button>
@@ -555,21 +555,21 @@ function CommunityContent(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Community</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Community</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Discover recipes and cooks. Fork recipes to add them to your collection, or follow cooks to see their updates in your feed.
         </p>
       </div>
 
       {/* Tab bar */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1 w-fit">
         {(["recipes", "people", "collections"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               tab === t
-                ? "bg-white text-gray-900 shadow-sm"
+                ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >

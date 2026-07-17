@@ -160,7 +160,7 @@ export default function ShoppingListPage(): React.JSX.Element {
         <Link href="/shopping" className="text-sm text-orange-500 hover:underline">← Shopping lists</Link>
         <div className="mt-2 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{list.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{list.name}</h1>
             <p className="text-sm text-gray-400 mt-0.5">
               {unchecked.length} remaining · {checked.length} checked
             </p>
@@ -189,9 +189,9 @@ export default function ShoppingListPage(): React.JSX.Element {
       {adding ? (
         <form
           onSubmit={(e) => { void handleAddItem(e); }}
-          className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"
         >
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">Add item</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Add item</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="col-span-2">
               <label className="label">Name *</label>
@@ -255,8 +255,8 @@ export default function ShoppingListPage(): React.JSX.Element {
       )}
 
       {list.items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center">
-          <p className="text-gray-500">No items yet. Add something above.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No items yet. Add something above.</p>
         </div>
       )}
 
@@ -314,14 +314,14 @@ function ItemRow({
   deleting: boolean;
 }): React.JSX.Element {
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm">
+    <li className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2.5 shadow-sm">
       <button
         onClick={() => onToggle(item)}
         disabled={toggling}
         className={`shrink-0 h-5 w-5 rounded border-2 transition-colors flex items-center justify-center ${
           item.isChecked
             ? "bg-orange-500 border-orange-500"
-            : "border-gray-300 hover:border-orange-400"
+            : "border-gray-300 dark:border-gray-600 hover:border-orange-400"
         } disabled:opacity-50`}
         aria-label={item.isChecked ? "Uncheck" : "Check"}
       >
@@ -333,7 +333,7 @@ function ItemRow({
       </button>
 
       <div className="flex-1 min-w-0">
-        <span className={`text-sm font-medium ${item.isChecked ? "line-through text-gray-400" : "text-gray-900"}`}>
+        <span className={`text-sm font-medium ${item.isChecked ? "line-through text-gray-400" : "text-gray-900 dark:text-gray-100"}`}>
           {item.name}
         </span>
         {(item.quantity != null || item.category) && (

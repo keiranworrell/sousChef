@@ -180,7 +180,7 @@ export default function PantryPage(): React.JSX.Element {
       )}
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {householdName != null ? `${householdName}'s pantry` : "Pantry"}
         </h1>
         <div className="flex items-center gap-2">
@@ -204,9 +204,9 @@ export default function PantryPage(): React.JSX.Element {
       {adding && (
         <form
           onSubmit={(e) => { void handleAdd(e); }}
-          className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"
         >
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">New item</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">New item</h2>
           <ItemFields form={addForm} setForm={setAddForm} />
           {addError && <p className="mt-2 text-sm text-red-600">{addError}</p>}
           <div className="mt-3 flex gap-2">
@@ -228,8 +228,8 @@ export default function PantryPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">Your pantry is empty.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">Your pantry is empty.</p>
           <button
             className="mt-4 btn-primary"
             onClick={() => setAdding(true)}
@@ -242,7 +242,7 @@ export default function PantryPage(): React.JSX.Element {
       <ul className="space-y-2">
         {items.map((item) =>
           editingId === item.id ? (
-            <li key={item.id} className="rounded-xl border border-orange-200 bg-white p-4 shadow-sm">
+            <li key={item.id} className="rounded-xl border border-orange-200 bg-white dark:bg-gray-900 p-4 shadow-sm">
               <form onSubmit={(e) => { void handleEdit(e, item.id); }}>
                 <ItemFields form={editForm} setForm={setEditForm} />
                 {editError && <p className="mt-2 text-sm text-red-600">{editError}</p>}
@@ -263,13 +263,13 @@ export default function PantryPage(): React.JSX.Element {
           ) : (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-gray-900">{item.name}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
                   {item.quantity != null && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
                       {item.quantity}{item.unit ? ` ${item.unit}` : ""}
                     </span>
                   )}

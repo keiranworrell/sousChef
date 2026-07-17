@@ -95,11 +95,11 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-sm rounded-xl bg-white shadow-xl">
+      <div className="w-full max-w-sm rounded-xl bg-white shadow-xl dark:bg-gray-900">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Add to collection</h2>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Close">✕</button>
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Add to collection</h2>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" aria-label="Close">✕</button>
         </div>
 
         {/* Body */}
@@ -122,21 +122,21 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
                   disabled={isPending}
                   className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
                     isMember
-                      ? "border-orange-300 bg-orange-50"
-                      : "border-gray-200 hover:border-orange-200 hover:bg-orange-50"
+                      ? "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950"
+                      : "border-gray-200 hover:border-orange-200 hover:bg-orange-50 dark:border-gray-700 dark:hover:border-orange-800 dark:hover:bg-orange-950"
                   }`}
                 >
                   <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-bold ${
-                    isMember ? "border-orange-500 bg-orange-500 text-white" : "border-gray-300 text-transparent"
+                    isMember ? "border-orange-500 bg-orange-500 text-white" : "border-gray-300 text-transparent dark:border-gray-600"
                   }`}>
                     ✓
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900">{col.name}</p>
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{col.name}</p>
                     <p className="text-xs text-gray-400">{col.recipeCount} {col.recipeCount === 1 ? "recipe" : "recipes"}</p>
                   </div>
                   {col.isPublic && (
-                    <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-600">Public</span>
+                    <span className="shrink-0 rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-600 dark:bg-green-950 dark:text-green-400">Public</span>
                   )}
                 </button>
               );
@@ -146,7 +146,7 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
 
         {/* New collection inline form */}
         {creating ? (
-          <form onSubmit={(e) => { void handleCreate(e); }} className="border-t border-gray-100 px-4 py-3 space-y-2">
+          <form onSubmit={(e) => { void handleCreate(e); }} className="border-t border-gray-100 px-4 py-3 space-y-2 dark:border-gray-800">
             <input
               className="input text-sm"
               placeholder="Collection name"
@@ -166,11 +166,11 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
             </div>
           </form>
         ) : (
-          <div className="border-t border-gray-100 px-4 py-3">
+          <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-800">
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="w-full rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors"
+              className="w-full rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors dark:border-gray-700 dark:text-gray-400 dark:hover:border-orange-700 dark:hover:text-orange-400"
             >
               + New collection
             </button>

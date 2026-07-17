@@ -54,9 +54,9 @@ export default function IngredientWithSubs({
 
   return (
     <>
-      <li className={`relative flex gap-2 text-sm text-gray-700 ${className}`}>
+      <li className={`relative flex gap-2 text-sm text-gray-700 dark:text-gray-300 ${className}`}>
         {(scaledQuantity != null || ingredient.quantity != null) && (
-          <span className="shrink-0 font-medium text-gray-900">
+          <span className="shrink-0 font-medium text-gray-900 dark:text-gray-100">
             {scaledQuantity ?? ingredient.quantity}
             {ingredient.unit ? ` ${ingredient.unit}` : ""}
           </span>
@@ -67,7 +67,7 @@ export default function IngredientWithSubs({
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setDropdownOpen((o) => !o)}
-              className="rounded px-0.5 text-left text-sm text-gray-700 underline decoration-dotted underline-offset-2 hover:text-orange-600 transition-colors"
+              className="rounded px-0.5 text-left text-sm text-gray-700 dark:text-gray-300 underline decoration-dotted underline-offset-2 hover:text-orange-600 transition-colors"
               aria-expanded={dropdownOpen}
             >
               {ingredient.name}
@@ -75,13 +75,13 @@ export default function IngredientWithSubs({
 
             {/* Dropdown */}
             {dropdownOpen && (
-              <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+              <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-1 shadow-lg">
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
                     setModalOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 transition-colors"
                 >
                   <span>🔄</span>
                   <span>Show substitutions</span>

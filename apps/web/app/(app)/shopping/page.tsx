@@ -77,7 +77,7 @@ export default function ShoppingPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {householdName != null ? `${householdName}'s shopping` : "Shopping lists"}
         </h1>
         {!creating && (
@@ -90,7 +90,7 @@ export default function ShoppingPage(): React.JSX.Element {
       {creating && (
         <form
           onSubmit={(e) => { void handleCreate(e); }}
-          className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+          className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"
         >
           <label className="label">List name</label>
           <input
@@ -120,8 +120,8 @@ export default function ShoppingPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && lists.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No shopping lists yet.</p>
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No shopping lists yet.</p>
           <button className="mt-4 btn-primary" onClick={() => setCreating(true)}>
             Create your first list
           </button>
@@ -132,11 +132,11 @@ export default function ShoppingPage(): React.JSX.Element {
         {lists.map((list) => (
           <li
             key={list.id}
-            className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+            className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm"
           >
             <Link
               href={`/shopping/${list.id}`}
-              className="flex-1 font-medium text-gray-900 hover:text-orange-600 transition-colors"
+              className="flex-1 font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600 transition-colors"
             >
               {list.name}
             </Link>

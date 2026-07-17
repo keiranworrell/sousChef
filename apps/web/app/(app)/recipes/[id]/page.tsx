@@ -179,15 +179,15 @@ export default function RecipeDetailPage(): React.JSX.Element {
             ← Recipes
           </Link>
           <div className="mt-2 flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900 break-words">{recipe.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">{recipe.title}</h1>
             {recipe.isPublic && (
-              <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">
+              <span className="rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                 Public
               </span>
             )}
           </div>
           {recipe.description && (
-            <p className="mt-2 text-gray-500">{recipe.description}</p>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">{recipe.description}</p>
           )}
           {recipe.sourceUrl && (
             <a
@@ -243,13 +243,13 @@ export default function RecipeDetailPage(): React.JSX.Element {
         const servings = adjustedServings ?? recipe.servings;
         const isScaled = servings !== recipe.servings;
         return (
-          <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             {/* Serving adjuster */}
             <span className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setAdjustedServings(Math.max(1, servings - 1))}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
                 aria-label="Decrease servings"
               >
                 −
@@ -260,7 +260,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
               <button
                 type="button"
                 onClick={() => setAdjustedServings(Math.min(200, servings + 1))}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors text-base leading-none"
                 aria-label="Increase servings"
               >
                 +
@@ -285,24 +285,24 @@ export default function RecipeDetailPage(): React.JSX.Element {
       })()}
 
       {recipe.tags.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-1.5 border-b border-gray-100 pb-6">
+        <div className="mb-8 flex flex-wrap gap-1.5 border-b border-gray-100 dark:border-gray-800 pb-6">
           {recipe.tags.map((t) => (
             <span
               key={t.id}
-              className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-600"
+              className="rounded-full bg-orange-50 dark:bg-orange-950 px-2.5 py-0.5 text-xs font-medium text-orange-600 dark:text-orange-400"
             >
               {t.tag}
             </span>
           ))}
         </div>
       )}
-      {recipe.tags.length === 0 && <div className="mb-8 border-b border-gray-100" />}
+      {recipe.tags.length === 0 && <div className="mb-8 border-b border-gray-100 dark:border-gray-800" />}
 
       {/* Ingredients */}
       {recipe.ingredients.length > 0 && (
         <section className="mb-8">
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-gray-900">Ingredients</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Ingredients</h2>
             <span className="text-xs text-gray-400">Tap an ingredient to see substitutions</span>
           </div>
           <ul className="space-y-2">
@@ -328,7 +328,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
       {/* Steps */}
       {recipe.steps.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Method</h2>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Method</h2>
           <ol className="space-y-4">
             {recipe.steps.map((step) => (
               <li key={step.id} className="flex gap-4">
@@ -336,7 +336,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
                   {step.stepNumber}
                 </span>
                 <div className="pt-0.5">
-                  <p className="text-sm text-gray-700">{step.instruction}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{step.instruction}</p>
                   {step.timerSeconds && (
                     <p className="mt-1 text-xs text-gray-400">
                       Timer: {Math.round(step.timerSeconds / 60)} min
@@ -352,15 +352,15 @@ export default function RecipeDetailPage(): React.JSX.Element {
       {/* Add to list modal */}
       {addToList.step !== "closed" && addToList.step !== "done" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-xl bg-white dark:bg-gray-900 p-6 shadow-xl">
             {addToList.step === "saving" ? (
               <p className="text-sm text-gray-500">Adding ingredients…</p>
             ) : addToList.step === "new-name" ? (
               <>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">New shopping list</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">New shopping list</h2>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
                   placeholder="List name"
                   value={addToList.newName}
                   onChange={(e) =>
@@ -391,7 +391,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
               </>
             ) : (
               <>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">Add to shopping list</h2>
+                <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">Add to shopping list</h2>
                 {addToList.loading ? (
                   <p className="text-sm text-gray-400">Loading lists…</p>
                 ) : (
@@ -400,7 +400,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
                       <button
                         key={list.id}
                         onClick={() => { void addToExistingList(list.id); }}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 transition-colors"
+                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 px-4 py-2.5 text-left text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 transition-colors"
                       >
                         {list.name}
                       </button>
@@ -413,7 +413,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
                           newName: `${recipe.title} ingredients`,
                         })
                       }
-                      className="w-full rounded-lg border border-dashed border-gray-300 px-4 py-2.5 text-left text-sm font-medium text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                      className="w-full rounded-lg border border-dashed border-gray-300 dark:border-gray-700 dark:text-gray-400 px-4 py-2.5 text-left text-sm font-medium text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors"
                     >
                       + New list
                     </button>

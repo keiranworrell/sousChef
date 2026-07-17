@@ -188,9 +188,9 @@ export default function CommunityRecipePage(): React.JSX.Element {
           <Link href="/community" className="text-sm text-orange-500 hover:underline">
             ← Community
           </Link>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">{recipe.title}</h1>
+          <h1 className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{recipe.title}</h1>
           {recipe.description && (
-            <p className="mt-2 text-gray-500">{recipe.description}</p>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">{recipe.description}</p>
           )}
         </div>
         <div className="shrink-0 flex flex-col items-end gap-2">
@@ -202,7 +202,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 ${
                 isLiked
                   ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100"
-                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
               <HeartIcon filled={isLiked} />
@@ -239,7 +239,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
 
       {/* Creator strip */}
       {creatorProfile && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3">
+        <div className="mb-6 flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
           {creatorProfile.avatarUrl ? (
             <img
               src={creatorProfile.avatarUrl}
@@ -252,7 +252,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <Link href={`/users/${recipe.userId}`} className="text-sm font-medium text-gray-900 hover:text-orange-600 transition">
+            <Link href={`/users/${recipe.userId}`} className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600 transition">
               {creatorProfile.displayName}
             </Link>
             <p className="text-xs text-gray-400">
@@ -280,7 +280,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
       )}
 
       {/* Meta */}
-      <div className="mb-6 flex flex-wrap gap-4 text-sm text-gray-500 border-b border-gray-100 pb-6">
+      <div className="mb-6 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 pb-6">
         <span>{recipe.servings} servings</span>
         {totalMins > 0 && <span>{totalMins} min total</span>}
         {recipe.prepTimeMinutes && <span>{recipe.prepTimeMinutes} min prep</span>}
@@ -298,7 +298,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
           {recipe.tags.map((t) => (
             <span
               key={t.id}
-              className="rounded-full bg-gray-100 px-2.5 py-0.5 text-sm text-gray-500"
+              className="rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-sm text-gray-500 dark:text-gray-400"
             >
               {t.tag}
             </span>
@@ -309,12 +309,12 @@ export default function CommunityRecipePage(): React.JSX.Element {
       {/* Ingredients */}
       {recipe.ingredients.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Ingredients</h2>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Ingredients</h2>
           <ul className="space-y-2">
             {recipe.ingredients.map((ing) => (
-              <li key={ing.id} className="flex gap-2 text-sm text-gray-700">
+              <li key={ing.id} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
                 {ing.quantity != null && (
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""}
                   </span>
                 )}
@@ -329,7 +329,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
       {/* Steps */}
       {recipe.steps.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Method</h2>
+          <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Method</h2>
           <ol className="space-y-4">
             {recipe.steps.map((step) => (
               <li key={step.id} className="flex gap-4">
@@ -337,7 +337,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
                   {step.stepNumber}
                 </span>
                 <div className="pt-0.5">
-                  <p className="text-sm text-gray-700">{step.instruction}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{step.instruction}</p>
                   {step.timerSeconds && (
                     <p className="mt-1 text-xs text-gray-400">
                       Timer: {Math.round(step.timerSeconds / 60)} min
@@ -351,8 +351,8 @@ export default function CommunityRecipePage(): React.JSX.Element {
       )}
 
       {/* Fork CTA at bottom for long recipes */}
-      <div className="border-t border-gray-100 pt-6">
-        <p className="text-sm text-gray-500 mb-3">
+      <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           Like this recipe? Fork it to add it to your own collection and make it your own.
         </p>
         <button

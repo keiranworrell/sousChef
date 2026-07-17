@@ -68,9 +68,9 @@ export default function PublicCollectionPage(): React.JSX.Element {
       </Link>
 
       <div className="mt-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 break-words">{collection.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{collection.name}</h1>
         {collection.description && (
-          <p className="mt-1 text-sm text-gray-500">{collection.description}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{collection.description}</p>
         )}
         <p className="mt-2 text-xs text-gray-400">
           by{" "}
@@ -82,7 +82,7 @@ export default function PublicCollectionPage(): React.JSX.Element {
       </div>
 
       {collection.items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-16 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
           <p className="text-sm text-gray-400">No recipes in this collection yet.</p>
         </div>
       ) : (
@@ -90,17 +90,17 @@ export default function PublicCollectionPage(): React.JSX.Element {
           {collection.items.map((item: CollectionRecipeItem) => (
             <div
               key={item.recipeId}
-              className="flex items-center gap-3 rounded-lg border border-gray-100 p-3"
+              className="flex items-center gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3"
             >
               {item.imageUrl ? (
                 <img src={item.imageUrl} alt={item.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
               ) : (
-                <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 flex items-center justify-center text-xl">🍽️</div>
+                <div className="h-14 w-14 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl">🍽️</div>
               )}
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/community/${item.recipeId}`}
-                  className="truncate text-sm font-medium text-gray-900 hover:text-orange-600 transition-colors"
+                  className="truncate text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-orange-600 transition-colors"
                 >
                   {item.title}
                 </Link>

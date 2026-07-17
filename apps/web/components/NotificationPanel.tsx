@@ -59,19 +59,19 @@ function HouseholdInviteItem({
   }
 
   return (
-    <div className="py-4 border-b border-gray-50 last:border-0">
+    <div className="py-4 border-b border-gray-50 last:border-0 dark:border-gray-800">
       <div className="flex items-start gap-3">
         {/* Unread dot */}
         <div className="mt-1.5 shrink-0">
           {unseen ? (
             <span className="block h-2 w-2 rounded-full bg-orange-400" />
           ) : (
-            <span className="block h-2 w-2 rounded-full bg-gray-200" />
+            <span className="block h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-700" />
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-800 leading-snug">
+          <p className="text-sm text-gray-800 leading-snug dark:text-gray-200">
             <span className="font-semibold">{inviterName}</span>
             {" invited you to join "}
             <span className="font-semibold">{householdName}</span>
@@ -147,12 +147,12 @@ export default function NotificationPanel({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Notifications</h2>
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[80vh] flex flex-col dark:bg-gray-900">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Notifications</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
           >
             ×
           </button>
@@ -173,16 +173,16 @@ export default function NotificationPanel({
             }
             // Generic fallback for future notification types
             return (
-              <div key={n.id} className="py-3 flex items-start gap-3 border-b border-gray-50 last:border-0">
+              <div key={n.id} className="py-3 flex items-start gap-3 border-b border-gray-50 last:border-0 dark:border-gray-800">
                 <div className="mt-1.5 shrink-0">
                   {n.seenAt === null ? (
                     <span className="block h-2 w-2 rounded-full bg-orange-400" />
                   ) : (
-                    <span className="block h-2 w-2 rounded-full bg-gray-200" />
+                    <span className="block h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-700" />
                   )}
                 </div>
                 <div>
-                  <p className="text-sm text-gray-700">{n.type}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{n.type}</p>
                   <p className="text-xs text-gray-400">{timeAgo(n.createdAt)}</p>
                 </div>
               </div>

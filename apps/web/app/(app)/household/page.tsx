@@ -35,15 +35,15 @@ function CreateHouseholdForm({
 
   return (
     <div className="mx-auto max-w-md">
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Create a household</h2>
-        <p className="text-sm text-gray-500 mb-6">
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Create a household</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Give your household a name. You can then invite others to join and share
           your pantry, shopping lists, and meal plans.
         </p>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Household name
             </label>
             <input
@@ -52,7 +52,7 @@ function CreateHouseholdForm({
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Smith's"
               maxLength={60}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -117,14 +117,14 @@ function InviteSearch({
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Invite someone</h3>
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Invite someone</h3>
       <div className="relative">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name…"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
         />
         {searching && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching…</span>
@@ -132,7 +132,7 @@ function InviteSearch({
       </div>
       {searchError && <p className="mt-2 text-xs text-red-600">{searchError}</p>}
       {results.length > 0 && (
-        <div className="mt-2 rounded-lg border border-gray-200 bg-white divide-y divide-gray-50 shadow-sm">
+        <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-50 dark:divide-gray-800 shadow-sm">
           {results.map((user) => {
             const isMember = memberUserIds.has(user.id);
             const isInvited = invited.has(user.id);
@@ -145,7 +145,7 @@ function InviteSearch({
                     {user.displayName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="flex-1 text-sm font-medium text-gray-900">{user.displayName}</span>
+                <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{user.displayName}</span>
                 {isMember ? (
                   <span className="text-xs text-gray-400">Already a member</span>
                 ) : isInvited ? (
@@ -269,7 +269,7 @@ function HouseholdView({
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
                 maxLength={60}
-                className="rounded-lg border border-orange-400 px-3 py-1.5 text-xl font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-100 w-full max-w-xs"
+                className="rounded-lg border border-orange-400 px-3 py-1.5 text-xl font-bold text-gray-900 dark:text-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-100 w-full max-w-xs"
               />
               <button
                 type="submit"
@@ -281,14 +281,14 @@ function HouseholdView({
               <button
                 type="button"
                 onClick={() => { setRenaming(false); setRenameValue(household.name); setRenameError(null); }}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                className="rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
               >
                 Cancel
               </button>
             </form>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">{household.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{household.name}</h1>
               {isOwner && (
                 <button
                   onClick={() => { setRenameValue(household.name); setRenaming(true); }}
@@ -304,7 +304,7 @@ function HouseholdView({
             </div>
           )}
           {renameError && <p className="mt-1 text-sm text-red-600">{renameError}</p>}
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {household.members.length} {household.members.length === 1 ? "member" : "members"}
           </p>
         </div>
@@ -312,8 +312,8 @@ function HouseholdView({
 
       {/* Members */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Members</h3>
-        <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-50">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Members</h3>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-50 dark:divide-gray-800">
           {household.members.map((member) => (
             <div key={member.id} className="flex items-center gap-3 px-4 py-3">
               {member.avatarUrl ? (
@@ -323,9 +323,9 @@ function HouseholdView({
                   {member.displayName.charAt(0).toUpperCase()}
                 </div>
               )}
-              <p className="flex-1 text-sm font-medium text-gray-900">{member.displayName}</p>
+              <p className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{member.displayName}</p>
               {member.userId === household.ownerId && (
-                <span className="text-xs text-gray-400 rounded-full border border-gray-200 px-2 py-0.5">Owner</span>
+                <span className="text-xs text-gray-400 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">Owner</span>
               )}
             </div>
           ))}
@@ -337,13 +337,13 @@ function HouseholdView({
 
       {/* Danger zone */}
       <div className="rounded-xl border border-red-100 bg-red-50/40 p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">Manage membership</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Manage membership</h3>
         {actionError && <p className="text-sm text-red-600">{actionError}</p>}
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => { void handleLeave(); }}
             disabled={leaving || deleting}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-red-300 hover:text-red-600 transition disabled:opacity-50"
+            className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-red-300 hover:text-red-600 transition disabled:opacity-50"
           >
             {leaving ? "Leaving…" : "Leave household"}
           </button>
@@ -351,7 +351,7 @@ function HouseholdView({
             <button
               onClick={() => { void handleDelete(); }}
               disabled={leaving || deleting}
-              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+              className="rounded-lg border border-red-300 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition disabled:opacity-50"
             >
               {deleting ? "Deleting…" : "Delete household"}
             </button>
