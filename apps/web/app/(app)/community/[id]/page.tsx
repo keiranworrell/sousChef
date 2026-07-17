@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { CommunityRecipe, UserProfile } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import CollectionPickerModal from "@/components/CollectionPickerModal";
 
 function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
   return filled ? (
@@ -39,6 +40,7 @@ export default function CommunityRecipePage(): React.JSX.Element {
   const [forkError, setForkError] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -178,6 +180,9 @@ export default function CommunityRecipePage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showCollectionPicker && (
+        <CollectionPickerModal recipeId={id} onClose={() => setShowCollectionPicker(false)} />
+      )}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <Link href="/community" className="text-sm text-orange-500 hover:underline">
@@ -202,6 +207,13 @@ export default function CommunityRecipePage(): React.JSX.Element {
             >
               <HeartIcon filled={isLiked} />
               {likeCount.toLocaleString()}
+            </button>
+            {/* Save to collection */}
+            <button
+              onClick={() => setShowCollectionPicker(true)}
+              className="btn-secondary"
+            >
+              Save
             </button>
             {/* Share button */}
             <button

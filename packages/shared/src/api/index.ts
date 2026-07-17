@@ -12,6 +12,13 @@ import type {
   CommunityFeedParams,
   CommunityFeedResponse,
   CommunityRecipe,
+  Collection,
+  CollectionWithItems,
+  PublicCollectionWithItems,
+  CreateCollectionInput,
+  UpdateCollectionInput,
+  ListCollectionsResponse,
+  ListPublicCollectionsResponse,
   CreateFermentationBatchInput,
   CreateFermentationLogInput,
   CreateMealPlanEntryInput,
@@ -271,6 +278,43 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       unlike: (recipeId: string): Promise<ApiResponse<null>> =>
         del<null>(`/community/recipes/${recipeId}/like`),
+    },
+
+    collections: {
+      list: (): Promise<ApiResponse<ListCollectionsResponse>> =>
+        get<ListCollectionsResponse>("/collections"),
+
+      get: (id: string): Promise<ApiResponse<CollectionWithItems>> =>
+        get<CollectionWithItems>(`/collections/${id}`),
+
+      create: (input: CreateCollectionInput): Promise<ApiResponse<Collection>> =>
+        post<Collection>("/collections", input),
+
+      update: (id: string, input: UpdateCollectionInput): Promise<ApiResponse<Collection>> =>
+        patch<Collection>(`/collections/${id}`, input),
+
+      delete: (id: string): Promise<ApiResponse<null>> =>
+        del<null>(`/collections/${id}`),
+
+      addRecipe: (collectionId: string, recipeId: string): Promise<ApiResponse<null>> =>
+        post<null>(`/collections/${collectionId}/recipes/${recipeId}`, {}),
+
+      removeRecipe: (collectionId: string, recipeId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/collections/${collectionId}/recipes/${recipeId}`),
+
+      forRecipe: (recipeId: string): Promise<ApiResponse<{ collectionIds: string[] }>> =>
+        get<{ collectionIds: string[] }>(`/collections/for-recipe/${recipeId}`),
+
+      listPublic: (params?: { limit?: number; offset?: number }): Promise<ApiResponse<ListPublicCollectionsResponse>> => {
+        const qs = new URLSearchParams();
+        if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        const query = qs.toString() ? `?${qs.toString()}` : "";
+        return get<ListPublicCollectionsResponse>(`/collections/public${query}`);
+      },
+
+      getPublic: (id: string): Promise<ApiResponse<PublicCollectionWithItems>> =>
+        get<PublicCollectionWithItems>(`/collections/public/${id}`),
     },
 
     fermentation: {

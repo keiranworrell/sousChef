@@ -67,6 +67,10 @@ const entryPoints = [
     in: resolve(root, "functions/notifications.ts"),
     out: "notifications",
   },
+  {
+    in: resolve(root, "functions/collections.ts"),
+    out: "collections",
+  },
 ];
 
 for (const entry of entryPoints) {
