@@ -13,6 +13,7 @@ import {
 } from "../db/queries/recipe-queries";
 import { importRecipeFromUrl, fetchPageHtml, parseRecipeFromHtml } from "../agents/recipe-import";
 import { importRecipeWithAi, importRecipeFromText } from "../agents/recipe-import-ai";
+import { importRecipeFromPhotos } from "../agents/recipe-import-photo";
 import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 
@@ -146,6 +147,30 @@ export const handler: APIGatewayProxyHandlerV2 = async (
         };
       }
       return okResponse(aiResult.recipe);
+    }
+
+    // POST /recipes/import/photo — AI extract from photos, premium only, no save
+    if (method === "POST" && event.rawPath?.endsWith("/import/photo")) {
+      assertPremium(user.planTier);
+      const body = parseBody(
+        event.body,
+        z.object({
+          images: z.array(z.string().min(1)).min(1).max(10),
+          mimeTypes: z.array(z.string()).optional().default([]),
+        }),
+      );
+      const result = await importRecipeFromPhotos({
+        images: body.images,
+        mimeTypes: body.mimeTypes ?? [],
+      });
+      if (!result.ok) {
+        return {
+          statusCode: 422,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: "PHOTO_IMPORT_FAILED", message: result.error } }),
+        };
+      }
+      return okResponse(result.recipe);
     }
 
     // POST /recipes/import/text — AI extract from pasted note, premium only, no save

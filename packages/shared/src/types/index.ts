@@ -174,6 +174,13 @@ export type ImportRecipeTextInput = {
   text: string;
 };
 
+export type ImportRecipePhotoInput = {
+  /** Base64-encoded image data (data-URL prefix is accepted and will be stripped server-side). */
+  images: string[];
+  /** MIME type for each image, parallel to images. Defaults to image/jpeg if omitted. */
+  mimeTypes: string[];
+};
+
 export type UpdateRecipeInput = Partial<
   Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
 > & { tags?: string[] };

@@ -109,7 +109,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   }, []);
 
   // Import state (create mode only)
-  type ImportMode = "url" | "note";
+  type ImportMode = "url" | "note" | "photo";
   const [importMode, setImportMode] = useState<ImportMode>("url");
   const [importUrl, setImportUrl] = useState("");
   const [importLoading, setImportLoading] = useState(false);
@@ -120,6 +120,83 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   const [noteText, setNoteText] = useState("");
   const [noteImportLoading, setNoteImportLoading] = useState(false);
   const [noteImportError, setNoteImportError] = useState<string | null>(null);
+
+  // Photo import state
+  type PhotoEntry = { objectUrl: string; file: File };
+  const [photoEntries, setPhotoEntries] = useState<PhotoEntry[]>([]);
+  const [photoImportLoading, setPhotoImportLoading] = useState(false);
+  const [photoImportError, setPhotoImportError] = useState<string | null>(null);
+
+  async function compressToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
+    const MAX_PX = 1500;
+    const QUALITY = 0.75;
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_PX / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unavailable");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const dataUrl = canvas.toDataURL("image/jpeg", QUALITY);
+    // Strip the data-URL prefix — server expects raw base64
+    const base64 = dataUrl.replace(/^data:[^;]+;base64,/, "");
+    return { base64, mimeType: "image/jpeg" };
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>): void {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    // Limit total to 10
+    setPhotoEntries((prev) => {
+      const remaining = 10 - prev.length;
+      const added = files.slice(0, remaining).map((f) => ({
+        file: f,
+        objectUrl: URL.createObjectURL(f),
+      }));
+      return [...prev, ...added];
+    });
+    // Reset input so the same file can be re-selected if needed
+    e.target.value = "";
+  }
+
+  function removePhoto(idx: number): void {
+    setPhotoEntries((prev) => {
+      URL.revokeObjectURL(prev[idx]!.objectUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  }
+
+  async function handlePhotoImport(): Promise<void> {
+    if (!photoEntries.length) return;
+    setPhotoImportError(null);
+    setPhotoImportLoading(true);
+    try {
+      const compressed = await Promise.all(photoEntries.map((e) => compressToBase64(e.file)));
+      const api = await getApiClient();
+      const res = await api.recipes.importPhoto({
+        images: compressed.map((c) => c.base64),
+        mimeTypes: compressed.map((c) => c.mimeType),
+      });
+      if ("error" in res) {
+        setPhotoImportError(res.error.message);
+        return;
+      }
+      applyImportedRecipe(res.data);
+      setImported(true);
+      setImportedWithAi(true);
+      // Clean up object URLs
+      photoEntries.forEach((e) => URL.revokeObjectURL(e.objectUrl));
+      setPhotoEntries([]);
+    } catch (err) {
+      setPhotoImportError(err instanceof Error ? err.message : "Photo import failed");
+    } finally {
+      setPhotoImportLoading(false);
+    }
+  }
 
   function applyImportedRecipe(r: CreateRecipeInput): void {
     if (r.title) setTitle(r.title);
@@ -321,17 +398,24 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden text-xs font-medium">
               <button
                 type="button"
-                onClick={() => { setImportMode("url"); setImportError(null); setNoteImportError(null); setImported(false); }}
+                onClick={() => { setImportMode("url"); setImportError(null); setNoteImportError(null); setPhotoImportError(null); setImported(false); }}
                 className={`px-3 py-1.5 transition ${importMode === "url" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-gray-700"}`}
               >
                 From URL
               </button>
               <button
                 type="button"
-                onClick={() => { setImportMode("note"); setImportError(null); setNoteImportError(null); setImported(false); }}
+                onClick={() => { setImportMode("note"); setImportError(null); setNoteImportError(null); setPhotoImportError(null); setImported(false); }}
                 className={`px-3 py-1.5 transition ${importMode === "note" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-gray-700"}`}
               >
                 From note
+              </button>
+              <button
+                type="button"
+                onClick={() => { setImportMode("photo"); setImportError(null); setNoteImportError(null); setPhotoImportError(null); setImported(false); }}
+                className={`px-3 py-1.5 transition ${importMode === "photo" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                From photo
               </button>
             </div>
           </div>
@@ -352,12 +436,80 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
                   setNoteText("");
                   setImportError(null);
                   setNoteImportError(null);
+                  setPhotoImportError(null);
+                  photoEntries.forEach((e) => URL.revokeObjectURL(e.objectUrl));
+                  setPhotoEntries([]);
                 }}
                 className="text-xs text-gray-400 hover:text-gray-600"
               >
                 Import another
               </button>
             </div>
+          ) : importMode === "photo" ? (
+            <>
+              {!isPremium ? (
+                <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 text-sm text-orange-700">
+                  Photo import is a <strong>premium</strong> feature. Upgrade your plan to use it.
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-400">
+                    Upload up to 10 photos of a recipe (cookbook page, recipe card, handwritten note). Multiple pages are combined automatically.
+                  </p>
+
+                  {/* Thumbnails */}
+                  {photoEntries.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {photoEntries.map((entry, idx) => (
+                        <div key={idx} className="relative">
+                          <img
+                            src={entry.objectUrl}
+                            alt={`Page ${idx + 1}`}
+                            className="h-20 w-20 rounded-lg object-cover border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(idx)}
+                            className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-white text-xs hover:bg-red-600"
+                            aria-label={`Remove photo ${idx + 1}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* File picker */}
+                  {photoEntries.length < 10 && (
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 hover:border-orange-400 hover:text-orange-500 transition">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="sr-only"
+                        onChange={handlePhotoSelect}
+                        disabled={photoImportLoading}
+                      />
+                      {photoEntries.length === 0 ? "Choose photos" : `Add more (${photoEntries.length}/10)`}
+                    </label>
+                  )}
+
+                  {photoEntries.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { void handlePhotoImport(); }}
+                      disabled={photoImportLoading}
+                      className="btn-secondary text-sm disabled:opacity-50"
+                    >
+                      {photoImportLoading ? "Analysing…" : `Import from ${photoEntries.length} photo${photoEntries.length > 1 ? "s" : ""}`}
+                    </button>
+                  )}
+
+                  {photoImportError && <p className="text-xs text-red-600">{photoImportError}</p>}
+                </>
+              )}
+            </>
           ) : importMode === "url" ? (
             <>
               <p className="text-xs text-gray-400">
