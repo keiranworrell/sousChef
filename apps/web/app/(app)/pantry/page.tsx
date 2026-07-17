@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import type { PantryItem, CreatePantryItemInput, UpdatePantryItemInput } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import WhatCanICookModal from "@/components/WhatCanICookModal";
 
 type FormState = {
   name: string;
@@ -68,6 +69,9 @@ export default function PantryPage(): React.JSX.Element {
 
   // Delete
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // What can I cook modal
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     void load();
@@ -171,15 +175,29 @@ export default function PantryPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showSuggestions && (
+        <WhatCanICookModal onClose={() => setShowSuggestions(false)} />
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           {householdName != null ? `${householdName}'s pantry` : "Pantry"}
         </h1>
-        {!adding && (
-          <button className="btn-primary" onClick={() => setAdding(true)}>
-            + Add item
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-secondary text-sm"
+            onClick={() => setShowSuggestions(true)}
+            disabled={items.length === 0}
+            title={items.length === 0 ? "Add pantry items first" : undefined}
+          >
+            What can I cook?
           </button>
-        )}
+          {!adding && (
+            <button className="btn-primary" onClick={() => setAdding(true)}>
+              + Add item
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add form */}

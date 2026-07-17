@@ -311,6 +311,24 @@ export type ListPantryItemsResponse = {
   items: PantryItem[];
 };
 
+export type SuggestedRecipe = {
+  id: UUID;
+  title: string;
+  imageUrl: string | null;
+  cuisine: string | null;
+  difficulty: "easy" | "medium" | "hard" | null;
+  cookTimeMinutes: number | null;
+  tags: string[];
+  matchCount: number;
+  totalIngredients: number;
+  matchRatio: number;
+};
+
+export type PantrySuggestionsResponse = {
+  savedRecipes: SuggestedRecipe[];
+  communityRecipes: SuggestedRecipe[];
+};
+
 // ─── Shopping ──────────────────────────────────────────────────────────────────
 
 export type ShoppingList = {

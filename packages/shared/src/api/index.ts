@@ -27,6 +27,7 @@ import type {
   ImportRecipePhotoInput,
   ListFermentationBatchesResponse,
   ListPantryItemsResponse,
+  PantrySuggestionsResponse,
   ListRecipesResponse,
   ListShoppingListsResponse,
   MealPlanEntry,
@@ -172,6 +173,9 @@ export function createApiClient(baseUrl: string, token?: string) {
     pantry: {
       list: (): Promise<ApiResponse<ListPantryItemsResponse>> =>
         get<ListPantryItemsResponse>("/pantry"),
+
+      suggestions: (): Promise<ApiResponse<PantrySuggestionsResponse>> =>
+        get<PantrySuggestionsResponse>("/pantry/suggestions"),
 
       create: (input: CreatePantryItemInput): Promise<ApiResponse<PantryItem>> =>
         post<PantryItem>("/pantry", input),
