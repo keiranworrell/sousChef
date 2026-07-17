@@ -323,6 +323,12 @@ resource "aws_apigatewayv2_route" "recipes_import_text" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_import_photo" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes/import/photo"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 # ── Pantry Lambda ──────────────────────────────────────────────────────────────
 
 data "archive_file" "pantry" {
