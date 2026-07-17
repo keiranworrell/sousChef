@@ -14,7 +14,6 @@ import type {
   CommunityRecipe,
   Collection,
   CollectionWithItems,
-  CollectionSummary,
   PublicCollectionWithItems,
   CreateCollectionInput,
   UpdateCollectionInput,
