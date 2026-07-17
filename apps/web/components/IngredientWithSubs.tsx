@@ -11,12 +11,18 @@ type Props = {
   onReplace: (ingredient: RecipeIngredient, sub: Substitution) => void;
   /** Optional extra class names for the root <li> */
   className?: string;
+  /**
+   * Pre-formatted scaled quantity string. When provided this replaces the raw
+   * ingredient.quantity value so the parent can control scaling display.
+   */
+  scaledQuantity?: string | null;
 };
 
 export default function IngredientWithSubs({
   ingredient,
   onReplace,
   className = "",
+  scaledQuantity,
 }: Props): React.JSX.Element {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,9 +55,9 @@ export default function IngredientWithSubs({
   return (
     <>
       <li className={`relative flex gap-2 text-sm text-gray-700 ${className}`}>
-        {ingredient.quantity != null && (
+        {(scaledQuantity != null || ingredient.quantity != null) && (
           <span className="shrink-0 font-medium text-gray-900">
-            {ingredient.quantity}
+            {scaledQuantity ?? ingredient.quantity}
             {ingredient.unit ? ` ${ingredient.unit}` : ""}
           </span>
         )}
