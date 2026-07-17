@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CreateRecipeInput, RecipeWithDetails } from "@souschef/shared";
 import { predictTags } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import CollectionPickerModal from "@/components/CollectionPickerModal";
 
 type Props = {
   initial?: RecipeWithDetails;
@@ -72,6 +73,8 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [newRecipeId, setNewRecipeId] = useState<string | null>(null);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = e.target.files?.[0];
@@ -371,7 +374,10 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       } else {
         const res = await api.recipes.create(payload);
         if ("error" in res) throw new Error(res.error.message);
-        if ("data" in res) router.push(`/recipes/${res.data.id}`);
+        if ("data" in res) {
+          setNewRecipeId(res.data.id);
+          setShowCollectionPicker(true);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -386,6 +392,28 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     const predicted = predictTags(ingredients.map((i) => i.name));
     return predicted.filter((t) => !tags.includes(t));
   }, [ingredients, tags]);
+
+  if (showCollectionPicker && newRecipeId) {
+    return (
+      <>
+        <div className="mx-auto max-w-3xl px-4 py-10">
+          <p className="text-base font-semibold text-gray-900 mb-1">Recipe created!</p>
+          <p className="text-sm text-gray-500 mb-4">Add it to a collection, or skip to view it now.</p>
+          <button
+            type="button"
+            className="text-sm text-orange-500 hover:underline"
+            onClick={() => router.push(`/recipes/${newRecipeId}`)}
+          >
+            Skip → View recipe
+          </button>
+        </div>
+        <CollectionPickerModal
+          recipeId={newRecipeId}
+          onClose={() => router.push(`/recipes/${newRecipeId}`)}
+        />
+      </>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">

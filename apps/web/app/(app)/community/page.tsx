@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import type { CommunityRecipe, PublicUserListItem } from "@souschef/shared";
+import type { CommunityRecipe, PublicUserListItem, PublicCollectionSummary } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -12,7 +12,7 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   hard: "Hard",
 };
 
-type Tab = "recipes" | "people";
+type Tab = "recipes" | "people" | "collections";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -420,6 +420,111 @@ function RecipesTab(): React.JSX.Element {
   );
 }
 
+// ── Collections tab ────────────────────────────────────────────────────────────
+
+function CollectionsTab(): React.JSX.Element {
+  const [collections, setCollections] = useState<PublicCollectionSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const PAGE_SIZE = 24;
+
+  useEffect(() => {
+    async function load(): Promise<void> {
+      try {
+        const api = await getApiClient();
+        const res = await api.collections.listPublic({ limit: PAGE_SIZE, offset: 0 });
+        if ("error" in res) throw new Error(res.error.message);
+        setCollections(res.data.collections);
+        setTotal(res.data.total);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load collections");
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  }, []);
+
+  async function loadMore(): Promise<void> {
+    setLoadingMore(true);
+    try {
+      const api = await getApiClient();
+      const res = await api.collections.listPublic({ limit: PAGE_SIZE, offset: collections.length });
+      if ("error" in res) throw new Error(res.error.message);
+      setCollections((prev) => [...prev, ...res.data.collections]);
+      setTotal(res.data.total);
+    } catch {
+      // swallow
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  if (loading) return <p className="text-sm text-gray-400">Loading…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+
+  if (collections.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center">
+        <p className="text-gray-500">No public collections yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {collections.map((col) => (
+          <Link
+            key={col.id}
+            href={`/community/collections/${col.id}`}
+            className="group flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden hover:border-orange-300 transition-colors"
+          >
+            {/* Cover image or placeholder */}
+            {col.coverImageUrl ? (
+              <img
+                src={col.coverImageUrl}
+                alt={col.name}
+                className="h-36 w-full object-cover"
+              />
+            ) : (
+              <div className="h-36 w-full bg-orange-50 flex items-center justify-center text-4xl">
+                📚
+              </div>
+            )}
+            <div className="p-4">
+              <p className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+                {col.name}
+              </p>
+              {col.description && (
+                <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">{col.description}</p>
+              )}
+              <p className="mt-2 text-xs text-gray-400">
+                by {col.ownerName} · {col.recipeCount} {col.recipeCount === 1 ? "recipe" : "recipes"}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {collections.length < total && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => { void loadMore(); }}
+            disabled={loadingMore}
+            className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 function CommunityContent(): React.JSX.Element {
@@ -428,7 +533,8 @@ function CommunityContent(): React.JSX.Element {
   const router = useRouter();
 
   const rawTab = searchParams.get("tab");
-  const tab: Tab = rawTab === "people" ? "people" : "recipes";
+  const tab: Tab =
+    rawTab === "people" ? "people" : rawTab === "collections" ? "collections" : "recipes";
 
   function setTab(t: Tab): void {
     const params = new URLSearchParams(searchParams.toString());
@@ -439,6 +545,12 @@ function CommunityContent(): React.JSX.Element {
     }
     router.replace(`${pathname}?${params.toString()}`);
   }
+
+  const TAB_LABELS: Record<Tab, string> = {
+    recipes: "Recipes",
+    people: "People",
+    collections: "Collections",
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -451,22 +563,24 @@ function CommunityContent(): React.JSX.Element {
 
       {/* Tab bar */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
-        {(["recipes", "people"] as Tab[]).map((t) => (
+        {(["recipes", "people", "collections"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               tab === t
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
 
-      {tab === "recipes" ? <RecipesTab /> : <PeopleTab />}
+      {tab === "recipes" && <RecipesTab />}
+      {tab === "people" && <PeopleTab />}
+      {tab === "collections" && <CollectionsTab />}
     </div>
   );
 }

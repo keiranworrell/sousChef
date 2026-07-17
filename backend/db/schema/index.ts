@@ -9,3 +9,4 @@ export * from "./follows";
 export * from "./recipe-likes";
 export * from "./households";
 export * from "./notifications";
+export * from "./collections";

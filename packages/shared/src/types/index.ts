@@ -329,6 +329,69 @@ export type PantrySuggestionsResponse = {
   communityRecipes: SuggestedRecipe[];
 };
 
+// ─── Collections ───────────────────────────────────────────────────────────────
+
+export type Collection = {
+  id: UUID;
+  userId: UUID;
+  name: string;
+  description: string | null;
+  isPublic: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type CollectionRecipeItem = {
+  recipeId: UUID;
+  title: string;
+  imageUrl: string | null;
+  cuisine: string | null;
+  difficulty: "easy" | "medium" | "hard" | null;
+  cookTimeMinutes: number | null;
+  isPublic: boolean;
+  tags: string[];
+  addedAt: ISODateString;
+};
+
+export type CollectionWithItems = Collection & {
+  items: CollectionRecipeItem[];
+  recipeCount: number;
+};
+
+export type CollectionSummary = Collection & {
+  recipeCount: number;
+  coverImageUrl: string | null;
+};
+
+export type PublicCollectionSummary = CollectionSummary & {
+  ownerName: string;
+  ownerId: UUID;
+};
+
+export type PublicCollectionWithItems = CollectionWithItems & {
+  ownerName: string;
+  ownerId: UUID;
+};
+
+export type CreateCollectionInput = {
+  name: string;
+  description?: string | null;
+  isPublic?: boolean;
+};
+
+export type UpdateCollectionInput = Partial<CreateCollectionInput>;
+
+export type ListCollectionsResponse = {
+  collections: CollectionSummary[];
+};
+
+export type ListPublicCollectionsResponse = {
+  collections: PublicCollectionSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 // ─── Shopping ──────────────────────────────────────────────────────────────────
 
 export type ShoppingList = {

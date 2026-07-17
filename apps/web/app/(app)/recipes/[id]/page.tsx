@@ -8,6 +8,7 @@ import { scaleQuantity } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
+import CollectionPickerModal from "@/components/CollectionPickerModal";
 
 type AddToListState =
   | { step: "closed" }
@@ -28,6 +29,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [cookLogged, setCookLogged] = useState(false);
   const [cookLogging, setCookLogging] = useState(false);
   const [adjustedServings, setAdjustedServings] = useState<number | null>(null);
+  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
 
   async function handleLogCook(): Promise<void> {
     setCookLogging(true);
@@ -161,6 +163,9 @@ export default function RecipeDetailPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showCollectionPicker && (
+        <CollectionPickerModal recipeId={id} onClose={() => setShowCollectionPicker(false)} />
+      )}
       {recipe.imageUrl && (
         <img
           src={recipe.imageUrl}
@@ -217,6 +222,10 @@ export default function RecipeDetailPage(): React.JSX.Element {
                 label: copied ? "✓ Copied!" : "Share",
                 onClick: handleShare,
               }] : []),
+              {
+                label: "Add to collection",
+                onClick: () => setShowCollectionPicker(true),
+              },
               { label: "Edit", href: `/recipes/${id}/edit` },
               {
                 label: deleting ? "Deleting…" : "Delete",

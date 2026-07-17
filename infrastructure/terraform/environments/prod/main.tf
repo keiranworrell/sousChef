@@ -1226,6 +1226,111 @@ resource "aws_apigatewayv2_route" "feed_list" {
   target    = "integrations/${aws_apigatewayv2_integration.feed.id}"
 }
 
+# ── Collections Lambda ────────────────────────────────────────────────────────
+
+data "archive_file" "collections" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/collections.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/collections.zip"
+}
+
+module "collections" {
+  source          = "../../modules/lambda"
+  function_name   = "souschef-${var.environment}-collections"
+  handler         = "collections.handler"
+  zip_path        = data.archive_file.collections.output_path
+  timeout_seconds = 30
+  memory_mb       = 256
+  policy_json     = local.db_secret_policy
+
+  environment_variables = {
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "collections" {
+  name              = "/aws/lambda/${module.collections.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "collections_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.collections.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/collections*"
+}
+
+resource "aws_apigatewayv2_integration" "collections" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.collections.function_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "collections_list_public" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections/public"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_get_public" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections/public/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_for_recipe" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections/for-recipe/{recipeId}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_list" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /collections"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_update" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /collections/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_delete" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /collections/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_add_recipe" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /collections/{id}/recipes/{recipeId}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_remove_recipe" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /collections/{id}/recipes/{recipeId}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
 # ── AWS Budget — monthly spend alert ──────────────────────────────────────────
 # Sends an email alert when actual AWS spend hits 80% of the $50 monthly limit.
 # Adjust limit_amount as usage grows.
