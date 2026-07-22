@@ -174,6 +174,21 @@ module "api_gateway" {
     "https://sous-chef-web-l1zo.vercel.app",
     "http://localhost:3000",
   ]
+
+  # Global defaults — generous enough for normal use, prevents general abuse
+  default_throttle_burst_limit = 200
+  default_throttle_rate_limit  = 100
+
+  # Tighter limits on AI endpoints — each call hits the Anthropic API and can
+  # cost real money. 3 req/s sustained with a burst of 10 is plenty for a
+  # side project and prevents runaway spend from abuse or bugs.
+  route_throttle_settings = {
+    "POST /recipes/import"       = { burst_limit = 10, rate_limit = 3 }
+    "POST /recipes/import/parse" = { burst_limit = 10, rate_limit = 3 }
+    "POST /recipes/import/ai"    = { burst_limit = 10, rate_limit = 3 }
+    "POST /recipes/import/text"  = { burst_limit = 10, rate_limit = 3 }
+    "POST /recipes/import/photo" = { burst_limit = 10, rate_limit = 3 }
+  }
 }
 
 # ── Recipes Lambda ─────────────────────────────────────────────────────────────

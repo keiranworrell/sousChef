@@ -40,6 +40,22 @@ resource "aws_apigatewayv2_stage" "default" {
     })
   }
 
+  # Global throttle — applies to all routes unless overridden below
+  default_route_settings {
+    throttling_burst_limit = var.default_throttle_burst_limit
+    throttling_rate_limit  = var.default_throttle_rate_limit
+  }
+
+  # Per-route overrides (e.g. tighter limits on AI endpoints)
+  dynamic "route_settings" {
+    for_each = var.route_throttle_settings
+    content {
+      route_key              = route_settings.key
+      throttling_burst_limit = route_settings.value.burst_limit
+      throttling_rate_limit  = route_settings.value.rate_limit
+    }
+  }
+
   tags = {
     Name = "${var.api_name}-default-stage"
   }
