@@ -1,4 +1,4 @@
-import { and, asc, eq, desc, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, desc, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
 
@@ -56,6 +56,7 @@ export type ListRecipesResult = {
 export type ListRecipesParams = {
   limit?: number;
   offset?: number;
+  q?: string;
   tag?: string;
   difficulty?: string;
   sort?: "newest" | "oldest" | "title";
@@ -65,7 +66,7 @@ export async function listRecipes(
   userId: string,
   params: ListRecipesParams = {},
 ): Promise<ListRecipesResult> {
-  const { limit = 20, offset = 0, tag, difficulty, sort = "newest" } = params;
+  const { limit = 20, offset = 0, q, tag, difficulty, sort = "newest" } = params;
   const db = await getDb();
 
   // If filtering by tag, first find matching recipe IDs
@@ -82,8 +83,23 @@ export async function listRecipes(
     }
   }
 
+  // Full-text search across title, description, cuisine, and ingredient names
+  const searchCondition = q
+    ? or(
+        ilike(recipes.title, `%${q}%`),
+        ilike(recipes.description, `%${q}%`),
+        ilike(recipes.cuisine, `%${q}%`),
+        sql`EXISTS (
+          SELECT 1 FROM recipe_ingredients
+          WHERE recipe_id = ${recipes.id}
+          AND name ILIKE ${"%" + q + "%"}
+        )`,
+      )
+    : undefined;
+
   const baseWhere = and(
     eq(recipes.userId, userId),
+    searchCondition,
     difficulty ? eq(recipes.difficulty, difficulty as "easy" | "medium" | "hard") : undefined,
     tagFilteredIds ? inArray(recipes.id, tagFilteredIds) : undefined,
   );
