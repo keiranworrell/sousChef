@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import type { Recipe } from "@souschef/shared";
 import RecipeCard from "@/components/RecipeCard";
+import EmptyState from "@/components/EmptyState";
+import WelcomeModal, { shouldShowWelcome } from "@/components/WelcomeModal";
 import { getApiClient } from "@/lib/api";
 
 type SortOption = "newest" | "oldest" | "title";
@@ -21,6 +23,12 @@ export default function RecipesPage(): React.JSX.Element {
 
   // All unique tags from the unfiltered recipe list (for the tag dropdown)
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Check once on mount — must be client-side only (localStorage)
+  useEffect(() => {
+    setShowWelcome(shouldShowWelcome());
+  }, []);
 
   const load = useCallback(async (params: {
     sort: SortOption;
@@ -72,6 +80,7 @@ export default function RecipesPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">My recipes</h1>
         <Link href="/recipes/new" className="btn-primary">
@@ -130,11 +139,29 @@ export default function RecipesPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && recipes.length === 0 && !hasFilters && (
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No recipes yet.</p>
-          <Link href="/recipes/new" className="mt-4 inline-block btn-primary">
-            Add your first recipe
-          </Link>
+        <div className="space-y-3">
+          <EmptyState
+            icon="📖"
+            title="Your recipe collection is empty"
+            description="Import from any website, a photo, or plain text — or build one from scratch."
+          />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { icon: "🔗", label: "Import from URL", href: "/recipes/new?import=url" },
+              { icon: "📷", label: "From a photo", href: "/recipes/new?import=photo" },
+              { icon: "📝", label: "Paste text", href: "/recipes/new?import=text" },
+              { icon: "✏️", label: "Write from scratch", href: "/recipes/new" },
+            ].map(({ icon, label, href }) => (
+              <Link
+                key={label}
+                href={href}
+                className="flex flex-col items-center gap-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 text-center hover:border-orange-200 dark:hover:border-orange-800 hover:shadow-sm transition-all"
+              >
+                <span className="text-2xl">{icon}</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-snug">{label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 

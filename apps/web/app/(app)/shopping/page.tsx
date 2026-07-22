@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ShoppingList } from "@souschef/shared";
+import EmptyState from "@/components/EmptyState";
 import { getApiClient } from "@/lib/api";
 
 export default function ShoppingPage(): React.JSX.Element {
@@ -120,12 +121,15 @@ export default function ShoppingPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && lists.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No shopping lists yet.</p>
-          <button className="mt-4 btn-primary" onClick={() => setCreating(true)}>
-            Create your first list
-          </button>
-        </div>
+        <EmptyState
+          icon="🛒"
+          title="No shopping lists yet"
+          description="Create a list manually, or generate one automatically from your meal plan."
+          actions={[
+            { label: "+ New list", onClick: () => setCreating(true) },
+            { label: "Go to meal plan", href: "/meal-plan", variant: "secondary" },
+          ]}
+        />
       )}
 
       <ul className="space-y-2">

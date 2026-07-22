@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CollectionSummary } from "@souschef/shared";
+import EmptyState from "@/components/EmptyState";
 import { getApiClient } from "@/lib/api";
 
 export default function CollectionsPage(): React.JSX.Element {
@@ -130,10 +131,15 @@ export default function CollectionsPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {collections.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 py-16 text-center">
-          <p className="text-sm text-gray-400">No collections yet.</p>
-          <p className="mt-1 text-xs text-gray-300">Create a collection to organise your recipes into folders.</p>
-        </div>
+        <EmptyState
+          icon="📁"
+          title="No collections yet"
+          description="Group your recipes into collections like 'Weeknight dinners' or 'Bread recipes' to keep things organised."
+          actions={[
+            { label: "+ New collection", onClick: () => setCreating(true) },
+            { label: "Browse community", href: "/community", variant: "secondary" },
+          ]}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {collections.map((col) => (

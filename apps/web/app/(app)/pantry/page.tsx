@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import type { PantryItem, CreatePantryItemInput, UpdatePantryItemInput } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import WhatCanICookModal from "@/components/WhatCanICookModal";
+import EmptyState from "@/components/EmptyState";
 
 type FormState = {
   name: string;
@@ -228,15 +229,14 @@ export default function PantryPage(): React.JSX.Element {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Your pantry is empty.</p>
-          <button
-            className="mt-4 btn-primary"
-            onClick={() => setAdding(true)}
-          >
-            Add your first item
-          </button>
-        </div>
+        <EmptyState
+          icon="🥫"
+          title="Your pantry is empty"
+          description="Track what you have at home, set expiry alerts, and find out what you can cook with what's in stock."
+          actions={[
+            { label: "+ Add your first item", onClick: () => setAdding(true) },
+          ]}
+        />
       )}
 
       <ul className="space-y-2">
