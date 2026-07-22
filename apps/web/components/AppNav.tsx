@@ -83,6 +83,7 @@ export default function AppNav(): React.JSX.Element {
     { label: "Rediscover", href: "/rediscover", active: pathname.startsWith("/rediscover") },
     { label: "Household", href: "/household", active: pathname.startsWith("/household") },
     { label: "Profile", href: "/profile", active: pathname.startsWith("/profile") },
+    { label: "Settings", href: "/settings", active: pathname.startsWith("/settings") },
   ];
 
   const allNavItems = [...mainNavItems, ...moreNavItems];

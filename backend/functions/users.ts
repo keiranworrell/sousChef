@@ -3,7 +3,7 @@ import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
-import { getUserByCognitoId, updateUser } from "../db/queries/user-queries";
+import { getUserByCognitoId, updateUser, deleteUser } from "../db/queries/user-queries";
 import {
   followUser,
   unfollowUser,
@@ -55,6 +55,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "GET" && path.endsWith("/users/me")) {
       const counts = await getFollowCounts(user.id);
       return okResponse({ ...user, ...counts });
+    }
+
+    // DELETE /users/me
+    if (method === "DELETE" && path.endsWith("/users/me")) {
+      await deleteUser(user.id);
+      return okResponse(null, 204);
     }
 
     // PATCH /users/me
