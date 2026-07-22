@@ -201,6 +201,9 @@ export function createApiClient(baseUrl: string, token?: string) {
       update: (input: UpdateUserInput): Promise<ApiResponse<User>> =>
         patch<User>("/users/me", input),
 
+      deleteAccount: (): Promise<ApiResponse<null>> =>
+        del<null>("/users/me"),
+
       profile: (userId: string): Promise<ApiResponse<UserProfile>> =>
         get<UserProfile>(`/users/${userId}`),
 

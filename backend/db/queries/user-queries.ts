@@ -44,6 +44,14 @@ export type UpdateUserInput = {
 };
 
 /**
+ * Deletes a user row by internal ID. All related data is removed via CASCADE.
+ */
+export async function deleteUser(id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(users).where(eq(users.id, id));
+}
+
+/**
  * Updates a user's profile fields. Returns the updated record or null if not found.
  */
 export async function updateUser(
