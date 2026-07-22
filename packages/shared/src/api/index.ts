@@ -108,6 +108,7 @@ export function createApiClient(baseUrl: string, token?: string) {
       list: (params?: {
         limit?: number;
         offset?: number;
+        q?: string;
         tag?: string;
         difficulty?: string;
         sort?: "newest" | "oldest" | "title";
@@ -115,6 +116,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         const qs = new URLSearchParams();
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
         if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        if (params?.q) qs.set("q", params.q);
         if (params?.tag) qs.set("tag", params.tag);
         if (params?.difficulty) qs.set("difficulty", params.difficulty);
         if (params?.sort) qs.set("sort", params.sort);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import type { Recipe } from "@souschef/shared";
 import RecipeCard from "@/components/RecipeCard";
@@ -15,6 +15,11 @@ export default function RecipesPage(): React.JSX.Element {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Search state
+  const [searchInput, setSearchInput] = useState("");
+  const [q, setQ] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filter/sort state
   const [sort, setSort] = useState<SortOption>("newest");
@@ -34,6 +39,7 @@ export default function RecipesPage(): React.JSX.Element {
     sort: SortOption;
     tag: string;
     difficulty: DifficultyOption;
+    q: string;
   }): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -41,6 +47,7 @@ export default function RecipesPage(): React.JSX.Element {
       const api = await getApiClient();
       const res = await api.recipes.list({
         sort: params.sort,
+        q: params.q || undefined,
         tag: params.tag || undefined,
         difficulty: params.difficulty || undefined,
       });
@@ -73,10 +80,23 @@ export default function RecipesPage(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    void load({ sort, tag, difficulty });
-  }, [sort, tag, difficulty, load]);
+    void load({ sort, tag, difficulty, q });
+  }, [sort, tag, difficulty, q, load]);
 
-  const hasFilters = tag !== "" || difficulty !== "";
+  function handleSearchChange(value: string): void {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setQ(value.trim()), 300);
+  }
+
+  function clearAll(): void {
+    setSearchInput("");
+    setQ("");
+    setTag("");
+    setDifficulty("");
+  }
+
+  const hasFilters = q !== "" || tag !== "" || difficulty !== "";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -86,6 +106,27 @@ export default function RecipesPage(): React.JSX.Element {
         <Link href="/recipes/new" className="btn-primary">
           + New recipe
         </Link>
+      </div>
+
+      {/* Search bar */}
+      <div className="mb-3 relative">
+        <svg
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search by title, ingredient, cuisine…"
+          className="input w-full pl-9 pr-4"
+        />
       </div>
 
       {/* Filter / sort bar */}
@@ -126,10 +167,10 @@ export default function RecipesPage(): React.JSX.Element {
 
         {hasFilters && (
           <button
-            onClick={() => { setTag(""); setDifficulty(""); }}
+            onClick={clearAll}
             className="text-sm text-orange-500 hover:text-orange-600 font-medium"
           >
-            Clear filters
+            Clear all
           </button>
         )}
       </div>
@@ -166,7 +207,17 @@ export default function RecipesPage(): React.JSX.Element {
       )}
 
       {!loading && !error && recipes.length === 0 && hasFilters && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No recipes match your filters.</p>
+        <div className="py-10 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {q ? `No recipes found for "${q}"` : "No recipes match your filters."}
+          </p>
+          <button
+            onClick={clearAll}
+            className="mt-2 text-sm text-orange-500 hover:underline"
+          >
+            Clear all
+          </button>
+        </div>
       )}
 
       <div className="grid gap-4">
