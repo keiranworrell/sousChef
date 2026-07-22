@@ -74,7 +74,10 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [newRecipeId, setNewRecipeId] = useState<string | null>(null);
-  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
+  // showSuccessScreen: true once a recipe is created, shows the post-create action cards
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+  // showPickerModal: true when the user clicks "Add to a collection" from the success screen
+  const [showPickerModal, setShowPickerModal] = useState(false);
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = e.target.files?.[0];
@@ -376,7 +379,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
         if ("error" in res) throw new Error(res.error.message);
         if ("data" in res) {
           setNewRecipeId(res.data.id);
-          setShowCollectionPicker(true);
+          setShowSuccessScreen(true);
         }
       }
     } catch (err) {
@@ -393,24 +396,85 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     return predicted.filter((t) => !tags.includes(t));
   }, [ingredients, tags]);
 
-  if (showCollectionPicker && newRecipeId) {
+  function resetForm(): void {
+    setTitle("");
+    setDescription("");
+    setServings("4");
+    setPrepTime("");
+    setCookTime("");
+    setDifficulty("");
+    setCuisine("");
+    setIsPublic(false);
+    setTags([]);
+    setTagInput("");
+    setIngredients([{ name: "", quantity: "", unit: "", notes: "" }]);
+    setSteps([{ instruction: "", timerSeconds: "" }]);
+    setImageUrl("");
+    setImageError(null);
+    setError(null);
+    setImportUrl("");
+    setImportStatus("idle");
+    setImportError(null);
+    setNoteText("");
+    setNoteImportError(null);
+    setPhotoEntries([]);
+    setPhotoImportError(null);
+    setImported(false);
+    setNewRecipeId(null);
+    setShowSuccessScreen(false);
+    setShowPickerModal(false);
+  }
+
+  if (showSuccessScreen && newRecipeId) {
     return (
       <>
         <div className="mx-auto max-w-3xl px-4 py-10">
-          <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Recipe created!</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Add it to a collection, or skip to view it now.</p>
-          <button
-            type="button"
-            className="text-sm text-orange-500 hover:underline"
-            onClick={() => router.push(`/recipes/${newRecipeId}`)}
-          >
-            Skip → View recipe
-          </button>
+          {/* Success header */}
+          <div className="mb-8">
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Recipe saved!</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">What would you like to do next?</p>
+          </div>
+
+          {/* Action cards */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => setShowPickerModal(true)}
+              className="flex flex-col items-start gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-4 text-left hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-700 dark:hover:bg-orange-950 transition-colors"
+            >
+              <span className="text-2xl">📁</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Add to a collection</span>
+              <span className="text-xs text-gray-400">Organise this recipe into one of your collections</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="flex flex-col items-start gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-4 text-left hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-700 dark:hover:bg-orange-950 transition-colors"
+            >
+              <span className="text-2xl">➕</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Add another recipe</span>
+              <span className="text-xs text-gray-400">Import or write another recipe</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push(`/recipes/${newRecipeId}`)}
+              className="flex flex-col items-start gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-4 text-left hover:border-orange-300 hover:bg-orange-50 dark:hover:border-orange-700 dark:hover:bg-orange-950 transition-colors"
+            >
+              <span className="text-2xl">👀</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">View recipe</span>
+              <span className="text-xs text-gray-400">Go to the recipe you just created</span>
+            </button>
+          </div>
         </div>
-        <CollectionPickerModal
-          recipeId={newRecipeId}
-          onClose={() => router.push(`/recipes/${newRecipeId}`)}
-        />
+
+        {showPickerModal && (
+          <CollectionPickerModal
+            recipeId={newRecipeId}
+            onClose={() => setShowPickerModal(false)}
+          />
+        )}
       </>
     );
   }
