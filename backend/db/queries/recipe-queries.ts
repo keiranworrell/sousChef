@@ -248,14 +248,20 @@ export async function updateRecipe(
   return getRecipeById(id, userId);
 }
 
+export type DeleteRecipeResult = { imageUrl: string | null } | null;
+
+/**
+ * Deletes a recipe owned by userId. Returns the deleted recipe's imageUrl
+ * so the caller can clean up S3, or null if the recipe was not found.
+ */
 export async function deleteRecipe(
   id: string,
   userId: string,
-): Promise<boolean> {
+): Promise<DeleteRecipeResult> {
   const db = await getDb();
   const result = await db
     .delete(recipes)
     .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
-    .returning({ id: recipes.id });
-  return result.length > 0;
+    .returning({ imageUrl: recipes.imageUrl });
+  return result[0] ?? null;
 }

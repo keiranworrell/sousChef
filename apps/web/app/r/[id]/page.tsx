@@ -35,6 +35,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * Safely serialise an object for use inside a <script type="application/ld+json"> tag.
+ * JSON.stringify does not escape < > & by default, which allows script-injection if
+ * user-controlled strings contain </script>. We escape those three characters.
+ */
+function safeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 export default async function PublicRecipePage({ params }: Props): Promise<React.JSX.Element> {
   const { id } = await params;
   const recipe = await fetchRecipeMeta(id);
@@ -58,7 +70,7 @@ export default async function PublicRecipePage({ params }: Props): Promise<React
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       )}
       <PublicRecipePageClient id={id} />

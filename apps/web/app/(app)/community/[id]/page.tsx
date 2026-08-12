@@ -35,6 +35,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+function safeJsonLd(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 export default async function CommunityRecipePage({ params }: Props): Promise<React.JSX.Element> {
   const { id } = await params;
   const recipe = await fetchRecipeMeta(id);
@@ -61,7 +68,7 @@ export default async function CommunityRecipePage({ params }: Props): Promise<Re
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
       )}
       <CommunityRecipePageClient />

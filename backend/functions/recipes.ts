@@ -1,4 +1,5 @@
 import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lambda";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError, assertPremium } from "../middleware/errors";
@@ -11,6 +12,10 @@ import {
   updateRecipe,
   deleteRecipe,
 } from "../db/queries/recipe-queries";
+
+const s3Client = new S3Client({});
+const IMAGES_BUCKET_NAME = process.env["IMAGES_BUCKET_NAME"] ?? "";
+const IMAGES_CLOUDFRONT_DOMAIN = process.env["IMAGES_CLOUDFRONT_DOMAIN"] ?? "";
 import { importRecipeFromUrl, fetchPageHtml, parseRecipeFromHtml } from "../agents/recipe-import";
 import { importRecipeWithAi, importRecipeFromText } from "../agents/recipe-import-ai";
 import { importRecipeFromPhotos } from "../agents/recipe-import-photo";
@@ -248,6 +253,23 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "DELETE" && recipeId) {
       const deleted = await deleteRecipe(recipeId, user.id);
       if (!deleted) throw new NotFoundError("Recipe not found");
+
+      // Clean up S3 image if one exists
+      if (deleted.imageUrl && IMAGES_CLOUDFRONT_DOMAIN) {
+        const prefix = `https://${IMAGES_CLOUDFRONT_DOMAIN}/`;
+        if (deleted.imageUrl.startsWith(prefix)) {
+          const s3Key = deleted.imageUrl.slice(prefix.length);
+          try {
+            await s3Client.send(
+              new DeleteObjectCommand({ Bucket: IMAGES_BUCKET_NAME, Key: s3Key }),
+            );
+          } catch {
+            // Non-fatal — log but don't fail the request
+            console.error("Failed to delete S3 image", s3Key);
+          }
+        }
+      }
+
       return okResponse(null, 204);
     }
 
