@@ -7,7 +7,7 @@ import { getUserByCognitoId } from "../db/queries/user-queries";
 const CommunityListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
   offset: z.coerce.number().int().nonnegative().optional().default(0),
-  sort: z.enum(["popular", "newest"]).optional(),
+  sort: z.enum(["popular"]).optional(),
   q: z.string().max(200).optional(),
   cuisine: z.string().optional(),
   tag: z.string().optional(),
