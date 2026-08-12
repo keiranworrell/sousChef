@@ -1,7 +1,19 @@
 import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lambda";
+import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { getUserByCognitoId } from "../db/queries/user-queries";
+
+const CommunityListQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(50).optional().default(20),
+  offset: z.coerce.number().int().nonnegative().optional().default(0),
+  sort: z.enum(["popular", "newest"]).optional(),
+  q: z.string().max(200).optional(),
+  cuisine: z.string().optional(),
+  tag: z.string().optional(),
+  creator: z.string().optional(),
+  creatorId: z.string().uuid().optional(),
+});
 import {
   listPublicRecipes,
   getPublicRecipe,
@@ -62,20 +74,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // GET /community/recipes
     if (method === "GET" && path.endsWith("/community/recipes")) {
-      const qs = event.queryStringParameters ?? {};
-      const limit = Math.min(parseInt(qs["limit"] ?? "20", 10), 50);
-      const offset = parseInt(qs["offset"] ?? "0", 10);
-      const sort = qs["sort"] === "popular" ? "popular" : null;
+      const query = CommunityListQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await listPublicRecipes({
         userId: user.id,
-        q: qs["q"] ?? null,
-        cuisine: qs["cuisine"] ?? null,
-        tag: qs["tag"] ?? null,
-        creator: qs["creator"] ?? null,
-        creatorId: qs["creatorId"] ?? null,
-        sort,
-        limit,
-        offset,
+        q: query.q ?? null,
+        cuisine: query.cuisine ?? null,
+        tag: query.tag ?? null,
+        creator: query.creator ?? null,
+        creatorId: query.creatorId ?? null,
+        sort: query.sort ?? null,
+        limit: query.limit,
+        offset: query.offset,
       });
       return okResponse(result);
     }

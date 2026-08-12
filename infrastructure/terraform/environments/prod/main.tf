@@ -53,7 +53,7 @@ locals {
     ]
   })
 
-  # Recipes Lambda also needs access to the Anthropic API key for AI import
+  # Recipes Lambda needs Secrets Manager + S3 DeleteObject for image cleanup on recipe deletion
   recipes_combined_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -64,6 +64,28 @@ locals {
           data.aws_secretsmanager_secret.database_url.arn,
           data.aws_secretsmanager_secret.anthropic_api_key.arn,
         ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:DeleteObject"]
+        Resource = "arn:aws:s3:::souschef-${var.environment}-recipe-images/*"
+      }
+    ]
+  })
+
+  # Users Lambda needs Secrets Manager + Cognito AdminDeleteUser (for account deletion)
+  users_combined_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = data.aws_secretsmanager_secret.database_url.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "cognito-idp:AdminDeleteUser"
+        Resource = module.cognito.user_pool_arn
       }
     ]
   })
@@ -209,11 +231,13 @@ module "recipes" {
   policy_json     = local.recipes_combined_policy
 
   environment_variables = {
-    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
-    ANTHROPIC_SECRET_ARN = data.aws_secretsmanager_secret.anthropic_api_key.arn
-    NODE_ENV             = var.environment
-    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
-    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+    DATABASE_SECRET_ARN      = data.aws_secretsmanager_secret.database_url.arn
+    ANTHROPIC_SECRET_ARN     = data.aws_secretsmanager_secret.anthropic_api_key.arn
+    NODE_ENV                 = var.environment
+    COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS       = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+    IMAGES_BUCKET_NAME       = aws_s3_bucket.recipe_images.bucket
+    IMAGES_CLOUDFRONT_DOMAIN = aws_cloudfront_distribution.recipe_images.domain_name
   }
 }
 
@@ -956,7 +980,7 @@ module "users" {
   zip_path        = data.archive_file.users.output_path
   timeout_seconds = 30
   memory_mb       = 256
-  policy_json     = local.db_secret_policy
+  policy_json     = local.users_combined_policy
 
   environment_variables = {
     DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn

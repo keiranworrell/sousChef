@@ -1,8 +1,12 @@
 import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lambda";
+import { CognitoIdentityProviderClient, AdminDeleteUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
+
+const cognitoClient = new CognitoIdentityProviderClient({});
+const COGNITO_USER_POOL_ID = process.env["COGNITO_USER_POOL_ID"] ?? "";
 import { getUserByCognitoId, updateUser, deleteUser } from "../db/queries/user-queries";
 import {
   followUser,
@@ -59,7 +63,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // DELETE /users/me
     if (method === "DELETE" && path.endsWith("/users/me")) {
+      // Delete Postgres data first (cascades to all child tables)
       await deleteUser(user.id);
+      // Delete the Cognito user pool entry to complete GDPR right-to-erasure
+      await cognitoClient.send(
+        new AdminDeleteUserCommand({
+          UserPoolId: COGNITO_USER_POOL_ID,
+          Username: auth.cognitoId,
+        }),
+      );
       return okResponse(null, 204);
     }
 
