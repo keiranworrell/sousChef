@@ -36,8 +36,8 @@ export default function TermsPage(): React.JSX.Element {
           <p>
             sousChef is a recipe management and cooking companion application. We provide tools
             to save and organise recipes, plan meals, manage your pantry, track fermentation
-            projects, and connect with a community of home cooks. The service is provided "as
-            is" and we reserve the right to modify, suspend, or discontinue any part of it at
+            projects, and connect with a community of home cooks. The service is provided &ldquo;as
+            is&rdquo; and we reserve the right to modify, suspend, or discontinue any part of it at
             any time.
           </p>
         </section>

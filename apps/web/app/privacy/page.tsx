@@ -25,7 +25,7 @@ export default function PrivacyPage(): React.JSX.Element {
           <h2 className="text-base font-semibold text-gray-900 mb-2">1. Who we are</h2>
           <p>
             sousChef is a recipe management and cooking companion application. References to
-            "we", "us", or "our" in this policy refer to the operator of sousChef. If you
+            &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo; in this policy refer to the operator of sousChef. If you
             have any questions about this policy, please contact us at{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-orange-500 hover:underline">
               {CONTACT_EMAIL}
@@ -147,7 +147,7 @@ export default function PrivacyPage(): React.JSX.Element {
             </li>
             <li>
               <strong>Anthropic</strong> — AI-powered recipe import features (recipe text is
-              sent to Anthropic's API; no personal data beyond the recipe content is
+              sent to Anthropic&apos;s API; no personal data beyond the recipe content is
               transmitted)
             </li>
           </ul>
@@ -170,7 +170,7 @@ export default function PrivacyPage(): React.JSX.Element {
               {CONTACT_EMAIL}
             </a>
             . If you are unhappy with how we handle your data, you have the right to lodge a
-            complaint with the Information Commissioner's Office (ICO) at{" "}
+            complaint with the Information Commissioner&apos;s Office (ICO) at{" "}
             <a
               href="https://ico.org.uk"
               target="_blank"
