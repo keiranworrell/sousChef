@@ -49,6 +49,7 @@ const ImportRecipeTextSchema = z.object({
 const CreateRecipeSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().nullable().optional(),
+  imageUrl: z.string().url().nullable().optional(),
   servings: z.number().int().positive().optional(),
   prepTimeMinutes: z.number().int().nonnegative().nullable().optional(),
   cookTimeMinutes: z.number().int().nonnegative().nullable().optional(),
