@@ -47,7 +47,7 @@ function RediscoverCard({
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
+          <h2 className="min-w-0 flex-1 line-clamp-2 text-base font-semibold text-gray-900 dark:text-gray-100 leading-snug">
             {recipe.title}
           </h2>
           {recipe.difficulty && (

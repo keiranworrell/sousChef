@@ -162,7 +162,11 @@ export default function CollectionsPage(): React.JSX.Element {
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                  {/* flex-1 is load-bearing: without it this column is
+                      content-sized, and because min-w-0 lets it shrink to zero
+                      the shrink-0 badge beside it takes the width and the name
+                      truncates to nothing. */}
+                  <div className="min-w-0 flex-1">
                     <h2 className="truncate font-semibold text-gray-900 dark:text-gray-100">{col.name}</h2>
                     {col.description && (
                       <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">{col.description}</p>

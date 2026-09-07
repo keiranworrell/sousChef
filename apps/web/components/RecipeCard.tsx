@@ -31,7 +31,9 @@ export default function RecipeCard({ recipe }: Props): React.JSX.Element {
       )}
       <div className="p-5">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900 leading-snug dark:text-gray-100">
+          {/* min-w-0 lets a long unbroken title wrap rather than pushing past
+              the badges; flex-1 stops it being squeezed by them. */}
+          <h2 className="min-w-0 flex-1 line-clamp-2 text-base font-semibold text-gray-900 leading-snug dark:text-gray-100">
             {recipe.title}
           </h2>
           <div className="flex shrink-0 gap-1.5">

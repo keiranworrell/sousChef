@@ -174,9 +174,9 @@ export default function CollectionDetailPage(): React.JSX.Element {
           </div>
         </form>
       ) : (
-        <div className="mt-4 mb-6 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
+        <div className="mt-4 mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">{collection.name}</h1>
               {collection.isPublic && (
                 <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">Public</span>
