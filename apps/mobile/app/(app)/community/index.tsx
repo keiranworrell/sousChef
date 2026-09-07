@@ -32,17 +32,33 @@ export default function CommunityScreen(): React.JSX.Element {
   const [cuisine, setCuisine] = useState("");
   const [tag, setTag] = useState("");
 
-  const [offset, setOffset] = useState(0);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const limit = 20;
 
   const [forkingId, setForkingId] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // FlatList fires onEndReached more than once per threshold crossing, so the
+  // guard has to be a ref — state wouldn't have settled between calls.
+  const inFlightRef = useRef(false);
 
   const load = useCallback(
-    async (params: { q: string; cuisine: string; tag: string; offset: number }): Promise<void> => {
-      setLoading(true);
+    async (params: {
+      q: string;
+      cuisine: string;
+      tag: string;
+      cursor: string | null;
+    }): Promise<void> => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+
+      const isFirstPage = params.cursor === null;
+      if (isFirstPage) setLoading(true);
+      else setLoadingMore(true);
       setError(null);
+
       try {
         const api = await getApiClient();
         const res = await api.community.list({
@@ -50,34 +66,45 @@ export default function CommunityScreen(): React.JSX.Element {
           cuisine: params.cuisine || undefined,
           tag: params.tag || undefined,
           limit,
-          offset: params.offset,
+          cursor: params.cursor ?? undefined,
         });
         if ("error" in res) throw new Error(res.error.message);
-        setRecipes(res.data.recipes);
-        setTotal(res.data.total);
+        setRecipes((prev) =>
+          isFirstPage ? res.data.recipes : [...prev, ...res.data.recipes],
+        );
+        if (res.data.total !== null) setTotal(res.data.total);
+        setCursor(res.data.nextCursor);
+        setHasMore(res.data.nextCursor !== null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
         setLoading(false);
+        setLoadingMore(false);
+        inFlightRef.current = false;
       }
     },
     [],
   );
 
+  // Filter changes reset to the first page. The second effect that previously
+  // watched `offset` is gone — paging is now driven by onEndReached instead.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      setOffset(0);
-      void load({ q, cuisine, tag, offset: 0 });
+      setCursor(null);
+      setHasMore(true);
+      inFlightRef.current = false;
+      void load({ q, cuisine, tag, cursor: null });
     }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [q, cuisine, tag, load]);
 
-  useEffect(() => {
-    void load({ q, cuisine, tag, offset });
-  }, [offset]); // intentionally omits q/cuisine/tag — those trigger via the debounced effect above
+  function handleEndReached(): void {
+    if (!hasMore || inFlightRef.current || loading) return;
+    void load({ q, cuisine, tag, cursor });
+  }
 
   async function handleFork(recipe: RecipeWithDetails): Promise<void> {
     setForkingId(recipe.id);
@@ -106,8 +133,6 @@ export default function CommunityScreen(): React.JSX.Element {
     ]);
   }
 
-  const totalPages = Math.ceil(total / limit);
-  const currentPage = Math.floor(offset / limit) + 1;
 
   return (
     <View style={styles.container}>
@@ -212,26 +237,18 @@ export default function CommunityScreen(): React.JSX.Element {
               </TouchableOpacity>
             );
           }}
+          onEndReached={handleEndReached}
+          // Fires when the user is within half a screen of the end, so the next
+          // page is usually in place before they reach the bottom.
+          onEndReachedThreshold={0.5}
           ListFooterComponent={
-            totalPages > 1 ? (
-              <View style={styles.pagination}>
-                <TouchableOpacity
-                  onPress={() => setOffset(Math.max(0, offset - limit))}
-                  disabled={offset === 0}
-                  style={[styles.pageButton, offset === 0 && styles.disabled]}
-                >
-                  <Text style={styles.pageButtonText}>← Prev</Text>
-                </TouchableOpacity>
-                <Text style={styles.pageInfo}>
-                  {currentPage} / {totalPages}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setOffset(offset + limit)}
-                  disabled={currentPage >= totalPages}
-                  style={[styles.pageButton, currentPage >= totalPages && styles.disabled]}
-                >
-                  <Text style={styles.pageButtonText}>Next →</Text>
-                </TouchableOpacity>
+            loadingMore ? (
+              <View style={styles.footerStatus}>
+                <ActivityIndicator color="#f97316" size="small" />
+              </View>
+            ) : !hasMore && recipes.length > 0 ? (
+              <View style={styles.footerStatus}>
+                <Text style={styles.footerStatusText}>That&apos;s all of them</Text>
               </View>
             ) : null
           }
@@ -314,20 +331,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   emptyText: { fontSize: 15, color: "#9ca3af", textAlign: "center" },
   errorText: { color: "#dc2626", fontSize: 13 },
-  pagination: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  pageButton: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  pageButtonText: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  pageInfo: { fontSize: 13, color: "#9ca3af" },
+  footerStatus: { paddingVertical: 20, alignItems: "center" },
+  footerStatusText: { fontSize: 13, color: "#9ca3af" },
 });
