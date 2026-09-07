@@ -65,7 +65,7 @@ const UpdateRecipeSchema = CreateRecipeSchema.partial();
 
 const ListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
-  offset: z.coerce.number().int().nonnegative().optional().default(0),
+  cursor: z.string().max(500).optional(),
   q: z.string().max(200).optional(),
   tag: z.string().optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),

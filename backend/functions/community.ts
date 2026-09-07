@@ -6,7 +6,7 @@ import { getUserByCognitoId } from "../db/queries/user-queries";
 
 const CommunityListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
-  offset: z.coerce.number().int().nonnegative().optional().default(0),
+  cursor: z.string().max(500).optional(),
   sort: z.enum(["popular"]).optional(),
   q: z.string().max(200).optional(),
   cuisine: z.string().optional(),
@@ -84,7 +84,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
         creatorId: query.creatorId ?? null,
         sort: query.sort ?? null,
         limit: query.limit,
-        offset: query.offset,
+        cursor: query.cursor ?? null,
       });
       return okResponse(result);
     }

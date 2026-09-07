@@ -169,8 +169,11 @@ export default function UserProfilePage(): React.JSX.Element {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [ownUserId, setOwnUserId] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
-  const [recipesTotal, setRecipesTotal] = useState(0);
-  const [recipesOffset, setRecipesOffset] = useState(0);
+  // null cursor + hasMore=false means the end has been reached. This page keeps
+  // its explicit "Load more" button rather than auto-loading — a profile is a
+  // browsing destination, not a feed to scroll indefinitely.
+  const [recipesCursor, setRecipesCursor] = useState<string | null>(null);
+  const [hasMoreRecipes, setHasMoreRecipes] = useState(false);
   const [loadingRecipes, setLoadingRecipes] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -201,26 +204,26 @@ export default function UserProfilePage(): React.JSX.Element {
     void load();
   }, [id]);
 
-  const loadRecipes = useCallback(async (offset: number): Promise<void> => {
+  const loadRecipes = useCallback(async (cursor: string | null): Promise<void> => {
     setLoadingRecipes(true);
     try {
       const api = await getApiClient();
-      const res = await api.community.list({ creatorId: id, limit: PAGE_SIZE, offset });
+      const res = await api.community.list({
+        creatorId: id,
+        limit: PAGE_SIZE,
+        cursor: cursor ?? undefined,
+      });
       if ("error" in res) return;
-      if (offset === 0) {
-        setRecipes(res.data.recipes);
-      } else {
-        setRecipes((prev) => [...prev, ...res.data.recipes]);
-      }
-      setRecipesTotal(res.data.total);
-      setRecipesOffset(offset);
+      setRecipes((prev) => (cursor === null ? res.data.recipes : [...prev, ...res.data.recipes]));
+      setRecipesCursor(res.data.nextCursor);
+      setHasMoreRecipes(res.data.nextCursor !== null);
     } finally {
       setLoadingRecipes(false);
     }
   }, [id]);
 
   useEffect(() => {
-    void loadRecipes(0);
+    void loadRecipes(null);
   }, [loadRecipes]);
 
   async function handleFollow(): Promise<void> {
@@ -385,10 +388,10 @@ export default function UserProfilePage(): React.JSX.Element {
         })}
       </div>
 
-      {recipes.length < recipesTotal && (
+      {hasMoreRecipes && (
         <div className="mt-6 text-center">
           <button
-            onClick={() => { void loadRecipes(recipesOffset + PAGE_SIZE); }}
+            onClick={() => { void loadRecipes(recipesCursor); }}
             disabled={loadingRecipes}
             className="rounded-lg border border-gray-200 dark:border-gray-700 px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-gray-300 hover:text-gray-900 transition disabled:opacity-50"
           >

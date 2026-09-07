@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { CommunityRecipe, PublicUserListItem, PublicCollectionSummary } from "@souschef/shared";
+import InfiniteListFooter from "@/components/InfiniteListFooter";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { getApiClient } from "@/lib/api";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -189,72 +191,66 @@ type SortMode = "recent" | "popular";
 function RecipesTab(): React.JSX.Element {
   const router = useRouter();
 
-  const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [q, setQ] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [tag, setTag] = useState("");
   const [creator, setCreator] = useState("");
   const [sort, setSort] = useState<SortMode>("recent");
-  const [offset, setOffset] = useState(0);
-  const limit = 20;
 
   const [forkingId, setForkingId] = useState<string | null>(null);
   const [forkError, setForkError] = useState<string | null>(null);
   const [likingId, setLikingId] = useState<string | null>(null);
 
+  // Filters are debounced into a separate piece of state so that typing doesn't
+  // reset the list on every keystroke — the reset key is built from these.
+  const [debounced, setDebounced] = useState({ q: "", cuisine: "", tag: "", creator: "" });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const load = useCallback(
-    async (params: {
-      q: string;
-      cuisine: string;
-      tag: string;
-      creator: string;
-      offset: number;
-      sort: SortMode;
-    }): Promise<void> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const api = await getApiClient();
-        const res = await api.community.list({
-          q: params.q || undefined,
-          cuisine: params.cuisine || undefined,
-          tag: params.tag || undefined,
-          creator: params.creator || undefined,
-          sort: params.sort === "popular" ? "popular" : undefined,
-          limit,
-          offset: params.offset,
-        });
-        if ("error" in res) throw new Error(res.error.message);
-        setRecipes(res.data.recipes);
-        setTotal(res.data.total);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load community recipes");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      setOffset(0);
-      void load({ q, cuisine, tag, creator, offset: 0, sort });
+      setDebounced({ q, cuisine, tag, creator });
     }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [q, cuisine, tag, creator, sort, load]);
+  }, [q, cuisine, tag, creator]);
 
-  useEffect(() => {
-    void load({ q, cuisine, tag, creator, offset, sort });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset]);
+  const fetchPage = useCallback(
+    async (cursor: string | null) => {
+      const api = await getApiClient();
+      const res = await api.community.list({
+        q: debounced.q || undefined,
+        cuisine: debounced.cuisine || undefined,
+        tag: debounced.tag || undefined,
+        creator: debounced.creator || undefined,
+        sort: sort === "popular" ? "popular" : undefined,
+        limit: 20,
+        cursor: cursor ?? undefined,
+      });
+      if ("error" in res) throw new Error(res.error.message);
+      return {
+        items: res.data.recipes,
+        nextCursor: res.data.nextCursor,
+        total: res.data.total,
+      };
+    },
+    [debounced, sort],
+  );
+
+  const {
+    items: recipes,
+    isLoadingInitial: loading,
+    isLoadingMore,
+    error,
+    hasMore,
+    retry,
+    sentinelRef,
+    setItems: setRecipes,
+  } = useInfiniteList<CommunityRecipe>({
+    fetchPage,
+    resetKey: `${debounced.q}|${debounced.cuisine}|${debounced.tag}|${debounced.creator}|${sort}`,
+    getItemKey: (r) => r.id,
+    cacheKey: "community",
+  });
 
   async function handleFork(recipeId: string): Promise<void> {
     setForkingId(recipeId);
@@ -295,9 +291,6 @@ function RecipesTab(): React.JSX.Element {
       setLikingId(null);
     }
   }
-
-  const totalPages = Math.ceil(total / limit);
-  const currentPage = Math.floor(offset / limit) + 1;
 
   return (
     <div>
@@ -409,13 +402,15 @@ function RecipesTab(): React.JSX.Element {
         })}
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between text-sm text-gray-500">
-          <button onClick={() => setOffset(Math.max(0, offset - limit))} disabled={offset === 0} className="btn-secondary disabled:opacity-40">← Previous</button>
-          <span>Page {currentPage} of {totalPages}</span>
-          <button onClick={() => setOffset(offset + limit)} disabled={currentPage >= totalPages} className="btn-secondary disabled:opacity-40">Next →</button>
-        </div>
-      )}
+      <InfiniteListFooter
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        error={error}
+        onRetry={retry}
+        sentinelRef={sentinelRef}
+        itemCount={recipes.length}
+        variant="row"
+      />
     </div>
   );
 }

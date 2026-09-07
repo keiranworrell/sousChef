@@ -107,7 +107,7 @@ export function createApiClient(baseUrl: string, token?: string) {
     recipes: {
       list: (params?: {
         limit?: number;
-        offset?: number;
+        cursor?: string;
         q?: string;
         tag?: string;
         difficulty?: string;
@@ -115,7 +115,7 @@ export function createApiClient(baseUrl: string, token?: string) {
       }): Promise<ApiResponse<ListRecipesResponse>> => {
         const qs = new URLSearchParams();
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
-        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        if (params?.cursor) qs.set("cursor", params.cursor);
         if (params?.q) qs.set("q", params.q);
         if (params?.tag) qs.set("tag", params.tag);
         if (params?.difficulty) qs.set("difficulty", params.difficulty);
@@ -267,7 +267,7 @@ export function createApiClient(baseUrl: string, token?: string) {
         if (params?.creatorId) qs.set("creatorId", params.creatorId);
         if (params?.sort) qs.set("sort", params.sort);
         if (params?.limit !== undefined) qs.set("limit", String(params.limit));
-        if (params?.offset !== undefined) qs.set("offset", String(params.offset));
+        if (params?.cursor) qs.set("cursor", params.cursor);
         const query = qs.toString() ? `?${qs.toString()}` : "";
         return get<CommunityFeedResponse>(`/community/recipes${query}`);
       },
