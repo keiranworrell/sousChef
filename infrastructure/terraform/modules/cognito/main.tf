@@ -43,10 +43,10 @@ resource "aws_cognito_user_pool" "this" {
 
   # User profile attributes
   schema {
-    name                     = "email"
-    attribute_data_type      = "String"
-    required                 = true
-    mutable                  = true
+    name                = "email"
+    attribute_data_type = "String"
+    required            = true
+    mutable             = true
 
     string_attribute_constraints {
       min_length = 5
@@ -55,10 +55,10 @@ resource "aws_cognito_user_pool" "this" {
   }
 
   schema {
-    name                     = "name"
-    attribute_data_type      = "String"
-    required                 = true
-    mutable                  = true
+    name                = "name"
+    attribute_data_type = "String"
+    required            = true
+    mutable             = true
 
     string_attribute_constraints {
       min_length = 1
@@ -105,9 +105,9 @@ resource "aws_cognito_user_pool_client" "web" {
   prevent_user_existence_errors = "ENABLED"
 
   # Token validity
-  access_token_validity  = 1   # hours
-  id_token_validity      = 1   # hours
-  refresh_token_validity = 30  # days
+  access_token_validity  = 1  # hours
+  id_token_validity      = 1  # hours
+  refresh_token_validity = 30 # days
 
   token_validity_units {
     access_token  = "hours"
