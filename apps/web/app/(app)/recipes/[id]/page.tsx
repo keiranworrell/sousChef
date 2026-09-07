@@ -173,15 +173,23 @@ export default function RecipeDetailPage(): React.JSX.Element {
           className="w-full h-64 object-cover rounded-xl mb-6"
         />
       )}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
+      {/* Stacks on mobile so the actions sit below the title rather than
+          competing with it for width. On sm+ the text column takes flex-1 so it
+          claims the remaining space — without it the column is content-sized,
+          and since min-w-0 lets it shrink to zero it collapsed to ~130px while
+          the action column held its full width. */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
           <Link href="/recipes" className="text-sm text-orange-500 hover:underline">
             ← Recipes
           </Link>
-          <div className="mt-2 flex items-center gap-3">
+          {/* items-baseline, not items-center: the badge should sit on the
+              title's first line. Centring pushes it to the vertical middle of a
+              wrapped heading, which reads as a floating, unattached label. */}
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">{recipe.title}</h1>
             {recipe.isPublic && (
-              <span className="rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+              <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                 Public
               </span>
             )}
@@ -200,7 +208,10 @@ export default function RecipeDetailPage(): React.JSX.Element {
             </a>
           )}
         </div>
-        <div className="shrink-0">
+        {/* Deliberately not shrink-0. The action row wraps internally, so
+            letting this column shrink lets that wrapping engage; pinning it to
+            max-content is what starved the title. */}
+        <div className="sm:min-w-0">
           <ActionMenu
             primary={recipe.steps.length > 0 ? {
               label: "Start cooking",

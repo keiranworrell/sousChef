@@ -301,9 +301,9 @@ export default function UserProfilePage(): React.JSX.Element {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{profile.displayName}</h1>
-              {profile.bio && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{profile.bio}</p>}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 break-words">{profile.displayName}</h1>
+              {profile.bio && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 break-words">{profile.bio}</p>}
             </div>
             {isOwnProfile ? (
               <Link

@@ -183,17 +183,19 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
       {showCollectionPicker && (
         <CollectionPickerModal recipeId={id} onClose={() => setShowCollectionPicker(false)} />
       )}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
           <Link href="/community" className="text-sm text-orange-500 hover:underline">
             ← Community
           </Link>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{recipe.title}</h1>
+          {/* break-words so an unbroken long title wraps instead of forcing the
+              column wider than its container */}
+          <h1 className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100 break-words">{recipe.title}</h1>
           {recipe.description && (
-            <p className="mt-2 text-gray-500 dark:text-gray-400">{recipe.description}</p>
+            <p className="mt-2 text-gray-500 dark:text-gray-400 break-words">{recipe.description}</p>
           )}
         </div>
-        <div className="shrink-0 flex flex-col items-end gap-2">
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           <div className="flex items-center gap-2">
             {/* Like button */}
             <button

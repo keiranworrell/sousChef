@@ -91,7 +91,9 @@ export default function ActionMenu({ primary, actions }: Props): React.JSX.Eleme
   return (
     <>
       {/* ── Wide screens: all buttons inline ─────────────────────────── */}
-      <div className="hidden sm:flex flex-wrap gap-2">
+      {/* justify-end so that when the row wraps, the wrapped buttons stay
+          aligned with the right edge rather than drifting left. */}
+      <div className="hidden sm:flex flex-wrap justify-end gap-2">
         {primary && (
           <ActionButton item={primary} className={primary.className ?? "btn-primary"} />
         )}

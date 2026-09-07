@@ -337,8 +337,10 @@ function RecipesTab(): React.JSX.Element {
               )}
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`/community/${recipe.id}`} className="text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-orange-600 leading-snug">
+                  <div className="min-w-0 flex-1">
+                    {/* block is required for line-clamp to apply — an inline
+                        anchor ignores it and the title overflows the card. */}
+                    <Link href={`/community/${recipe.id}`} className="block line-clamp-2 text-base font-semibold text-gray-900 dark:text-gray-100 hover:text-orange-600 leading-snug">
                       {recipe.title}
                     </Link>
                     <Link href={`/users/${recipe.creatorId}`} className="mt-0.5 block text-xs text-gray-400 hover:text-orange-500 transition">
