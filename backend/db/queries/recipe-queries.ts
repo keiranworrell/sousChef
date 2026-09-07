@@ -1,6 +1,7 @@
-import { and, asc, eq, desc, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, desc, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
+import { decodeCursor, encodeCursor } from "./cursor";
 
 export type RecipeRecord = typeof recipes.$inferSelect;
 export type RecipeIngredientRecord = typeof recipeIngredients.$inferSelect;
@@ -48,14 +49,20 @@ export type UpdateRecipeInput = Partial<Omit<CreateRecipeInput, "userId">>;
 
 export type ListRecipesResult = {
   recipes: (RecipeRecord & { tags: string[] })[];
-  total: number;
+  /** Opaque cursor for the next page; null when the last page has been reached. */
+  nextCursor: string | null;
+  /**
+   * Total matching rows. Only computed on the first page (no cursor supplied) —
+   * counting on every page is wasted work when the caller is appending to a list
+   * it already has.
+   */
+  total: number | null;
   limit: number;
-  offset: number;
 };
 
 export type ListRecipesParams = {
   limit?: number;
-  offset?: number;
+  cursor?: string | null;
   q?: string;
   tag?: string;
   difficulty?: string;
@@ -66,8 +73,9 @@ export async function listRecipes(
   userId: string,
   params: ListRecipesParams = {},
 ): Promise<ListRecipesResult> {
-  const { limit = 20, offset = 0, q, tag, difficulty, sort = "newest" } = params;
+  const { limit = 20, cursor: rawCursor, q, tag, difficulty, sort = "newest" } = params;
   const db = await getDb();
+  const cursor = decodeCursor(rawCursor);
 
   // If filtering by tag, first find matching recipe IDs
   let tagFilteredIds: string[] | null = null;
@@ -79,7 +87,7 @@ export async function listRecipes(
       .where(and(eq(recipes.userId, userId), eq(recipeTags.tag, tag.toLowerCase().trim())));
     tagFilteredIds = tagRows.map((r) => r.recipeId);
     if (tagFilteredIds.length === 0) {
-      return { recipes: [], total: 0, limit, offset };
+      return { recipes: [], nextCursor: null, total: 0, limit };
     }
   }
 
@@ -97,6 +105,27 @@ export async function listRecipes(
       )
     : undefined;
 
+  // Keyset predicate. Postgres row-value comparison `(a, b) < (x, y)` compares
+  // lexicographically and can use a composite index directly, so this stays fast
+  // at any depth — unlike OFFSET, which scans and discards everything before it.
+  //
+  // The comparison direction mirrors the sort direction, and the id tiebreaker
+  // must use the same direction as the leading column for the row-value
+  // comparison to be correct.
+  let keysetCondition: SQL | undefined;
+  if (cursor) {
+    if (cursor.k === "title" && sort === "title") {
+      keysetCondition = sql`(${recipes.title}, ${recipes.id}) > (${cursor.v}, ${cursor.id}::uuid)`;
+    } else if (cursor.k === "updatedAt" && sort === "oldest") {
+      keysetCondition = sql`(${recipes.updatedAt}, ${recipes.id}) > (${new Date(cursor.v)}, ${cursor.id}::uuid)`;
+    } else if (cursor.k === "updatedAt" && sort === "newest") {
+      keysetCondition = sql`(${recipes.updatedAt}, ${recipes.id}) < (${new Date(cursor.v)}, ${cursor.id}::uuid)`;
+    }
+    // A cursor whose key doesn't match the current sort is stale — the user
+    // changed sort mid-scroll. Ignoring it restarts from the first page, which
+    // is the correct result for a re-sorted list.
+  }
+
   const baseWhere = and(
     eq(recipes.userId, userId),
     searchCondition,
@@ -104,20 +133,29 @@ export async function listRecipes(
     tagFilteredIds ? inArray(recipes.id, tagFilteredIds) : undefined,
   );
 
-  const orderBy =
-    sort === "oldest" ? asc(recipes.updatedAt)
-    : sort === "title" ? asc(recipes.title)
-    : desc(recipes.updatedAt);
+  const pageWhere = keysetCondition ? and(baseWhere, keysetCondition) : baseWhere;
 
-  const [rows, [countRow], allTags] = await Promise.all([
-    db.select().from(recipes).where(baseWhere).orderBy(orderBy).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(recipes).where(baseWhere),
+  const orderBy =
+    sort === "oldest" ? [asc(recipes.updatedAt), asc(recipes.id)]
+    : sort === "title" ? [asc(recipes.title), asc(recipes.id)]
+    : [desc(recipes.updatedAt), desc(recipes.id)];
+
+  // Fetch one extra row to determine whether a further page exists, rather than
+  // issuing a second count query per page.
+  const [rows, allTags, countRows] = await Promise.all([
+    db.select().from(recipes).where(pageWhere).orderBy(...orderBy).limit(limit + 1),
     db
       .select()
       .from(recipeTags)
       .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
       .where(eq(recipes.userId, userId)),
+    cursor
+      ? Promise.resolve([])
+      : db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(recipes).where(baseWhere),
   ]);
+
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
 
   const tagsByRecipeId = new Map<string, RecipeTagRecord[]>();
   for (const row of allTags) {
@@ -131,7 +169,23 @@ export async function listRecipes(
     tags: (tagsByRecipeId.get(r.id) ?? []).map((t) => t.tag),
   }));
 
-  return { recipes: recipesWithTags, total: countRow?.count ?? 0, limit, offset };
+  // Build the cursor from the last row actually returned, keyed to match the sort
+  const last = rows[rows.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor(
+          sort === "title"
+            ? { k: "title", v: last.title, id: last.id }
+            : { k: "updatedAt", v: last.updatedAt.toISOString(), id: last.id },
+        )
+      : null;
+
+  return {
+    recipes: recipesWithTags,
+    nextCursor,
+    total: cursor ? null : (countRows[0]?.count ?? 0),
+    limit,
+  };
 }
 
 export async function getRecipeById(

@@ -6,16 +6,14 @@ import type { Recipe } from "@souschef/shared";
 import RecipeCard from "@/components/RecipeCard";
 import EmptyState from "@/components/EmptyState";
 import WelcomeModal, { shouldShowWelcome } from "@/components/WelcomeModal";
+import InfiniteListFooter, { ListSkeleton } from "@/components/InfiniteListFooter";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { getApiClient } from "@/lib/api";
 
 type SortOption = "newest" | "oldest" | "title";
 type DifficultyOption = "" | "easy" | "medium" | "hard";
 
 export default function RecipesPage(): React.JSX.Element {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Search state
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
@@ -35,37 +33,53 @@ export default function RecipesPage(): React.JSX.Element {
     setShowWelcome(shouldShowWelcome());
   }, []);
 
-  const load = useCallback(async (params: {
-    sort: SortOption;
-    tag: string;
-    difficulty: DifficultyOption;
-    q: string;
-  }): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
+  // Rebuilt whenever the filters change, which is what drives the list reset
+  const fetchPage = useCallback(
+    async (cursor: string | null) => {
       const api = await getApiClient();
       const res = await api.recipes.list({
-        sort: params.sort,
-        q: params.q || undefined,
-        tag: params.tag || undefined,
-        difficulty: params.difficulty || undefined,
+        sort,
+        cursor: cursor ?? undefined,
+        q: q || undefined,
+        tag: tag || undefined,
+        difficulty: difficulty || undefined,
       });
       if ("error" in res) throw new Error(res.error.message);
-      setRecipes(res.data.recipes);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load recipes");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return {
+        items: res.data.recipes,
+        nextCursor: res.data.nextCursor,
+        total: res.data.total,
+      };
+    },
+    [sort, q, tag, difficulty],
+  );
+
+  const {
+    items: recipes,
+    total,
+    isLoadingInitial,
+    isLoadingMore,
+    error,
+    hasMore,
+    retry,
+    sentinelRef,
+  } = useInfiniteList<Recipe>({
+    fetchPage,
+    resetKey: `${sort}|${q}|${tag}|${difficulty}`,
+    getItemKey: (r) => r.id,
+    cacheKey: "recipes",
+  });
 
   // Load all tags once on mount (unfiltered) to populate the tag dropdown
   useEffect(() => {
     async function loadTags(): Promise<void> {
       try {
         const api = await getApiClient();
-        const res = await api.recipes.list({ sort: "newest" });
+        // Pulls the largest single page the API allows purely to populate the tag
+        // dropdown. Anyone past that many recipes may have tags missing from the
+        // list — a dedicated GET /recipes/tags endpoint is the proper fix, but
+        // this at least covers a realistic library rather than the first 20.
+        const res = await api.recipes.list({ sort: "newest", limit: 100 });
         if ("data" in res) {
           const tags = Array.from(
             new Set(res.data.recipes.flatMap((r) => r.tags)),
@@ -78,10 +92,6 @@ export default function RecipesPage(): React.JSX.Element {
     }
     void loadTags();
   }, []);
-
-  useEffect(() => {
-    void load({ sort, tag, difficulty, q });
-  }, [sort, tag, difficulty, q, load]);
 
   function handleSearchChange(value: string): void {
     setSearchInput(value);
@@ -175,11 +185,26 @@ export default function RecipesPage(): React.JSX.Element {
         )}
       </div>
 
-      {loading && <p className="text-sm text-gray-400">Loading…</p>}
+      {isLoadingInitial && (
+        <div className="grid gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ListSkeleton key={i} variant="card" />
+          ))}
+        </div>
+      )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {/* Initial-load failure replaces the list; a failed *subsequent* page is
+          handled by the footer so already-loaded recipes stay on screen. */}
+      {error && recipes.length === 0 && (
+        <div className="py-10 text-center">
+          <p className="text-sm text-red-600">{error}</p>
+          <button onClick={retry} className="mt-3 text-sm text-orange-500 hover:underline">
+            Try again
+          </button>
+        </div>
+      )}
 
-      {!loading && !error && recipes.length === 0 && !hasFilters && (
+      {!isLoadingInitial && !error && recipes.length === 0 && !hasFilters && (
         <div className="space-y-3">
           <EmptyState
             icon="📖"
@@ -206,7 +231,7 @@ export default function RecipesPage(): React.JSX.Element {
         </div>
       )}
 
-      {!loading && !error && recipes.length === 0 && hasFilters && (
+      {!isLoadingInitial && !error && recipes.length === 0 && hasFilters && (
         <div className="py-10 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {q ? `No recipes found for "${q}"` : "No recipes match your filters."}
@@ -220,11 +245,30 @@ export default function RecipesPage(): React.JSX.Element {
         </div>
       )}
 
-      <div className="grid gap-4">
-        {recipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} />
-        ))}
-      </div>
+      {recipes.length > 0 && (
+        <>
+          {total !== null && (
+            <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+              {total} {total === 1 ? "recipe" : "recipes"}
+              {hasFilters ? " match your filters" : ""}
+            </p>
+          )}
+          <div className="grid gap-4">
+            {recipes.map((recipe) => (
+              <RecipeCard key={recipe.id} recipe={recipe} />
+            ))}
+            <InfiniteListFooter
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              error={error}
+              onRetry={retry}
+              sentinelRef={sentinelRef}
+              itemCount={recipes.length}
+              variant="card"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

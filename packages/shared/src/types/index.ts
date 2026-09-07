@@ -185,12 +185,22 @@ export type UpdateRecipeInput = Partial<
   Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
 > & { tags?: string[] };
 
-export type ListRecipesResponse = {
-  recipes: Recipe[];
-  total: number;
+/**
+ * Keyset-paginated response. `nextCursor` is opaque — pass it back verbatim to
+ * fetch the following page, and treat null as "no more results".
+ *
+ * `total` is only present on the first page; subsequent pages return null rather
+ * than recounting a set the caller is appending to.
+ */
+export type CursorPaginated<K extends string, T> = {
+  [P in K]: T[];
+} & {
+  nextCursor: string | null;
+  total: number | null;
   limit: number;
-  offset: number;
 };
+
+export type ListRecipesResponse = CursorPaginated<"recipes", Recipe>;
 
 export type CommunityFeedParams = {
   q?: string;
@@ -200,7 +210,7 @@ export type CommunityFeedParams = {
   creatorId?: string;
   sort?: "popular";
   limit?: number;
-  offset?: number;
+  cursor?: string;
 };
 
 export type CommunityRecipe = RecipeWithDetails & {
@@ -211,12 +221,7 @@ export type CommunityRecipe = RecipeWithDetails & {
   forkCount: number;
 };
 
-export type CommunityFeedResponse = {
-  recipes: CommunityRecipe[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type CommunityFeedResponse = CursorPaginated<"recipes", CommunityRecipe>;
 
 // ─── Feed ──────────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,8 @@
-import { and, count, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, ne, or, sql, type SQL } from "drizzle-orm";
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags, users, recipeLikes } from "../schema";
 import type { RecipeWithDetails } from "./recipe-queries";
+import { decodeCursor, encodeCursor } from "./cursor";
 
 export type CommunityRecipeWithCreator = RecipeWithDetails & {
   creatorName: string;
@@ -20,14 +21,16 @@ export type CommunityFeedParams = {
   creatorId?: string | null;
   sort?: "popular" | null;
   limit?: number;
-  offset?: number;
+  cursor?: string | null;
 };
 
 export type CommunityFeedResult = {
   recipes: CommunityRecipeWithCreator[];
-  total: number;
+  /** Opaque cursor for the next page; null when the last page has been reached. */
+  nextCursor: string | null;
+  /** Only computed on the first page — see ListRecipesResult. */
+  total: number | null;
   limit: number;
-  offset: number;
 };
 
 // ── Likes ─────────────────────────────────────────────────────────────────────
@@ -53,7 +56,8 @@ export async function listPublicRecipes(
   params: CommunityFeedParams,
 ): Promise<CommunityFeedResult> {
   const db = await getDb();
-  const { userId, q, cuisine, tag, creator, creatorId, sort, limit = 20, offset = 0 } = params;
+  const { userId, q, cuisine, tag, creator, creatorId, sort, limit = 20, cursor: rawCursor } = params;
+  const cursor = decodeCursor(rawCursor);
 
   // Build WHERE conditions — exclude the requesting user's own recipes
   const conditions = [eq(recipes.isPublic, true), ne(recipes.userId, userId)];
@@ -104,25 +108,53 @@ export async function listPublicRecipes(
     .groupBy(recipeLikes.recipeId)
     .as("lc");
 
-  const orderBy = sort === "popular"
-    ? desc(sql`coalesce(${likeCountSq.cnt}, 0)`)
-    : desc(recipes.updatedAt);
+  // Popular sorts on an aggregate rather than a column, so its cursor carries the
+  // like count. The id tiebreaker matters more here than anywhere else: like
+  // counts are low-cardinality and huge numbers of recipes share a count of 0,
+  // so without it the ordering within a count bucket is arbitrary and pages
+  // would overlap heavily.
+  const likeCountExpr = sql<number>`coalesce(${likeCountSq.cnt}, 0)`;
 
-  const [rows, [countRow]] = await Promise.all([
+  let keysetCondition: SQL | undefined;
+  if (cursor) {
+    if (cursor.k === "likeCount" && sort === "popular") {
+      keysetCondition = sql`(${likeCountExpr}, ${recipes.id}) < (${cursor.v}, ${cursor.id}::uuid)`;
+    } else if (cursor.k === "updatedAt" && sort !== "popular") {
+      keysetCondition = sql`(${recipes.updatedAt}, ${recipes.id}) < (${new Date(cursor.v)}, ${cursor.id}::uuid)`;
+    }
+    // Mismatched cursor means the sort changed mid-scroll — ignore and restart.
+  }
+
+  const pageWhere = keysetCondition ? and(where, keysetCondition) : where;
+
+  const orderBy = sort === "popular"
+    ? [desc(likeCountExpr), desc(recipes.id)]
+    : [desc(recipes.updatedAt), desc(recipes.id)];
+
+  const [rows, countRows] = await Promise.all([
     db
-      .select({ recipe: recipes, creatorName: users.displayName, creatorId: users.id })
+      .select({
+        recipe: recipes,
+        creatorName: users.displayName,
+        creatorId: users.id,
+        likeCount: likeCountExpr,
+      })
       .from(recipes)
       .innerJoin(users, eq(recipes.userId, users.id))
       .leftJoin(likeCountSq, eq(recipes.id, likeCountSq.recipeId))
-      .where(where)
-      .orderBy(orderBy)
-      .limit(limit)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(recipes)
-      .where(where),
+      .where(pageWhere)
+      .orderBy(...orderBy)
+      .limit(limit + 1),
+    cursor
+      ? Promise.resolve([])
+      : db
+          .select({ count: sql<number>`count(*)`.mapWith(Number) })
+          .from(recipes)
+          .where(where),
   ]);
+
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.pop();
 
   const recipeIds = rows.map((r) => r.recipe.id);
   const fullRecipes = recipeIds.length > 0
@@ -135,7 +167,22 @@ export async function listPublicRecipes(
       )
     : [];
 
-  return { recipes: fullRecipes, total: countRow?.count ?? 0, limit, offset };
+  const lastRow = rows[rows.length - 1];
+  const nextCursor =
+    hasMore && lastRow
+      ? encodeCursor(
+          sort === "popular"
+            ? { k: "likeCount", v: Number(lastRow.likeCount), id: lastRow.recipe.id }
+            : { k: "updatedAt", v: lastRow.recipe.updatedAt.toISOString(), id: lastRow.recipe.id },
+        )
+      : null;
+
+  return {
+    recipes: fullRecipes,
+    nextCursor,
+    total: cursor ? null : (countRows[0]?.count ?? 0),
+    limit,
+  };
 }
 
 async function fetchRecipeDetails(
