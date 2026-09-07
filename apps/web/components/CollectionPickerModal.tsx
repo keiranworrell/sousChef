@@ -12,7 +12,10 @@ type Props = {
 export default function CollectionPickerModal({ recipeId, onClose }: Props): React.JSX.Element {
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  // Load failure — replaces the list body
   const [error, setError] = useState<string | null>(null);
+  // Toggle failure — shown as a banner above the list, which stays visible
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Which collection IDs already contain this recipe
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
@@ -36,9 +39,15 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
         ]);
         if ("error" in listRes) throw new Error(listRes.error.message);
         setCollections(listRes.data.collections);
-        if (!("error" in memberRes)) {
-          setMemberIds(new Set(memberRes.data.collectionIds));
+
+        if ("error" in memberRes) throw new Error(memberRes.error.message);
+        // Guard the shape explicitly — a malformed or mis-routed response would
+        // otherwise yield `new Set(undefined)`, silently showing every collection
+        // as unadded and turning every toggle into an add.
+        if (!Array.isArray(memberRes.data?.collectionIds)) {
+          throw new Error("Could not load which collections contain this recipe");
         }
+        setMemberIds(new Set(memberRes.data.collectionIds));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load collections");
       } finally {
@@ -50,17 +59,34 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
 
   async function toggleCollection(collectionId: string): Promise<void> {
     setPendingId(collectionId);
+    setActionError(null);
+    const wasMember = memberIds.has(collectionId);
     try {
       const api = await getApiClient();
-      if (memberIds.has(collectionId)) {
-        await api.collections.removeRecipe(collectionId, recipeId);
-        setMemberIds((prev) => { const next = new Set(prev); next.delete(collectionId); return next; });
-      } else {
-        await api.collections.addRecipe(collectionId, recipeId);
-        setMemberIds((prev) => new Set([...prev, collectionId]));
-      }
-    } catch {
-      // swallow — UI stays consistent with server on next load
+      // These helpers resolve with an error envelope rather than throwing, so the
+      // result has to be checked before the local state is updated — otherwise a
+      // failed write still flips the checkbox.
+      const res = wasMember
+        ? await api.collections.removeRecipe(collectionId, recipeId)
+        : await api.collections.addRecipe(collectionId, recipeId);
+      if ("error" in res) throw new Error(res.error.message);
+
+      setMemberIds((prev) => {
+        const next = new Set(prev);
+        if (wasMember) next.delete(collectionId);
+        else next.add(collectionId);
+        return next;
+      });
+      // Keep the displayed count in step with the write we just made
+      setCollections((prev) =>
+        prev.map((c) =>
+          c.id === collectionId
+            ? { ...c, recipeCount: Math.max(0, c.recipeCount + (wasMember ? -1 : 1)) }
+            : c,
+        ),
+      );
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not update collection");
     } finally {
       setPendingId(null);
     }
@@ -75,14 +101,17 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
       const api = await getApiClient();
       const res = await api.collections.create({ name: newName.trim() });
       if ("error" in res) throw new Error(res.error.message);
+
+      // Add the recipe before rendering the row, so the count shown is accurate
+      const addRes = await api.collections.addRecipe(res.data.id, recipeId);
+      if ("error" in addRes) throw new Error(addRes.error.message);
+
       const newCol: CollectionSummary = {
         ...res.data,
-        recipeCount: 0,
+        recipeCount: 1,
         coverImageUrl: null,
       };
       setCollections((prev) => [newCol, ...prev]);
-      // Immediately add the recipe to the new collection
-      await api.collections.addRecipe(res.data.id, recipeId);
       setMemberIds((prev) => new Set([...prev, res.data.id]));
       setNewName("");
       setCreating(false);
@@ -104,6 +133,11 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
 
         {/* Body */}
         <div className="max-h-80 overflow-y-auto p-4 space-y-2">
+          {actionError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950 dark:text-red-400">
+              {actionError}
+            </p>
+          )}
           {loading ? (
             <p className="py-4 text-center text-sm text-gray-400">Loading…</p>
           ) : error ? (

@@ -58,8 +58,8 @@ locals {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = "secretsmanager:GetSecretValue"
+        Effect = "Allow"
+        Action = "secretsmanager:GetSecretValue"
         Resource = [
           data.aws_secretsmanager_secret.database_url.arn,
           data.aws_secretsmanager_secret.anthropic_api_key.arn,
@@ -95,8 +95,8 @@ locals {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["s3:PutObject"]
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
         Resource = [
           "arn:aws:s3:::souschef-${var.environment}-recipe-images/recipes/*",
           "arn:aws:s3:::souschef-${var.environment}-recipe-images/avatars/*",

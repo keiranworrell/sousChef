@@ -61,6 +61,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse(collection);
     }
 
+    // GET /collections/for-recipe/{recipeId} — which collections contain this recipe
+    // MUST come before the generic `GET /collections` check below: this route has no
+    // {id} path param, so `collectionId` is undefined and the list handler would
+    // otherwise swallow it and return the collection list instead.
+    if (method === "GET" && rawPath.includes("/for-recipe/") && recipeId) {
+      const collectionIds = await getCollectionsForRecipe(recipeId, user.id);
+      return okResponse({ collectionIds });
+    }
+
     // GET /collections — list current user's collections
     if (method === "GET" && !collectionId) {
       const result = await listCollections(user.id);
@@ -108,12 +117,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const removed = await removeRecipeFromCollection(collectionId, recipeId, user.id);
       if (!removed) throw new NotFoundError("Item not found");
       return okResponse(null, 204);
-    }
-
-    // GET /collections/for-recipe/{recipeId} — which collections contain this recipe
-    if (method === "GET" && rawPath.includes("/for-recipe/") && recipeId) {
-      const collectionIds = await getCollectionsForRecipe(recipeId, user.id);
-      return okResponse({ collectionIds });
     }
 
     return {
