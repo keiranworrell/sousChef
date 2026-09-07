@@ -238,7 +238,6 @@ function RecipesTab(): React.JSX.Element {
 
   const {
     items: recipes,
-    total,
     isLoadingInitial: loading,
     isLoadingMore,
     error,

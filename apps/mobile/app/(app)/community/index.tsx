@@ -24,7 +24,6 @@ export default function CommunityScreen(): React.JSX.Element {
   const router = useRouter();
 
   const [recipes, setRecipes] = useState<RecipeWithDetails[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +71,6 @@ export default function CommunityScreen(): React.JSX.Element {
         setRecipes((prev) =>
           isFirstPage ? res.data.recipes : [...prev, ...res.data.recipes],
         );
-        if (res.data.total !== null) setTotal(res.data.total);
         setCursor(res.data.nextCursor);
         setHasMore(res.data.nextCursor !== null);
       } catch (err) {
