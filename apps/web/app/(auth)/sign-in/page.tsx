@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "aws-amplify/auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { sanitiseRedirect } from "@/lib/safe-redirect";
 
-export default function SignInPage(): React.JSX.Element {
+function SignInForm(): React.JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,17 @@ export default function SignInPage(): React.JSX.Element {
     try {
       const { isSignedIn } = await signIn({ username: email, password });
       if (isSignedIn) {
-        router.push("/");
+        // The middleware records where the user was heading before it bounced
+        // them here. Previously this pushed to "/" unconditionally, so a deep
+        // link was lost and — now that "/" is public — users landed on the
+        // marketing page rather than in the app.
+        //
+        // sanitiseRedirect is what makes reading this query param safe; see the
+        // open-redirect note in lib/safe-redirect.ts.
+        const target = sanitiseRedirect(searchParams.get("next"));
+        // replace, not push: the sign-in page should not sit in history behind
+        // the destination, or Back returns to a form the user has already used.
+        router.replace(target);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
@@ -80,11 +92,38 @@ export default function SignInPage(): React.JSX.Element {
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           No account?{" "}
-          <Link href="/sign-up" className="text-orange-500 hover:underline">
+          {/* Carry `next` across so a deep link survives the detour through
+              sign-up and confirmation. */}
+          <Link
+            href={`/sign-up${searchParams.get("next") ? `?next=${encodeURIComponent(searchParams.get("next")!)}` : ""}`}
+            className="text-orange-500 hover:underline"
+          >
             Sign up
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * useSearchParams opts the subtree into client-side rendering, and Next requires
+ * a Suspense boundary around it or the production build fails. The fallback
+ * mirrors the card's dimensions so there is no layout shift when the form
+ * appears.
+ */
+export default function SignInPage(): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+          <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow dark:bg-gray-900">
+            <div className="h-8 w-32 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+          </div>
+        </div>
+      }
+    >
+      <SignInForm />
+    </Suspense>
   );
 }

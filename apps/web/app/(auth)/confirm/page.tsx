@@ -3,11 +3,14 @@
 import { useState, Suspense } from "react";
 import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { sanitiseRedirect } from "@/lib/safe-redirect";
 
 function ConfirmForm(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam ? sanitiseRedirect(nextParam, "") : "";
 
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +24,9 @@ function ConfirmForm(): React.JSX.Element {
 
     try {
       await confirmSignUp({ username: email, confirmationCode: code });
-      router.push("/sign-in");
+      // Hand the original destination on to sign-in so a deep link survives the
+      // whole sign-up → confirm → sign-in chain.
+      router.replace(`/sign-in${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirmation failed");
     } finally {
