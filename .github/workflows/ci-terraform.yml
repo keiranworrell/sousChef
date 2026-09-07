@@ -64,7 +64,11 @@ jobs:
 
       - name: Terraform Format Check
         id: fmt
-        run: terraform fmt -check
+        # -recursive so modules/ are covered too, not just this directory.
+        # -diff so the log shows exactly which lines are wrong — a bare pass/fail
+        # gives you nothing to act on.
+        run: terraform fmt -check -recursive -diff
+        working-directory: infrastructure/terraform
         continue-on-error: true
 
       - name: Terraform Init
