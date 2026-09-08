@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signUp } from "aws-amplify/auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { sanitiseRedirect } from "@/lib/safe-redirect";
 
-export default function SignUpPage(): React.JSX.Element {
+function SignUpForm(): React.JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Sanitised on arrival as well as on use — this value is only ever forwarded
+  // to another internal URL, so there is no reason to carry an unvalidated one.
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam ? sanitiseRedirect(nextParam, "") : "";
+  const nextQuery = safeNext ? `&next=${encodeURIComponent(safeNext)}` : "";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +43,7 @@ export default function SignUpPage(): React.JSX.Element {
       });
 
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
-        router.push(`/confirm?email=${encodeURIComponent(email)}`);
+        router.push(`/confirm?email=${encodeURIComponent(email)}${nextQuery}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
@@ -136,11 +144,30 @@ export default function SignUpPage(): React.JSX.Element {
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{" "}
-          <Link href="/sign-in" className="text-orange-500 hover:underline">
+          <Link
+            href={`/sign-in${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`}
+            className="text-orange-500 hover:underline"
+          >
             Sign in
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage(): React.JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+          <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow dark:bg-gray-900">
+            <div className="h-8 w-40 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+          </div>
+        </div>
+      }
+    >
+      <SignUpForm />
+    </Suspense>
   );
 }

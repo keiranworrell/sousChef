@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { isSignedIn } from "@/lib/server-auth";
 
 export const metadata: Metadata = {
   title: "sousChef — Your personal cooking companion",
@@ -186,23 +187,36 @@ function CommunitySection(): React.JSX.Element {
 
 // ─── Page ──────────────────────────────────────────────────────────────────
 
-export default function LandingPage(): React.JSX.Element {
+export default async function LandingPage(): Promise<React.JSX.Element> {
+  const isAuthenticated = await isSignedIn();
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/80 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <span className="text-lg font-bold text-orange-500 tracking-tight">sousChef</span>
+          {/* Resolved on the server, so a signed-in visitor never sees the
+              signed-out nav — not even for a frame. Doing this client-side
+              would flash "Sign in" before correcting itself. */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/sign-in"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-            >
-              Sign in
-            </Link>
-            <Link href="/sign-up" className="btn-primary text-sm">
-              Get started free
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/recipes" className="btn-primary text-sm">
+                Go to my recipes
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link href="/sign-up" className="btn-primary text-sm">
+                  Get started free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
