@@ -1034,6 +1034,13 @@ resource "aws_apigatewayv2_route" "users_me_delete" {
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
 
+# UK GDPR right of access / data portability
+resource "aws_apigatewayv2_route" "users_me_export" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/me/export"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
 resource "aws_apigatewayv2_route" "users_profile_get" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /users/{id}"

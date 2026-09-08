@@ -8,6 +8,7 @@ import { parseBody } from "../middleware/validation";
 const cognitoClient = new CognitoIdentityProviderClient({});
 const COGNITO_USER_POOL_ID = process.env["COGNITO_USER_POOL_ID"] ?? "";
 import { getUserByCognitoId, updateUser, deleteUser } from "../db/queries/user-queries";
+import { exportUserData } from "../db/queries/export-queries";
 import {
   followUser,
   unfollowUser,
@@ -59,6 +60,28 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "GET" && path.endsWith("/users/me")) {
       const counts = await getFollowCounts(user.id);
       return okResponse({ ...user, ...counts });
+    }
+
+    // GET /users/me/export — UK GDPR right of access / data portability.
+    //
+    // Must come before GET /users/me: that check uses endsWith, which this path
+    // would otherwise fall through to unmatched. (The same ordering trap that
+    // made /collections/for-recipe unreachable — see PR #126.)
+    //
+    // NOTE: if you add a table that references users.id, add it to
+    // exportUserData too. An export that silently omits data does not satisfy
+    // the access right.
+    if (method === "GET" && path.endsWith("/users/me/export")) {
+      const data = await exportUserData(user.id);
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          // Prompts a download rather than rendering in the browser
+          "Content-Disposition": `attachment; filename="souschef-export-${new Date().toISOString().slice(0, 10)}.json"`,
+        },
+        body: JSON.stringify({ data }, null, 2),
+      };
     }
 
     // DELETE /users/me

@@ -19,6 +19,41 @@ export default function SettingsPage(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Data export state
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function handleExport(): Promise<void> {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const api = await getApiClient();
+      const res = await api.users.exportData();
+      if ("error" in res) throw new Error(res.error.message);
+
+      // Turn the payload into a download client-side. Going through a Blob and
+      // a synthetic anchor avoids a second authenticated request — the data is
+      // already here, and a plain link to the endpoint wouldn't carry the auth
+      // header.
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `souschef-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      // Release the object URL or the blob is retained for the page's lifetime
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   useEffect(() => {
     async function load(): Promise<void> {
       try {
@@ -95,6 +130,36 @@ export default function SettingsPage(): React.JSX.Element {
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{user.planTier}</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Your data */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Your data</h2>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Download your data
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  A JSON file containing everything sousChef holds about you — recipes,
+                  collections, pantry, shopping lists, meal plans, fermentation batches,
+                  cook history, and your account details.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { void handleExport(); }}
+                disabled={exporting}
+                className="btn-secondary shrink-0 text-sm disabled:opacity-50"
+              >
+                {exporting ? "Preparing…" : "Download"}
+              </button>
+            </div>
+            {exportError && (
+              <p className="mt-3 text-xs text-red-600">{exportError}</p>
+            )}
           </div>
         </section>
 

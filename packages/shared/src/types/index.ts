@@ -75,6 +75,34 @@ export type UserFollowListResponse = {
   offset: number;
 };
 
+/**
+ * Full export of a user's data (UK GDPR access / portability).
+ *
+ * Deliberately loosely typed: this is an archival snapshot of raw rows meant to
+ * be read by the user or another service, not consumed by our own UI. Pinning
+ * every nested shape here would mean updating this type on every schema change
+ * for no benefit at the call site, which just makes it likelier to drift.
+ */
+export type UserDataExport = {
+  exportedAt: ISODateString;
+  format: string;
+  account: Record<string, unknown>;
+  recipes: unknown[];
+  collections: unknown[];
+  pantry: unknown[];
+  shoppingLists: unknown[];
+  mealPlans: unknown[];
+  fermentationBatches: unknown[];
+  cookHistory: unknown[];
+  social: {
+    following: unknown[];
+    followers: unknown[];
+    likedRecipes: unknown[];
+  };
+  households: unknown[];
+  notifications: unknown[];
+};
+
 export type UpdateUserInput = {
   displayName?: string;
   avatarUrl?: string | null;
