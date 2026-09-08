@@ -46,6 +46,14 @@ function SignInForm(): React.JSX.Element {
       <div className="w-full max-w-sm rounded-lg bg-white p-8 shadow dark:bg-gray-900">
         <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Sign in</h1>
 
+        {/* Confirms the reset actually took effect. Without it the user is
+            returned to a bare sign-in form and can't tell whether it worked. */}
+        {searchParams.get("reset") === "1" && (
+          <p className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700 dark:bg-green-950 dark:text-green-400">
+            Password updated. Sign in with your new password.
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -63,9 +71,17 @@ function SignInForm(): React.JSX.Element {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
+            <div className="flex items-baseline justify-between gap-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="shrink-0 text-xs text-orange-500 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"

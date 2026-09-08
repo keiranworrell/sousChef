@@ -20,7 +20,13 @@ export const DEFAULT_POST_AUTH_ROUTE = "/recipes";
  * Paths that must never be a post-auth destination, because landing on one
  * either bounces the user straight back out or is simply useless.
  */
-const DISALLOWED_PREFIXES = ["/sign-in", "/sign-up", "/confirm"];
+const DISALLOWED_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/confirm",
+  "/forgot-password",
+  "/reset-password",
+];
 
 export function sanitiseRedirect(
   raw: string | null | undefined,
