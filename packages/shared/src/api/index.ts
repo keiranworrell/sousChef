@@ -2,6 +2,7 @@ import type {
   ApiResponse,
   UpdateUserInput,
   User,
+  UserDataExport,
   UserProfile,
   UserFollowListResponse,
   FeedResponse,
@@ -205,6 +206,14 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       deleteAccount: (): Promise<ApiResponse<null>> =>
         del<null>("/users/me"),
+
+      /**
+       * Full export of the caller's data, for UK GDPR access/portability.
+       * Returned as a parsed object rather than a file so the caller controls
+       * how it's delivered — the web app turns it into a download.
+       */
+      exportData: (): Promise<ApiResponse<UserDataExport>> =>
+        get<UserDataExport>("/users/me/export"),
 
       profile: (userId: string): Promise<ApiResponse<UserProfile>> =>
         get<UserProfile>(`/users/${userId}`),
