@@ -69,6 +69,8 @@ describe("sanitiseRedirect — rejects useless targets", () => {
     expect(sanitiseRedirect("/sign-in")).toBe(FALLBACK);
     expect(sanitiseRedirect("/sign-up")).toBe(FALLBACK);
     expect(sanitiseRedirect("/confirm")).toBe(FALLBACK);
+    expect(sanitiseRedirect("/forgot-password")).toBe(FALLBACK);
+    expect(sanitiseRedirect("/reset-password")).toBe(FALLBACK);
     expect(sanitiseRedirect("/sign-in?next=/recipes")).toBe(FALLBACK);
   });
 

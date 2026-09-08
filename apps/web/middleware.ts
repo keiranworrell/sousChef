@@ -4,7 +4,17 @@ import { runWithAmplifyServerContext } from "@/lib/server-auth";
 import { sanitiseRedirect } from "@/lib/safe-redirect";
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up", "/confirm", "/r", "/privacy", "/terms"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/confirm",
+  "/forgot-password",
+  "/reset-password",
+  "/r",
+  "/privacy",
+  "/terms",
+];
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -41,7 +51,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   // Redirect authenticated users away from auth pages (but not the landing page or legal pages)
-  const AUTH_ONLY_PUBLIC = ["/sign-in", "/sign-up", "/confirm"];
+  const AUTH_ONLY_PUBLIC = [
+    "/sign-in",
+    "/sign-up",
+    "/confirm",
+    "/forgot-password",
+    "/reset-password",
+  ];
   const isAuthPage = AUTH_ONLY_PUBLIC.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
