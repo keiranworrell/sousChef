@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { UserProfile, CommunityRecipe, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 const PAGE_SIZE = 20;
 
@@ -76,9 +77,9 @@ function FollowPanel({
     try {
       const api = await getApiClient();
       if (item.isFollowing) {
-        await api.users.unfollow(item.id);
+        unwrap(await api.users.unfollow(item.id));
       } else {
-        await api.users.follow(item.id);
+        unwrap(await api.users.follow(item.id));
       }
       onFollowChange();
     } catch {
@@ -232,7 +233,7 @@ export default function UserProfilePage(): React.JSX.Element {
     setProfile((prev) => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev);
     try {
       const api = await getApiClient();
-      await api.users.follow(id);
+      unwrap(await api.users.follow(id));
     } catch {
       // Revert on failure
       setFollowing(false);
@@ -246,7 +247,7 @@ export default function UserProfilePage(): React.JSX.Element {
     setProfile((prev) => prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev);
     try {
       const api = await getApiClient();
-      await api.users.unfollow(id);
+      unwrap(await api.users.unfollow(id));
     } catch {
       // Revert on failure
       setFollowing(true);

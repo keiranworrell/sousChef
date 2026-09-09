@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import type { PantryItem, CreatePantryItemInput, UpdatePantryItemInput } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 type FormState = {
   name: string;
@@ -139,7 +140,7 @@ export default function PantryScreen(): React.JSX.Element {
         onPress: async () => {
           try {
             const api = await getApiClient();
-            await api.pantry.delete(item.id);
+            unwrap(await api.pantry.delete(item.id));
             setItems((prev) => prev.filter((i) => i.id !== item.id));
           } catch {
             // ignore

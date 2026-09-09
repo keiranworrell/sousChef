@@ -75,18 +75,115 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${options.token}`;
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (err) {
+    // fetch rejects on network failure, DNS failure and CORS rejection. Letting
+    // that raw TypeError escape means callers see an error shaped differently
+    // from every other failure, so normalise it into the envelope.
+    return {
+      error: {
+        code: "NETWORK_ERROR",
+        message:
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not reach the server. Check your connection and try again.",
+      },
+    } as ApiResponse<T>;
+  }
 
-  // Browsers treat 204 (and other null-body statuses) as having no body,
-  // so response.json() would throw a parse error. Use text() first and
-  // return a safe default for empty responses.
+  // Browsers treat 204 (and other null-body statuses) as having no body, so
+  // response.json() would throw a parse error. Read as text first.
   const text = await response.text();
-  if (!text) return { data: null } as ApiResponse<T>;
-  return JSON.parse(text) as ApiResponse<T>;
+
+  if (!text) {
+    // An empty body only means success on a 2xx. Previously this returned
+    // `{ data: null }` regardless of status, so a 429 from the rate limiter or a
+    // 502 from API Gateway — both of which can have empty bodies — were
+    // indistinguishable from a successful 204 and read as success at every call
+    // site.
+    if (response.ok) return { data: null } as ApiResponse<T>;
+    return {
+      error: {
+        code: httpErrorCode(response.status),
+        message: httpErrorMessage(response.status),
+      },
+    } as ApiResponse<T>;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Non-JSON body — an API Gateway or proxy HTML error page, most often.
+    // JSON.parse would otherwise throw a SyntaxError that says nothing useful.
+    return {
+      error: {
+        code: response.ok ? "INVALID_RESPONSE" : httpErrorCode(response.status),
+        message: response.ok
+          ? "The server returned an unreadable response."
+          : httpErrorMessage(response.status),
+      },
+    } as ApiResponse<T>;
+  }
+
+  // A non-2xx that did return JSON should carry our own error envelope. If it
+  // doesn't, the body came from somewhere other than our handlers, so build one
+  // rather than passing a foreign shape back as though it were data.
+  if (!response.ok && !(typeof parsed === "object" && parsed !== null && "error" in parsed)) {
+    return {
+      error: {
+        code: httpErrorCode(response.status),
+        message: httpErrorMessage(response.status),
+      },
+    } as ApiResponse<T>;
+  }
+
+  return parsed as ApiResponse<T>;
+}
+
+function httpErrorCode(status: number): string {
+  if (status === 401) return "UNAUTHORISED";
+  if (status === 403) return "FORBIDDEN";
+  if (status === 404) return "NOT_FOUND";
+  if (status === 429) return "RATE_LIMITED";
+  if (status >= 500) return "SERVER_ERROR";
+  return "REQUEST_FAILED";
+}
+
+function httpErrorMessage(status: number): string {
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 403) return "You don't have permission to do that.";
+  if (status === 404) return "That item could not be found.";
+  if (status === 429) return "Too many requests. Please wait a moment and try again.";
+  if (status >= 500) return "Something went wrong on our end. Please try again.";
+  return `Request failed (HTTP ${status})`;
+}
+
+/**
+ * Returns the payload, or throws if the response is an error envelope.
+ *
+ * The client returns `{ data } | { error }` rather than throwing, which is fine
+ * when the caller checks — and silently wrong when it doesn't. `await api.x.y()`
+ * with the result discarded looks like it succeeded no matter what came back,
+ * and every surrounding try/catch is dead code. That is what hid the collection
+ * picker bug (PR #126): a failed write still flipped the checkbox.
+ *
+ * Use this wherever the result isn't otherwise inspected. It turns a silent
+ * failure into a thrown one that existing error handling can act on.
+ */
+export function unwrap<T>(response: ApiResponse<T>): T {
+  if ("error" in response) {
+    const err = new Error(response.error.message) as Error & { code?: string };
+    err.code = response.error.code;
+    throw err;
+  }
+  return response.data;
 }
 
 export function createApiClient(baseUrl: string, token?: string) {

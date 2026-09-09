@@ -5,6 +5,7 @@ import type { PantryItem, CreatePantryItemInput, UpdatePantryItemInput } from "@
 import { getApiClient } from "@/lib/api";
 import WhatCanICookModal from "@/components/WhatCanICookModal";
 import EmptyState from "@/components/EmptyState";
+import { unwrap } from "@souschef/shared";
 
 type FormState = {
   name: string;
@@ -165,7 +166,7 @@ export default function PantryPage(): React.JSX.Element {
     setDeletingId(id);
     try {
       const api = await getApiClient();
-      await api.pantry.delete(id);
+      unwrap(await api.pantry.delete(id));
       setItems((prev) => prev.filter((i) => i.id !== id));
     } catch {
       // silently ignore — item stays in list

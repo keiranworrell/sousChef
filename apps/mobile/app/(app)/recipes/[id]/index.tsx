@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 export default function RecipeDetailScreen(): React.JSX.Element {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,7 +44,7 @@ export default function RecipeDetailScreen(): React.JSX.Element {
         style: "destructive",
         onPress: async () => {
           const api = await getApiClient();
-          await api.recipes.delete(id);
+          unwrap(await api.recipes.delete(id));
           router.replace("/(app)/recipes");
         },
       },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FermentationBatch, FermentationStatus } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -75,7 +76,7 @@ export default function FermentationPage(): React.JSX.Element {
     setDeletingId(id);
     try {
       const api = await getApiClient();
-      await api.fermentation.delete(id);
+      unwrap(await api.fermentation.delete(id));
       setBatches((prev) => prev.filter((b) => b.id !== id));
     } catch {
       // ignore

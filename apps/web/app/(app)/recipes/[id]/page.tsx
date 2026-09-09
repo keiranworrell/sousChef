@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { RecipeIngredient, RecipeWithDetails, ShoppingList, Substitution } from "@souschef/shared";
-import { scaleQuantity } from "@souschef/shared";
+import { scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
@@ -35,7 +35,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
     setCookLogging(true);
     try {
       const api = await getApiClient();
-      await api.recipes.logCook(id);
+      unwrap(await api.recipes.logCook(id));
       setCookLogged(true);
       setTimeout(() => setCookLogged(false), 3000);
     } finally {
@@ -72,7 +72,7 @@ export default function RecipeDetailPage(): React.JSX.Element {
     setDeleting(true);
     try {
       const api = await getApiClient();
-      await api.recipes.delete(id);
+      unwrap(await api.recipes.delete(id));
       router.push("/recipes");
     } catch {
       setDeleting(false);

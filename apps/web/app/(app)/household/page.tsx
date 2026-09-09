@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Household, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 // ── Create household form ──────────────────────────────────────────────────────
 
@@ -234,7 +235,7 @@ function HouseholdView({
     setActionError(null);
     try {
       const api = await getApiClient();
-      await api.households.leave();
+      unwrap(await api.households.leave());
       onLeft();
     } catch {
       setActionError("Failed to leave household. Try again.");
@@ -248,7 +249,7 @@ function HouseholdView({
     setActionError(null);
     try {
       const api = await getApiClient();
-      await api.households.delete();
+      unwrap(await api.households.delete());
       onDeleted();
     } catch {
       setActionError("Failed to delete household. Try again.");

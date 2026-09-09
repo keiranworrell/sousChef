@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MealPlanWithEntries, MealPlanEntry, Recipe, DayOfWeek, MealType } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 const DAYS: { label: string; short: string }[] = [
   { label: "Monday", short: "Mon" },
@@ -154,7 +155,7 @@ export default function MealPlanPage(): React.JSX.Element {
     setRemovingId(entry.id);
     try {
       const api = await getApiClient();
-      await api.mealPlans.removeEntry(plan.id, entry.id);
+      unwrap(await api.mealPlans.removeEntry(plan.id, entry.id));
       setPlan((prev) =>
         prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== entry.id) } : prev,
       );

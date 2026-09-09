@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
 const emptyAddForm: AddForm = { name: "", quantity: "", unit: "", category: "" };
@@ -129,7 +130,7 @@ export default function ShoppingListPage(): React.JSX.Element {
     setDeleting(true);
     try {
       const api = await getApiClient();
-      await api.shopping.delete(id);
+      unwrap(await api.shopping.delete(id));
       router.push("/shopping");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Something went wrong");

@@ -15,6 +15,7 @@ import {
 import { useRouter } from "expo-router";
 import type { FermentationBatch, FermentationStatus } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -96,7 +97,7 @@ export default function FermentationScreen(): React.JSX.Element {
         onPress: async () => {
           try {
             const api = await getApiClient();
-            await api.fermentation.delete(batch.id);
+            unwrap(await api.fermentation.delete(batch.id));
             setBatches((prev) => prev.filter((b) => b.id !== batch.id));
           } catch {
             // ignore

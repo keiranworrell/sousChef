@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { CommunityRecipe, UserProfile } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
+import { unwrap } from "@souschef/shared";
 
 function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
   return filled ? (
@@ -83,9 +84,9 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
     try {
       const api = await getApiClient();
       if (wasLiked) {
-        await api.community.unlike(id);
+        unwrap(await api.community.unlike(id));
       } else {
-        await api.community.like(id);
+        unwrap(await api.community.like(id));
       }
     } catch {
       // Revert on failure
@@ -105,7 +106,7 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
     );
     try {
       const api = await getApiClient();
-      await api.users.follow(recipe.userId);
+      unwrap(await api.users.follow(recipe.userId));
     } catch {
       // Revert on failure
       setFollowing(false);
@@ -124,7 +125,7 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
     );
     try {
       const api = await getApiClient();
-      await api.users.unfollow(recipe.userId);
+      unwrap(await api.users.unfollow(recipe.userId));
     } catch {
       // Revert on failure
       setFollowing(true);
