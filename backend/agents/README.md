@@ -40,20 +40,27 @@ Imports a recipe from a URL by parsing Schema.org structured data (`application/
 
 A Claude fallback for sites without structured data is planned for a future iteration.
 
-### `substitution.ts` *(stub — not yet implemented)*
-Suggests ingredient substitutions for a given recipe ingredient, taking into account dietary restrictions and what the user has available in their pantry.
-
-### `scaling.ts` *(stub — not yet implemented)*
-Intelligently scales a recipe by a given factor. Goes beyond simple multiplication — adjusts cooking times, temperatures, and pan sizes where appropriate, and flags ingredients that don't scale linearly (e.g. salt, leavening agents, spices).
-
-### `dietary-adaptation.ts` *(stub — not yet implemented)*
+### `dietary-adaptation.ts` *(stub — not wired to any route)*
 Adapts a recipe to meet a dietary requirement (e.g. vegan, gluten-free, nut-free). Returns a modified recipe with substituted ingredients and any notes on how the dish will differ.
 
-### `pantry-to-recipe.ts` *(stub — not yet implemented)*
-Suggests recipes the user can make from what's currently in their pantry, optionally with a short shopping list for any missing ingredients.
-
-### `fermentation-troubleshoot.ts` *(stub — not yet implemented)*
+### `fermentation-troubleshoot.ts` *(stub — not wired to any route)*
 AI troubleshooting assistant for fermentation batches. Takes the batch details, timeline logs, and the user's problem description, and suggests likely causes and remediation steps.
+
+## Removed agents
+
+Three stubs were deleted once the features they were written for shipped
+without them. Each was superseded by a simpler, cheaper approach, and leaving
+them in place made the codebase look like it had more AI surface than it does:
+
+| Agent | Replaced by |
+|---|---|
+| `substitution.ts` | A static substitution data file in `packages/shared` |
+| `pantry-to-recipe.ts` | A SQL query helper behind `GET /pantry/suggestions` |
+| `scaling.ts` | `scaleQuantity`, a pure utility in `packages/shared` |
+
+They remain in git history if an AI-backed version is ever wanted. Worth noting
+the pattern before reaching for a fourth: in all three cases the non-AI version
+turned out to be sufficient, faster, and free to run.
 
 ## Adding a new agent
 
