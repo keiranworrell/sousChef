@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { CommunityRecipe, UserProfile } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
+import SourceAttribution from "@/components/SourceAttribution";
 import { unwrap } from "@souschef/shared";
 
 function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
@@ -195,6 +196,13 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
           {recipe.description && (
             <p className="mt-2 text-gray-500 dark:text-gray-400 break-words">{recipe.description}</p>
           )}
+          {/* Shown on the public view too — a reader deserves to know a recipe
+              originated elsewhere, not just the person who imported it. */}
+          <SourceAttribution
+            sourceUrl={recipe.sourceUrl}
+            sourceModified={recipe.sourceModified}
+            className="mt-2"
+          />
         </div>
         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
           <div className="flex items-center gap-2">

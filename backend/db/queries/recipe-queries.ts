@@ -257,6 +257,56 @@ export async function createRecipe(
   };
 }
 
+/**
+ * Whether an update actually alters the recipe's content.
+ *
+ * Only content counts. `isPublic` is visibility, not authorship — adding a
+ * recipe to a public collection flips it, and that shouldn't make an untouched
+ * import read as "adapted". Tags are excluded for the same reason: filing
+ * something under "weeknight" isn't adapting it.
+ *
+ * An omitted field means "unchanged", so it can't register as a difference.
+ */
+export function contentDiffers(
+  existing: RecipeWithDetails,
+  incoming: UpdateRecipeInput,
+): boolean {
+  const scalarChanged = (
+    [
+      "title",
+      "description",
+      "servings",
+      "prepTimeMinutes",
+      "cookTimeMinutes",
+      "difficulty",
+      "cuisine",
+    ] as const
+  ).some((key) => incoming[key] !== undefined && incoming[key] !== existing[key]);
+  if (scalarChanged) return true;
+
+  if (incoming.ingredients !== undefined) {
+    const before = existing.ingredients.map(
+      (i) => `${i.name}|${i.quantity ?? ""}|${i.unit ?? ""}|${i.notes ?? ""}`,
+    );
+    const after = incoming.ingredients.map(
+      (i) => `${i.name}|${i.quantity ?? ""}|${i.unit ?? ""}|${i.notes ?? ""}`,
+    );
+    if (before.length !== after.length || before.some((v, idx) => v !== after[idx])) {
+      return true;
+    }
+  }
+
+  if (incoming.steps !== undefined) {
+    const before = existing.steps.map((s) => `${s.instruction}|${s.timerSeconds ?? ""}`);
+    const after = incoming.steps.map((s) => `${s.instruction}|${s.timerSeconds ?? ""}`);
+    if (before.length !== after.length || before.some((v, idx) => v !== after[idx])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export async function updateRecipe(
   id: string,
   userId: string,
@@ -266,9 +316,21 @@ export async function updateRecipe(
 
   const { tags, ingredients, steps, ...recipeFields } = input;
 
+  // Read the current state before writing, so "has this been adapted?" can be
+  // answered by comparing values rather than by whether a field was submitted.
+  // The edit form posts every field on every save, so presence alone would mark
+  // a recipe adapted even when the user changed nothing.
+  const existing = await getRecipeById(id, userId);
+  if (!existing) return null;
+
+  const hasExternalSource = existing.sourceUrl !== null || existing.forkedFromId !== null;
+  const sourceModified =
+    existing.sourceModified ||
+    (hasExternalSource && contentDiffers(existing, { ...recipeFields, ingredients, steps }));
+
   const [updated] = await db
     .update(recipes)
-    .set({ ...recipeFields, updatedAt: new Date() })
+    .set({ ...recipeFields, sourceModified, updatedAt: new Date() })
     .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
     .returning();
 

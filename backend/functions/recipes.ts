@@ -36,6 +36,9 @@ const StepSchema = z.object({
   stepNumber: z.number().int().positive(),
   instruction: z.string().min(1),
   timerSeconds: z.number().int().positive().nullable().optional(),
+  // recipe_steps.image_url exists in the table but was absent here, so per-step
+  // images were silently dropped — the same omission that lost sourceUrl.
+  imageUrl: z.string().url().nullable().optional(),
 });
 
 const ImportRecipeSchema = z.object({
@@ -56,6 +59,14 @@ const CreateRecipeSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]).nullable().optional(),
   cuisine: z.string().nullable().optional(),
   isPublic: z.boolean().optional(),
+  // Where an imported recipe came from. Was missing here, so Zod stripped it on
+  // every create — meaning no client-imported recipe has ever carried
+  // attribution, despite the agent extracting it and the column existing.
+  //
+  // Note `forkedFromId` is deliberately NOT accepted: it is set server-side by
+  // forkRecipe, and letting a client claim a recipe was forked from an arbitrary
+  // id would be a provenance lie rather than a convenience.
+  sourceUrl: z.string().url().nullable().optional(),
   ingredients: z.array(IngredientSchema).optional(),
   steps: z.array(StepSchema).optional(),
   tags: z.array(z.string().min(1)).optional(),
