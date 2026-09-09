@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { RecipeIngredient, RecipeStep, RecipeWithDetails, Substitution } from "@souschef/shared";
-import { scaleQuantity } from "@souschef/shared";
+import { scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 
@@ -173,7 +173,7 @@ export default function CookPage(): React.JSX.Element {
     setCookLogging(true);
     try {
       const api = await getApiClient();
-      await api.recipes.logCook(recipe.id);
+      unwrap(await api.recipes.logCook(recipe.id));
       setCookLogged(true);
     } finally {
       setCookLogging(false);

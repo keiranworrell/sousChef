@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { CollectionWithItems, CollectionRecipeItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 export default function CollectionDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -94,7 +95,7 @@ export default function CollectionDetailPage(): React.JSX.Element {
     setDeleting(true);
     try {
       const api = await getApiClient();
-      await api.collections.delete(id);
+      unwrap(await api.collections.delete(id));
       router.push("/collections");
     } catch {
       setDeleting(false);
@@ -105,7 +106,7 @@ export default function CollectionDetailPage(): React.JSX.Element {
     setRemovingId(recipeId);
     try {
       const api = await getApiClient();
-      await api.collections.removeRecipe(id, recipeId);
+      unwrap(await api.collections.removeRecipe(id, recipeId));
       setCollection((prev) =>
         prev ? { ...prev, items: prev.items.filter((i) => i.recipeId !== recipeId), recipeCount: prev.recipeCount - 1 } : prev,
       );

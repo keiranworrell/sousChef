@@ -14,6 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import type { ShoppingList } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 export default function ShoppingScreen(): React.JSX.Element {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function ShoppingScreen(): React.JSX.Element {
         onPress: async () => {
           try {
             const api = await getApiClient();
-            await api.shopping.delete(list.id);
+            unwrap(await api.shopping.delete(list.id));
             setLists((prev) => prev.filter((l) => l.id !== list.id));
           } catch {
             // ignore

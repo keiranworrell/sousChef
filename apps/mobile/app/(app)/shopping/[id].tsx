@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
 const emptyForm: AddForm = { name: "", quantity: "", unit: "", category: "" };
@@ -156,7 +157,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
                   setDeletingList(true);
                   try {
                     const api = await getApiClient();
-                    await api.shopping.delete(id);
+                    unwrap(await api.shopping.delete(id));
                     router.replace("/shopping");
                   } catch (err) {
                     Alert.alert("Error", err instanceof Error ? err.message : "Something went wrong");

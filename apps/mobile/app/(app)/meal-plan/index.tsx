@@ -20,6 +20,7 @@ import type {
   MealType,
 } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { unwrap } from "@souschef/shared";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -132,7 +133,7 @@ export default function MealPlanScreen(): React.JSX.Element {
     setRemovingId(entry.id);
     try {
       const api = await getApiClient();
-      await api.mealPlans.removeEntry(plan.id, entry.id);
+      unwrap(await api.mealPlans.removeEntry(plan.id, entry.id));
       setPlan((prev) =>
         prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== entry.id) } : prev,
       );

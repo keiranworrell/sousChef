@@ -7,6 +7,7 @@ import type { CommunityRecipe, PublicUserListItem, PublicCollectionSummary } fro
 import InfiniteListFooter from "@/components/InfiniteListFooter";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -90,9 +91,9 @@ function PeopleTab(): React.JSX.Element {
     try {
       const api = await getApiClient();
       if (user.isFollowing) {
-        await api.users.unfollow(user.id);
+        unwrap(await api.users.unfollow(user.id));
       } else {
-        await api.users.follow(user.id);
+        unwrap(await api.users.follow(user.id));
       }
     } catch {
       // Revert on failure
@@ -280,9 +281,9 @@ function RecipesTab(): React.JSX.Element {
     try {
       const api = await getApiClient();
       if (wasLiked) {
-        await api.community.unlike(recipe.id);
+        unwrap(await api.community.unlike(recipe.id));
       } else {
-        await api.community.like(recipe.id);
+        unwrap(await api.community.like(recipe.id));
       }
     } catch {
       // Revert on failure

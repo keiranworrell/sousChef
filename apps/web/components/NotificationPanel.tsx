@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import type { Notification } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ function HouseholdInviteItem({
     setStatus("accepting");
     try {
       const api = await getApiClient();
-      await api.households.acceptInvite(inviteId);
+      unwrap(await api.households.acceptInvite(inviteId));
       setStatus("accepted");
     } catch {
       setStatus("pending");
@@ -51,7 +52,7 @@ function HouseholdInviteItem({
     setStatus("declining");
     try {
       const api = await getApiClient();
-      await api.households.declineInvite(inviteId);
+      unwrap(await api.households.declineInvite(inviteId));
       setStatus("declined");
     } catch {
       setStatus("pending");

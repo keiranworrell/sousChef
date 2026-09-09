@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ShoppingList } from "@souschef/shared";
 import EmptyState from "@/components/EmptyState";
 import { getApiClient } from "@/lib/api";
+import { unwrap } from "@souschef/shared";
 
 export default function ShoppingPage(): React.JSX.Element {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function ShoppingPage(): React.JSX.Element {
     setDeletingId(id);
     try {
       const api = await getApiClient();
-      await api.shopping.delete(id);
+      unwrap(await api.shopping.delete(id));
       setLists((prev) => prev.filter((l) => l.id !== id));
     } catch {
       // ignore
