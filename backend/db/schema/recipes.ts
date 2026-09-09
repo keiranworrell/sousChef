@@ -26,6 +26,8 @@ export const recipes = pgTable("recipes", {
   isPublic: boolean("is_public").notNull().default(false),
   sourceUrl: text("source_url"),
   forkedFromId: uuid("forked_from_id"),
+  /** True once the user has edited a recipe that came from an external source. */
+  sourceModified: boolean("source_modified").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

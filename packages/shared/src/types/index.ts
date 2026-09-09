@@ -128,6 +128,12 @@ export type Recipe = {
   isPublic: boolean;
   sourceUrl: string | null;
   forkedFromId: string | null;
+  /**
+   * True once the user has edited a recipe that came from an external source,
+   * so attribution reads "Adapted from" rather than "Imported from".
+   * Server-maintained — clients must not set it.
+   */
+  sourceModified: boolean;
   tags: string[];
   createdAt: ISODateString;
   updatedAt: ISODateString;

@@ -9,6 +9,7 @@ import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
+import SourceAttribution from "@/components/SourceAttribution";
 
 type AddToListState =
   | { step: "closed" }
@@ -197,16 +198,11 @@ export default function RecipeDetailPage(): React.JSX.Element {
           {recipe.description && (
             <p className="mt-2 text-gray-500 dark:text-gray-400">{recipe.description}</p>
           )}
-          {recipe.sourceUrl && (
-            <a
-              href={recipe.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-block text-xs text-gray-400 hover:text-orange-500 hover:underline"
-            >
-              ↗ Original source: {new URL(recipe.sourceUrl).hostname.replace(/^www\./, "")}
-            </a>
-          )}
+          <SourceAttribution
+            sourceUrl={recipe.sourceUrl}
+            sourceModified={recipe.sourceModified}
+            className="mt-1"
+          />
         </div>
         {/* Deliberately not shrink-0. The action row wraps internally, so
             letting this column shrink lets that wrapping engage; pinning it to

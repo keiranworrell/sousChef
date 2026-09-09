@@ -68,6 +68,9 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
   );
 
   const [imageUrl, setImageUrl] = useState<string>(initial?.imageUrl ?? "");
+  // Preserved across edits so re-saving an imported recipe doesn't strip its
+  // attribution. There is no input for this — it is set by import alone.
+  const [sourceUrl, setSourceUrl] = useState<string | null>(initial?.sourceUrl ?? null);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
@@ -208,6 +211,9 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     if (r.title) setTitle(r.title);
     if (r.description) setDescription(r.description);
     if (r.imageUrl) setImageUrl(r.imageUrl);
+    // Carries attribution from the import through to the create payload. Without
+    // this the origin is discarded here, before it ever reaches the API.
+    if (r.sourceUrl) setSourceUrl(r.sourceUrl);
     if (r.servings) setServings(String(r.servings));
     if (r.prepTimeMinutes != null) setPrepTime(String(r.prepTimeMinutes));
     if (r.cookTimeMinutes != null) setCookTime(String(r.cookTimeMinutes));
@@ -350,6 +356,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
         cookTimeMinutes: cookTime ? parseInt(cookTime, 10) : null,
         difficulty: (difficulty as CreateRecipeInput["difficulty"]) || null,
         cuisine: cuisine || null,
+        sourceUrl,
         isPublic,
         ingredients: ingredients
           .filter((i) => i.name.trim())
@@ -410,6 +417,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     setIngredients([{ name: "", quantity: "", unit: "", notes: "" }]);
     setSteps([{ instruction: "", timerSeconds: "" }]);
     setImageUrl("");
+    setSourceUrl(null);
     setImageError(null);
     setError(null);
     setImportUrl("");

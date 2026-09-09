@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CommunityRecipe } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import SourceAttribution from "@/components/SourceAttribution";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -84,16 +85,11 @@ export default function PublicRecipePageClient({ id }: { id: string }): React.JS
         <p className="mt-3 text-gray-600 dark:text-gray-400">{recipe.description}</p>
       )}
 
-      {recipe.sourceUrl && (
-        <a
-          href={recipe.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 inline-block text-xs text-gray-400 hover:text-orange-500 hover:underline"
-        >
-          ↗ Original source: {new URL(recipe.sourceUrl).hostname.replace(/^www\./, "")}
-        </a>
-      )}
+      <SourceAttribution
+        sourceUrl={recipe.sourceUrl}
+        sourceModified={recipe.sourceModified}
+        className="mt-1"
+      />
 
       {/* Meta */}
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
