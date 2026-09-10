@@ -1371,6 +1371,13 @@ resource "aws_apigatewayv2_route" "collections_delete" {
   target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
 }
 
+# Bulk membership change from the multi-select picker
+resource "aws_apigatewayv2_route" "collections_update_recipes" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /collections/{id}/recipes"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
 resource "aws_apigatewayv2_route" "collections_add_recipe" {
   api_id    = module.api_gateway.api_id
   route_key = "POST /collections/{id}/recipes/{recipeId}"

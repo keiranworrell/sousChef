@@ -337,12 +337,25 @@ export async function addRecipeToCollection(
     .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)));
   if (!col) return { added: false };
 
+  // Verify the *recipe* belongs to this user too.
+  //
+  // Without this, any recipe id could be added to a caller's own collection —
+  // and because a public collection publishes its contents, that meant anyone
+  // could make another user's private recipe public simply by adding it to a
+  // public collection of their own. The collection check alone is not enough:
+  // owning the collection says nothing about owning what goes in it.
+  const [ownsRecipe] = await db
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
+  if (!ownsRecipe) return { added: false };
+
   // If the collection is public, make the recipe public too
   if (col.isPublic) {
     await db
       .update(recipes)
       .set({ isPublic: true, updatedAt: new Date() })
-      .where(eq(recipes.id, recipeId));
+      .where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
   }
 
   // Upsert — ignore duplicate (unique constraint)
@@ -352,6 +365,83 @@ export async function addRecipeToCollection(
     .onConflictDoNothing();
 
   return { added: true };
+}
+
+export type UpdateCollectionRecipesResult = {
+  added: number;
+  removed: number;
+};
+
+/**
+ * Applies a batch of membership changes to a collection in one transaction.
+ *
+ * The multi-select picker diffs against server state and sends only what
+ * changed, so this takes add and remove lists rather than a full membership
+ * set. A full set would race: two devices editing the same collection would
+ * each overwrite the other's changes wholesale, where a diff only conflicts on
+ * the specific recipes both touched.
+ *
+ * Transactional because a partial apply is worse than a failure — the user is
+ * shown one confirmation, and half-applied membership would silently disagree
+ * with what they saw.
+ */
+export async function updateCollectionRecipes(
+  collectionId: string,
+  userId: string,
+  changes: { add: string[]; remove: string[] },
+): Promise<UpdateCollectionRecipesResult | null> {
+  const db = await getDb();
+
+  const [col] = await db
+    .select({ isPublic: collections.isPublic })
+    .from(collections)
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)));
+  if (!col) return null;
+
+  // Reduce the requested additions to recipes the caller actually owns. Silently
+  // dropping the rest rather than erroring: the ids come from a picker that only
+  // ever lists the user's own recipes, so anything else is either a stale client
+  // or someone probing, and neither deserves a detailed answer.
+  const ownedToAdd = changes.add.length
+    ? (
+        await db
+          .select({ id: recipes.id })
+          .from(recipes)
+          .where(and(inArray(recipes.id, changes.add), eq(recipes.userId, userId)))
+      ).map((r) => r.id)
+    : [];
+
+  return db.transaction(async (tx) => {
+    if (ownedToAdd.length > 0) {
+      await tx
+        .insert(collectionItems)
+        .values(ownedToAdd.map((recipeId) => ({ collectionId, recipeId })))
+        .onConflictDoNothing();
+
+      // A public collection publishes what it contains
+      if (col.isPublic) {
+        await tx
+          .update(recipes)
+          .set({ isPublic: true, updatedAt: new Date() })
+          .where(and(inArray(recipes.id, ownedToAdd), eq(recipes.userId, userId)));
+      }
+    }
+
+    if (changes.remove.length > 0) {
+      // Scoped to this collection, so removal can't touch another user's rows
+      // even if an id from elsewhere is submitted.
+      await tx
+        .delete(collectionItems)
+        .where(
+          and(
+            eq(collectionItems.collectionId, collectionId),
+            inArray(collectionItems.recipeId, changes.remove),
+          ),
+        );
+    }
+
+    return { added: ownedToAdd.length, removed: changes.remove.length };
+  });
 }
 
 export async function removeRecipeFromCollection(

@@ -13,6 +13,7 @@ import {
   updateCollection,
   deleteCollection,
   addRecipeToCollection,
+  updateCollectionRecipes,
   removeRecipeFromCollection,
   getCollectionsForRecipe,
 } from "../db/queries/collection-queries";
@@ -30,6 +31,14 @@ const UpdateCollectionSchema = CreateCollectionSchema.partial();
 const ListPublicQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
   offset: z.coerce.number().int().nonnegative().optional().default(0),
+});
+
+// Capped at 200 per direction. The picker sends a diff rather than a full set,
+// so a legitimate batch is small; a much larger one means a client bug or an
+// attempt to make one request do an unbounded amount of work.
+const UpdateCollectionRecipesSchema = z.object({
+  add: z.array(z.string().uuid()).max(200).optional().default([]),
+  remove: z.array(z.string().uuid()).max(200).optional().default([]),
 });
 
 // ── Handler ────────────────────────────────────────────────────────────────────
@@ -103,6 +112,24 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const deleted = await deleteCollection(collectionId, user.id);
       if (!deleted) throw new NotFoundError("Collection not found");
       return okResponse(null, 204);
+    }
+
+    // PATCH /collections/{id}/recipes — bulk membership change
+    //
+    // Before the PATCH /collections/{id} check above? No — that one already
+    // excludes paths containing "/recipes", so this is reachable. Keeping it
+    // here, adjacent to the other membership routes, rather than relying on
+    // that exclusion staying in place.
+    if (method === "PATCH" && collectionId && rawPath.endsWith("/recipes")) {
+      const body = parseBody(event.body, UpdateCollectionRecipesSchema);
+      // parseBody's signature ties the schema's input and output types together,
+      // so Zod's `.default([])` doesn't narrow away the undefined here.
+      const result = await updateCollectionRecipes(collectionId, user.id, {
+        add: body.add ?? [],
+        remove: body.remove ?? [],
+      });
+      if (!result) throw new NotFoundError("Collection not found");
+      return okResponse(result);
     }
 
     // POST /collections/{id}/recipes/{recipeId} — add recipe to collection

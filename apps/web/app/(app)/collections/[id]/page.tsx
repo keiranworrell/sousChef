@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { CollectionWithItems, CollectionRecipeItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import RecipeMultiSelectModal from "@/components/RecipeMultiSelectModal";
 import { unwrap } from "@souschef/shared";
 
 export default function CollectionDetailPage(): React.JSX.Element {
@@ -28,6 +29,9 @@ export default function CollectionDetailPage(): React.JSX.Element {
 
   // Remove recipe
   const [removingId, setRemovingId] = useState<string | null>(null);
+
+  // Bulk add/remove
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     void load();
@@ -136,6 +140,17 @@ export default function CollectionDetailPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showPicker && (
+        <RecipeMultiSelectModal
+          collectionId={id}
+          initialMemberIds={collection.items.map((i) => i.recipeId)}
+          onClose={() => setShowPicker(false)}
+          // Reload rather than patching local state: adding to a public
+          // collection also flips each recipe's own visibility server-side, so
+          // the client's copy would be subtly wrong.
+          onSaved={() => { void load(); }}
+        />
+      )}
       <Link href="/collections" className="text-sm text-orange-500 hover:underline">
         ← Collections
       </Link>
@@ -189,6 +204,9 @@ export default function CollectionDetailPage(): React.JSX.Element {
             <p className="mt-2 text-xs text-gray-400">{collection.recipeCount} {collection.recipeCount === 1 ? "recipe" : "recipes"}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button onClick={() => setShowPicker(true)} className="btn-primary text-sm">
+              + Add recipes
+            </button>
             <button onClick={startEdit} className="btn-secondary text-sm">Edit</button>
             <button
               onClick={() => { void handleDelete(); }}

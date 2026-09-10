@@ -413,6 +413,20 @@ export function createApiClient(baseUrl: string, token?: string) {
       removeRecipe: (collectionId: string, recipeId: string): Promise<ApiResponse<null>> =>
         del<null>(`/collections/${collectionId}/recipes/${recipeId}`),
 
+      /**
+       * Applies a batch of membership changes in one request. Send only what
+       * changed — a full membership set would overwrite concurrent edits made
+       * on another device.
+       */
+      updateRecipes: (
+        collectionId: string,
+        changes: { add: string[]; remove: string[] },
+      ): Promise<ApiResponse<{ added: number; removed: number }>> =>
+        patch<{ added: number; removed: number }>(
+          `/collections/${collectionId}/recipes`,
+          changes,
+        ),
+
       forRecipe: (recipeId: string): Promise<ApiResponse<{ collectionIds: string[] }>> =>
         get<{ collectionIds: string[] }>(`/collections/for-recipe/${recipeId}`),
 
