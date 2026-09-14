@@ -124,6 +124,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     // POST /recipes/{id}/cook
     if (method === "POST" && recipeId && event.rawPath?.endsWith("/cook")) {
       const entry = await logCook(user.id, recipeId);
+      if (!entry) throw new NotFoundError("Recipe not found");
       return okResponse(entry, 201);
     }
 

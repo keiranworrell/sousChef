@@ -50,7 +50,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const deleteMatch = path.match(/\/meal-plans\/([^/]+)\/entries\/([^/]+)$/);
     if (deleteMatch && method === "DELETE") {
       const [, planId, entryId] = deleteMatch;
-      const deleted = await deleteMealPlanEntry(entryId!, planId!);
+      const deleted = await deleteMealPlanEntry(entryId!, planId!, user.id, householdId);
       if (!deleted) throw new NotFoundError("Entry not found");
       return okResponse(null, 204);
     }

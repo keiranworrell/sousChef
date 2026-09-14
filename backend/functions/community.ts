@@ -47,7 +47,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     // POST /community/recipes/{id}/like  — must come before /{id} and /{id}/fork
     const likeMatch = path.match(/\/community\/recipes\/([^/]+)\/like$/);
     if (likeMatch && method === "POST") {
-      await likeRecipe(user.id, likeMatch[1]!);
+      const liked = await likeRecipe(user.id, likeMatch[1]!);
+      if (!liked) throw new NotFoundError("Recipe not found");
       return okResponse(null, 204);
     }
     if (likeMatch && method === "DELETE") {

@@ -35,12 +35,29 @@ export type CommunityFeedResult = {
 
 // ── Likes ─────────────────────────────────────────────────────────────────────
 
-export async function likeRecipe(userId: string, recipeId: string): Promise<void> {
+/**
+ * Likes a public recipe. Returns false if there is no such public recipe.
+ *
+ * Liking is a community action, so it applies only to recipes in the community.
+ * Without the check, any id could be liked — including someone's private
+ * recipe, which would show a like count its owner can see and cannot explain,
+ * and would carry those phantom likes into the `popular` sort if they ever
+ * published it.
+ */
+export async function likeRecipe(userId: string, recipeId: string): Promise<boolean> {
   const db = await getDb();
+
+  const [recipe] = await db
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), eq(recipes.isPublic, true)));
+  if (!recipe) return false;
+
   await db
     .insert(recipeLikes)
     .values({ userId, recipeId })
     .onConflictDoNothing();
+  return true;
 }
 
 export async function unlikeRecipe(userId: string, recipeId: string): Promise<void> {
