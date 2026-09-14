@@ -1,4 +1,4 @@
-import { pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { recipes } from "./recipes";
 import { households } from "./households";
@@ -28,4 +28,9 @@ export const mealPlanEntries = pgTable("meal_plan_entries", {
   recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
   dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
   mealType: mealTypeEnum("meal_type").notNull(),
+  /**
+   * How many people this entry is being cooked for. Null means "as written",
+   * i.e. use the recipe's own serving count and don't scale.
+   */
+  servings: integer("servings"),
 });

@@ -512,6 +512,11 @@ export type MealPlanEntry = {
   recipeId: UUID;
   dayOfWeek: DayOfWeek;
   mealType: MealType;
+  /**
+   * How many people this entry is being cooked for. Null means "as written" —
+   * the recipe's own servings, unscaled. Drives shopping list quantities.
+   */
+  servings: number | null;
   recipe: MealPlanEntryRecipe;
 };
 
@@ -521,6 +526,8 @@ export type CreateMealPlanEntryInput = {
   recipeId: UUID;
   dayOfWeek: DayOfWeek;
   mealType: MealType;
+  /** Omit or pass null to cook the recipe as written. */
+  servings?: number | null;
 };
 
 // ─── Households ────────────────────────────────────────────────────────────────

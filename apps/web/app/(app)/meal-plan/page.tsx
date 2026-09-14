@@ -65,6 +65,11 @@ export default function MealPlanPage(): React.JSX.Element {
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   const [addingEntry, setAddingEntry] = useState(false);
+  const [addEntryError, setAddEntryError] = useState<string | null>(null);
+  // How many people the chosen recipe is for. Null = cook it as written.
+  // Persisted for the session so planning a week for the same number of people
+  // doesn't mean retyping it on every single entry.
+  const [planServings, setPlanServings] = useState<number | null>(null);
 
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [householdName, setHouseholdName] = useState<string | null>(null);
@@ -132,18 +137,23 @@ export default function MealPlanPage(): React.JSX.Element {
   async function handleAddEntry(recipeId: string): Promise<void> {
     if (!plan || !pickerTarget) return;
     setAddingEntry(true);
+    setAddEntryError(null);
     try {
       const api = await getApiClient();
       const res = await api.mealPlans.addEntry(plan.id, {
         recipeId,
         dayOfWeek: pickerTarget.dayOfWeek,
         mealType: pickerTarget.mealType,
+        // null means "cook it as written" — only send a number when the user
+        // has actually chosen one, so an unset field doesn't silently pin the
+        // entry to whatever the recipe happens to serve today.
+        servings: planServings,
       });
       if ("error" in res) throw new Error(res.error.message);
       setPlan((prev) => prev ? { ...prev, entries: [...prev.entries, res.data] } : prev);
       setPickerTarget(null);
-    } catch {
-      // ignore — picker stays open
+    } catch (err) {
+      setAddEntryError(err instanceof Error ? err.message : "Could not add recipe");
     } finally {
       setAddingEntry(false);
     }
@@ -333,6 +343,11 @@ export default function MealPlanPage(): React.JSX.Element {
                             <div className="group relative rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-100 dark:border-orange-900 p-2 min-h-[56px]">
                               <p className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug pr-4 break-words">
                                 {entry.recipe.title}
+                                {entry.servings && (
+                                  <span className="ml-1.5 text-xs font-normal text-orange-500">
+                                    ×{entry.servings}
+                                  </span>
+                                )}
                               </p>
                               <button
                                 onClick={() => { void handleRemoveEntry(entry); }}
@@ -403,6 +418,11 @@ export default function MealPlanPage(): React.JSX.Element {
                             <div className="group relative rounded-lg bg-orange-50 border border-orange-100 p-2 min-h-[56px]">
                               <p className="text-xs font-medium text-gray-800 leading-snug pr-4">
                                 {entry.recipe.title}
+                                {entry.servings && (
+                                  <span className="ml-1.5 text-xs font-normal text-orange-500">
+                                    ×{entry.servings}
+                                  </span>
+                                )}
                               </p>
                               <button
                                 onClick={() => { void handleRemoveEntry(entry); }}
@@ -513,6 +533,33 @@ export default function MealPlanPage(): React.JSX.Element {
                 autoFocus
               />
             </div>
+            {/* Servings applies to whichever recipe is picked next. Put above
+                the list rather than per-row: the user is planning for a fixed
+                number of people, not deciding afresh for each recipe. */}
+            <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+              <label htmlFor="planServings" className="text-sm text-gray-600 dark:text-gray-400">
+                Cooking for
+              </label>
+              <input
+                id="planServings"
+                type="number"
+                min={1}
+                max={100}
+                value={planServings ?? ""}
+                placeholder="as written"
+                onChange={(e) => {
+                  const v = e.target.value.trim();
+                  setPlanServings(v === "" ? null : Math.max(1, parseInt(v, 10) || 1));
+                }}
+                className="input w-28 text-sm"
+              />
+              <span className="text-xs text-gray-400">
+                {planServings ? "people" : "uses each recipe's own servings"}
+              </span>
+            </div>
+            {addEntryError && (
+              <p className="px-5 pt-2 text-xs text-red-600">{addEntryError}</p>
+            )}
             <ul className="overflow-y-auto flex-1 py-2">
               {recipesLoading && (
                 <li className="px-5 py-8 text-center text-sm text-gray-400">Loading…</li>

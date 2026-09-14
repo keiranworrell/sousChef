@@ -24,3 +24,4 @@ export function round(value: number, decimals: number): number {
 }
 export * from "./predictive-tags";
 export * from "./scale-recipe";
+export * from "./ingredient-name";
