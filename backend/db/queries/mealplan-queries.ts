@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "../client";
 import { mealPlans, mealPlanEntries, recipes, recipeIngredients } from "../schema";
+import { normaliseIngredientName } from "@souschef/shared";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,8 @@ export type CreateMealPlanEntryInput = {
   recipeId: string;
   dayOfWeek: DayOfWeek;
   mealType: MealType;
+  /** How many people this entry is for. Null/omitted means "as written". */
+  servings?: number | null;
 };
 
 // ── Unit normalisation (for ingredient aggregation) ────────────────────────────
@@ -70,7 +73,24 @@ function normaliseUnit(quantity: number | null, unit: string | null): Normalised
   return { quantity, unit };
 }
 
-/** Aggregates raw ingredients: normalises units then merges by name + unit. */
+/**
+ * Aggregates raw ingredients: normalises units, then merges by canonical name
+ * plus unit.
+ *
+ * The grouping key used to be the raw lowercased name, which meant "salt" and
+ * "salt, a sprinkle" — the same purchase written two ways — landed on the
+ * shopping list as separate rows. normaliseIngredientName resolves those, and
+ * the common UK/US synonyms besides.
+ *
+ * The key is the canonical name; the *display* name is whatever the first
+ * occurrence used. Showing the canonical form would mean writing "beef mince"
+ * onto a list where the user wrote "93/7 ground beef", which is a worse answer
+ * than leaving their own words alone.
+ *
+ * An ingredient whose name normalises to nothing (a stray "2" or "*") keeps its
+ * raw name as the key, so it stays a row of its own rather than collapsing
+ * every unnameable item into one.
+ */
 function aggregateIngredients(
   raw: Array<{ name: string; quantity: number | null; unit: string | null }>,
 ): MealPlanIngredient[] {
@@ -78,7 +98,9 @@ function aggregateIngredients(
 
   for (const ing of raw) {
     const { quantity: normQty, unit: normUnit } = normaliseUnit(ing.quantity, ing.unit);
-    const key = `${ing.name.toLowerCase().trim()}|${normUnit ?? ""}`;
+    const canonical = normaliseIngredientName(ing.name);
+    const nameKey = canonical || ing.name.toLowerCase().trim();
+    const key = `${nameKey}|${normUnit ?? ""}`;
 
     const existing = groups.get(key);
     if (existing) {
@@ -148,6 +170,7 @@ async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithR
       recipeId:      mealPlanEntries.recipeId,
       dayOfWeek:     mealPlanEntries.dayOfWeek,
       mealType:      mealPlanEntries.mealType,
+      servings:      mealPlanEntries.servings,
       recipeTitle:   recipes.title,
       recipeImageUrl: recipes.imageUrl,
       recipeServings: recipes.servings,
@@ -162,6 +185,7 @@ async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithR
     recipeId:   row.recipeId,
     dayOfWeek:  row.dayOfWeek,
     mealType:   row.mealType,
+    servings:   row.servings,
     recipe: {
       id:       row.recipeId,
       title:    row.recipeTitle,
@@ -182,6 +206,7 @@ export async function createMealPlanEntry(
       recipeId:   input.recipeId,
       dayOfWeek:  String(input.dayOfWeek) as "0" | "1" | "2" | "3" | "4" | "5" | "6",
       mealType:   input.mealType,
+      servings:   input.servings ?? null,
     })
     .returning();
 
@@ -243,10 +268,19 @@ export type MealPlanIngredient = {
 };
 
 /**
- * Returns deduplicated, unit-normalised ingredients across every recipe in a meal plan.
- * Weight units are converted to grams; volume units to millilitres.
- * Quantities are summed when name+unit match. Weight/volume mismatches stay separate.
- * Verifies the plan belongs to the user or their household.
+ * Ingredients across a whole meal plan, scaled per entry, unit-normalised and
+ * merged. Verifies the plan belongs to the user or their household.
+ *
+ * Two things this deliberately does per *entry* rather than per recipe:
+ *
+ *   Scaling. An entry may specify how many people it's being cooked for. A
+ *   recipe written for 8 planned for 2 contributes a quarter of its
+ *   quantities — without this the shopping list is simply wrong, by a factor
+ *   of however far apart the two numbers are.
+ *
+ *   Repetition. The same recipe planned on Tuesday and again on Friday needs
+ *   buying twice. This previously deduplicated recipe ids before fetching
+ *   ingredients, so a recipe cooked twice in a week was shopped for once.
  */
 export async function getMealPlanIngredients(
   planId: string,
@@ -262,9 +296,15 @@ export async function getMealPlanIngredients(
   const [plan] = await db.select({ id: mealPlans.id }).from(mealPlans).where(planWhere);
   if (!plan) return null;
 
+  // Recipe servings comes along so the scale factor can be computed per entry
   const entries = await db
-    .select({ recipeId: mealPlanEntries.recipeId })
+    .select({
+      recipeId: mealPlanEntries.recipeId,
+      servings: mealPlanEntries.servings,
+      recipeServings: recipes.servings,
+    })
     .from(mealPlanEntries)
+    .innerJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
     .where(eq(mealPlanEntries.mealPlanId, planId));
 
   if (entries.length === 0) return [];
@@ -273,6 +313,7 @@ export async function getMealPlanIngredients(
 
   const raw = await db
     .select({
+      recipeId: recipeIngredients.recipeId,
       name:     recipeIngredients.name,
       quantity: recipeIngredients.quantity,
       unit:     recipeIngredients.unit,
@@ -280,5 +321,34 @@ export async function getMealPlanIngredients(
     .from(recipeIngredients)
     .where(inArray(recipeIngredients.recipeId, recipeIds));
 
-  return aggregateIngredients(raw);
+  const byRecipe = new Map<string, typeof raw>();
+  for (const row of raw) {
+    const list = byRecipe.get(row.recipeId) ?? [];
+    list.push(row);
+    byRecipe.set(row.recipeId, list);
+  }
+
+  // One pass per entry, so a repeated recipe contributes once per appearance
+  const scaled: Array<{ name: string; quantity: number | null; unit: string | null }> = [];
+  for (const entry of entries) {
+    const ingredients = byRecipe.get(entry.recipeId) ?? [];
+
+    // Guard the denominator: a recipe with 0 or null servings would otherwise
+    // produce Infinity or NaN quantities, which propagate silently through the
+    // sum and end up on the list as a blank or nonsensical figure.
+    const factor =
+      entry.servings && entry.recipeServings && entry.recipeServings > 0
+        ? entry.servings / entry.recipeServings
+        : 1;
+
+    for (const ing of ingredients) {
+      scaled.push({
+        name: ing.name,
+        quantity: ing.quantity !== null ? ing.quantity * factor : null,
+        unit: ing.unit,
+      });
+    }
+  }
+
+  return aggregateIngredients(scaled);
 }
