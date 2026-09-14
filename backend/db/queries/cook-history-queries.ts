@@ -1,4 +1,4 @@
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, or } from "drizzle-orm";
 import { getDb } from "../client";
 import { cookHistory, recipes } from "../schema";
 
@@ -20,11 +20,37 @@ export type GetCookHistoryOptions = {
  * Log a cook session for a user and recipe.
  * Returns the newly created cook history entry with recipe details.
  */
+/**
+ * Records that the user cooked a recipe.
+ *
+ * Returns null if the recipe isn't one they can see. Previously this inserted
+ * against any id and then read the recipe back unconditionally, returning its
+ * title and image — so the endpoint could be used to enumerate recipe ids and
+ * read content out of other people's private recipes. The check has to come
+ * first, and the read has to carry the same constraint: fetching by id alone
+ * after an ownership check elsewhere just moves the hole around.
+ *
+ * Own recipes and public ones both qualify — cooking something from the
+ * community is the point of the community.
+ */
 export async function logCook(
   userId: string,
   recipeId: string,
-): Promise<CookHistoryEntryWithRecipe> {
+): Promise<CookHistoryEntryWithRecipe | null> {
   const db = await getDb();
+
+  const [recipe] = await db
+    .select({ title: recipes.title, imageUrl: recipes.imageUrl })
+    .from(recipes)
+    .where(
+      and(
+        eq(recipes.id, recipeId),
+        or(eq(recipes.userId, userId), eq(recipes.isPublic, true)),
+      ),
+    )
+    .limit(1);
+
+  if (!recipe) return null;
 
   const [entry] = await db
     .insert(cookHistory)
@@ -33,18 +59,11 @@ export async function logCook(
 
   if (!entry) throw new Error("Failed to create cook history entry");
 
-  // Fetch the recipe title and image to return alongside the entry
-  const [recipe] = await db
-    .select({ title: recipes.title, imageUrl: recipes.imageUrl })
-    .from(recipes)
-    .where(eq(recipes.id, recipeId))
-    .limit(1);
-
   return {
     ...entry,
     recipe: {
-      title: recipe?.title ?? "",
-      imageUrl: recipe?.imageUrl ?? null,
+      title: recipe.title,
+      imageUrl: recipe.imageUrl,
     },
   };
 }

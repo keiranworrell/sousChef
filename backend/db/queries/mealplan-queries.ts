@@ -197,11 +197,33 @@ export async function createMealPlanEntry(
   return { ...entry, recipe: recipeRow };
 }
 
+/**
+ * Deletes an entry, but only from a plan the caller is entitled to.
+ *
+ * Both ids arrive from the request path, so scoping the delete to
+ * `entryId AND planId` proves only that the two are related — not that either
+ * belongs to the caller. Without the ownership check below, any user could
+ * delete any entry from anyone's meal plan given the two ids.
+ *
+ * Ownership mirrors getOrCreateMealPlan: a plan belongs to a household when one
+ * exists, otherwise to the user directly. Checking only `userId` would break
+ * households, where a plan created by one member is edited by another.
+ */
 export async function deleteMealPlanEntry(
   entryId: string,
   planId: string,
+  userId: string,
+  householdId: string | null,
 ): Promise<boolean> {
   const db = await getDb();
+
+  const ownershipWhere = householdId
+    ? and(eq(mealPlans.id, planId), eq(mealPlans.householdId, householdId))
+    : and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId), isNull(mealPlans.householdId));
+
+  const [plan] = await db.select({ id: mealPlans.id }).from(mealPlans).where(ownershipWhere);
+  if (!plan) return false;
+
   const result = await db
     .delete(mealPlanEntries)
     .where(
