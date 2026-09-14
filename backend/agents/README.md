@@ -55,7 +55,7 @@ them in place made the codebase look like it had more AI surface than it does:
 | Agent | Replaced by |
 |---|---|
 | `substitution.ts` | A static substitution data file in `packages/shared` |
-| `pantry-to-recipe.ts` | A SQL query helper behind `GET /pantry/suggestions` |
+| `pantry-to-recipe.ts` | Removed with pantry tracking |
 | `scaling.ts` | `scaleQuantity`, a pure utility in `packages/shared` |
 
 They remain in git history if an AI-backed version is ever wanted. Worth noting

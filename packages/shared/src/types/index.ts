@@ -89,7 +89,6 @@ export type UserDataExport = {
   account: Record<string, unknown>;
   recipes: unknown[];
   collections: unknown[];
-  pantry: unknown[];
   shoppingLists: unknown[];
   mealPlans: unknown[];
   fermentationBatches: unknown[];
@@ -320,52 +319,6 @@ export type CookHistoryResponse = {
   total: number;
   limit: number;
   offset: number;
-};
-
-// ─── Pantry ────────────────────────────────────────────────────────────────────
-
-export type PantryItem = {
-  id: UUID;
-  userId: UUID;
-  name: string;
-  quantity: number | null;
-  unit: string | null;
-  expiryDate: ISODateString | null;
-  lowStockThreshold: number | null;
-  createdAt: ISODateString;
-  updatedAt: ISODateString;
-};
-
-export type CreatePantryItemInput = {
-  name: string;
-  quantity?: number | null;
-  unit?: string | null;
-  expiryDate?: ISODateString | null;
-  lowStockThreshold?: number | null;
-};
-
-export type UpdatePantryItemInput = Partial<CreatePantryItemInput>;
-
-export type ListPantryItemsResponse = {
-  items: PantryItem[];
-};
-
-export type SuggestedRecipe = {
-  id: UUID;
-  title: string;
-  imageUrl: string | null;
-  cuisine: string | null;
-  difficulty: "easy" | "medium" | "hard" | null;
-  cookTimeMinutes: number | null;
-  tags: string[];
-  matchCount: number;
-  totalIngredients: number;
-  matchRatio: number;
-};
-
-export type PantrySuggestionsResponse = {
-  savedRecipes: SuggestedRecipe[];
-  communityRecipes: SuggestedRecipe[];
 };
 
 // ─── Collections ───────────────────────────────────────────────────────────────

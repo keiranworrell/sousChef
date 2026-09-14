@@ -44,15 +44,6 @@ export default function AppLayout(): React.JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="pantry"
-        options={{
-          title: "Pantry",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="basket-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="shopping"
         options={{
           title: "Shopping",

@@ -144,7 +144,7 @@ export default function SettingsPage(): React.JSX.Element {
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400">
                   A JSON file containing everything sousChef holds about you — recipes,
-                  collections, pantry, shopping lists, meal plans, fermentation batches,
+                  collections, shopping lists, meal plans, fermentation batches,
                   cook history, and your account details.
                 </p>
               </div>
@@ -170,7 +170,7 @@ export default function SettingsPage(): React.JSX.Element {
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Delete account</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                Permanently deletes your account, recipes, pantry, and all data. This cannot be undone.
+                Permanently deletes your account, recipes, and all data. This cannot be undone.
               </p>
             </div>
             <button
@@ -197,7 +197,7 @@ export default function SettingsPage(): React.JSX.Element {
           <div className="relative w-full max-w-md mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 space-y-4">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete your account?</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              This will permanently delete your account and all associated data — recipes, pantry, shopping lists, collections, fermentation batches, and meal plans.
+              This will permanently delete your account and all associated data — recipes, shopping lists, collections, fermentation batches, and meal plans.
               <span className="font-semibold text-gray-700 dark:text-gray-300"> This cannot be undone.</span>
             </p>
             <div className="space-y-1.5">

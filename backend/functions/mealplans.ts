@@ -12,7 +12,6 @@ import {
   getWeekStart,
   getMealPlanIngredients,
 } from "../db/queries/mealplan-queries";
-import { listPantryItems } from "../db/queries/pantry-queries";
 import { createShoppingListWithItems } from "../db/queries/shopping-queries";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -28,7 +27,6 @@ const CreateEntrySchema = z.object({
 
 const GenerateShoppingListSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  deductPantry: z.boolean().optional().default(false),
 });
 
 // ── Handler ────────────────────────────────────────────────────────────────────
@@ -71,25 +69,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const body = parseBody(event.body, GenerateShoppingListSchema);
 
       // getMealPlanIngredients now returns deduplicated, unit-normalised ingredients
-      let aggregated = await getMealPlanIngredients(planId, user.id, householdId);
+      const aggregated = await getMealPlanIngredients(planId, user.id, householdId);
       if (aggregated === null) throw new NotFoundError("Meal plan not found");
-
-      // Optionally deduct pantry quantities
-      if (body.deductPantry && aggregated.length > 0) {
-        const pantry = await listPantryItems(user.id, householdId);
-        aggregated = aggregated.flatMap((item) => {
-          const match = pantry.find(
-            (p) =>
-              p.name.toLowerCase().trim() === item.name.toLowerCase().trim() &&
-              (p.unit ?? "").toLowerCase().trim() === (item.unit ?? "").toLowerCase().trim(),
-          );
-          if (!match || match.quantity === null) return [item];
-          if (item.quantity === null) return [item];
-          const remaining = item.quantity - match.quantity;
-          if (remaining <= 0) return [];
-          return [{ ...item, quantity: remaining }];
-        });
-      }
 
       const listName = body.name ?? "Meal plan shopping list";
       const list = await createShoppingListWithItems({

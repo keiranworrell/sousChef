@@ -54,7 +54,6 @@ export default function MealPlanPage(): React.JSX.Element {
   // Generate shopping list
   const [showGenerate, setShowGenerate] = useState(false);
   const [genName, setGenName] = useState("");
-  const [genDeductPantry, setGenDeductPantry] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
 
@@ -168,7 +167,6 @@ export default function MealPlanPage(): React.JSX.Element {
 
   function openGenerate(): void {
     setGenName(`Week of ${formatWeekRange(weekStart)}`);
-    setGenDeductPantry(false);
     setGenError(null);
     setShowGenerate(true);
   }
@@ -182,7 +180,6 @@ export default function MealPlanPage(): React.JSX.Element {
       const api = await getApiClient();
       const res = await api.mealPlans.generateShoppingList(plan.id, {
         name: genName.trim() || undefined,
-        deductPantry: genDeductPantry,
       });
       if ("error" in res) throw new Error(res.error.message);
       setShowGenerate(false);
@@ -469,17 +466,6 @@ export default function MealPlanPage(): React.JSX.Element {
                   autoFocus
                 />
               </div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
-                  checked={genDeductPantry}
-                  onChange={(e) => setGenDeductPantry(e.target.checked)}
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Deduct items already in pantry
-                </span>
-              </label>
               {genError && <p className="text-sm text-red-600">{genError}</p>}
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="btn-primary flex-1" disabled={generating}>
