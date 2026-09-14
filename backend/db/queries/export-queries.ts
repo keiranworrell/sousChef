@@ -8,8 +8,6 @@ import {
   recipeTags,
   collections,
   collectionItems,
-  pantryItems,
-  pantryItemNotes,
   shoppingLists,
   shoppingListItems,
   mealPlans,
@@ -42,7 +40,6 @@ export type UserDataExport = {
   account: Record<string, unknown>;
   recipes: unknown[];
   collections: unknown[];
-  pantry: unknown[];
   shoppingLists: unknown[];
   mealPlans: unknown[];
   fermentationBatches: unknown[];
@@ -103,17 +100,6 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
   const exportedCollections = collectionRows.map((c) => ({
     ...c,
     recipeIds: items.filter((i) => i.collectionId === c.id).map((i) => i.recipeId),
-  }));
-
-  // ── Pantry, with notes ─────────────────────────────────────────────────────
-  const pantryRows = await db.select().from(pantryItems).where(eq(pantryItems.userId, userId));
-  const pantryIds = pantryRows.map((p) => p.id);
-  const notes = pantryIds.length
-    ? await db.select().from(pantryItemNotes).where(inArray(pantryItemNotes.pantryItemId, pantryIds))
-    : [];
-  const exportedPantry = pantryRows.map((p) => ({
-    ...p,
-    notes: notes.filter((n) => n.pantryItemId === p.id),
   }));
 
   // ── Shopping lists, with items ─────────────────────────────────────────────
@@ -178,7 +164,6 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
     account,
     recipes: exportedRecipes,
     collections: exportedCollections,
-    pantry: exportedPantry,
     shoppingLists: exportedLists,
     mealPlans: exportedPlans,
     fermentationBatches: exportedBatches,

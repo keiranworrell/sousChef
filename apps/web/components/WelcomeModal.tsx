@@ -80,7 +80,6 @@ export default function WelcomeModal({ onClose }: Props): React.JSX.Element {
                 {[
                   { icon: "📖", label: "Save recipes", desc: "Import from any URL or create your own" },
                   { icon: "🛒", label: "Plan meals", desc: "Weekly planner with auto shopping lists" },
-                  { icon: "🥫", label: "Track pantry", desc: "Know what you have and what's running low" },
                   { icon: "🧑‍🍳", label: "Cook smarter", desc: "Guided cooking mode with per-step timers" },
                 ].map(({ icon, label, desc }) => (
                   <div

@@ -109,14 +109,14 @@ export default function ShoppingListPage(): React.JSX.Element {
 
   async function handleComplete(): Promise<void> {
     const checkedCount = list?.items.filter((i) => i.isChecked).length ?? 0;
-    if (!confirm(`Add ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""} to your pantry and delete this list?`)) return;
+    if (!confirm(`Mark this list complete? It will be deleted, including ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""}.`)) return;
     setActionError(null);
     setCompleting(true);
     try {
       const api = await getApiClient();
       const res = await api.shopping.complete(id);
       if ("error" in res) throw new Error(res.error.message);
-      router.push("/pantry");
+      router.push("/shopping");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -172,7 +172,7 @@ export default function ShoppingListPage(): React.JSX.Element {
               onClick={() => { void handleComplete(); }}
               disabled={completing || deleting}
             >
-              {completing ? "Updating pantry…" : "Complete & update pantry"}
+              {completing ? "Completing…" : "Complete list"}
             </button>
             <button
               className="btn-secondary py-1.5 px-3 text-sm text-red-600 border-red-200 hover:bg-red-50 disabled:opacity-50"

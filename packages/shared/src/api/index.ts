@@ -23,7 +23,6 @@ import type {
   CreateFermentationBatchInput,
   CreateFermentationLogInput,
   CreateMealPlanEntryInput,
-  CreatePantryItemInput,
   CreateRecipeInput,
   CreateShoppingListInput,
   CreateShoppingListItemInput,
@@ -34,20 +33,16 @@ import type {
   ImportRecipeTextInput,
   ImportRecipePhotoInput,
   ListFermentationBatchesResponse,
-  ListPantryItemsResponse,
-  PantrySuggestionsResponse,
   ListRecipesResponse,
   ListShoppingListsResponse,
   MealPlanEntry,
   MealPlanWithEntries,
-  PantryItem,
   RecipeWithDetails,
   ShoppingList,
   ShoppingListItem,
   ShoppingListWithItems,
   UpdateFermentationBatchInput,
   UpdateFermentationLogInput,
-  UpdatePantryItemInput,
   UpdateRecipeInput,
   UpdateShoppingListInput,
   UpdateShoppingListItemInput,
@@ -277,22 +272,6 @@ export function createApiClient(baseUrl: string, token?: string) {
       },
     },
 
-    pantry: {
-      list: (): Promise<ApiResponse<ListPantryItemsResponse>> =>
-        get<ListPantryItemsResponse>("/pantry"),
-
-      suggestions: (): Promise<ApiResponse<PantrySuggestionsResponse>> =>
-        get<PantrySuggestionsResponse>("/pantry/suggestions"),
-
-      create: (input: CreatePantryItemInput): Promise<ApiResponse<PantryItem>> =>
-        post<PantryItem>("/pantry", input),
-
-      update: (id: string, input: UpdatePantryItemInput): Promise<ApiResponse<PantryItem>> =>
-        patch<PantryItem>(`/pantry/${id}`, input),
-
-      delete: (id: string): Promise<ApiResponse<null>> =>
-        del<null>(`/pantry/${id}`),
-    },
 
     users: {
       me: (): Promise<ApiResponse<User>> =>
@@ -484,7 +463,7 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       generateShoppingList: (
         planId: string,
-        input: { name?: string; deductPantry?: boolean },
+        input: { name?: string },
       ): Promise<ApiResponse<ShoppingListWithItems>> =>
         post<ShoppingListWithItems>(`/meal-plans/${planId}/shopping-list`, input),
     },
@@ -505,8 +484,8 @@ export function createApiClient(baseUrl: string, token?: string) {
       delete: (listId: string): Promise<ApiResponse<null>> =>
         del<null>(`/shopping/${listId}`),
 
-      complete: (listId: string): Promise<ApiResponse<{ pantryItemsAffected: number }>> =>
-        post<{ pantryItemsAffected: number }>(`/shopping/${listId}/complete`, {}),
+      complete: (listId: string): Promise<ApiResponse<{ itemsCompleted: number }>> =>
+        post<{ itemsCompleted: number }>(`/shopping/${listId}/complete`, {}),
 
       items: {
         create: (listId: string, input: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>

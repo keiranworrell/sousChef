@@ -35,7 +35,7 @@ export default function TermsPage(): React.JSX.Element {
           <h2 className="text-base font-semibold text-gray-900 mb-2">2. The service</h2>
           <p>
             sousChef is a recipe management and cooking companion application. We provide tools
-            to save and organise recipes, plan meals, manage your pantry, track fermentation
+            to save and organise recipes, plan meals, track fermentation
             projects, and connect with a community of home cooks. The service is provided &ldquo;as
             is&rdquo; and we reserve the right to modify, suspend, or discontinue any part of it at
             any time.

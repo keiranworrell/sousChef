@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  Switch,
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -63,7 +62,6 @@ export default function MealPlanScreen(): React.JSX.Element {
   // Generate shopping list
   const [showGenerate, setShowGenerate] = useState(false);
   const [genName, setGenName] = useState("");
-  const [genDeductPantry, setGenDeductPantry] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -146,7 +144,6 @@ export default function MealPlanScreen(): React.JSX.Element {
 
   function openGenerate(): void {
     setGenName(`Week of ${formatWeekLabel(weekStart)}`);
-    setGenDeductPantry(false);
     setShowGenerate(true);
   }
 
@@ -157,7 +154,6 @@ export default function MealPlanScreen(): React.JSX.Element {
       const api = await getApiClient();
       const res = await api.mealPlans.generateShoppingList(plan.id, {
         name: genName.trim() || undefined,
-        deductPantry: genDeductPantry,
       });
       if ("error" in res) throw new Error(res.error.message);
       setShowGenerate(false);
@@ -194,14 +190,6 @@ export default function MealPlanScreen(): React.JSX.Element {
               onChangeText={setGenName}
               placeholder="Meal plan shopping list"
               autoFocus
-            />
-          </View>
-          <View style={styles.genRow}>
-            <Text style={styles.genLabel}>Deduct items already in pantry</Text>
-            <Switch
-              value={genDeductPantry}
-              onValueChange={setGenDeductPantry}
-              trackColor={{ true: "#f97316" }}
             />
           </View>
           <TouchableOpacity

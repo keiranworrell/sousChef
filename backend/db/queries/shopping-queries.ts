@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../client";
-import { shoppingLists, shoppingListItems, pantryItems } from "../schema";
+import { shoppingLists, shoppingListItems } from "../schema";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -246,16 +246,21 @@ export async function createShoppingListWithItems(
 }
 
 /**
- * Upserts all checked shopping list items into the pantry, then deletes the list.
- * Matching is by name (case-insensitive) + unit (case-insensitive).
- * If a pantry item already exists, quantities are summed (when both are numeric).
- * Returns the number of pantry items created or updated.
+ * Marks a shopping list finished by deleting it.
+ *
+ * This previously upserted every checked item into the pantry before deleting.
+ * With pantry tracking removed, completing a list simply closes it — there is
+ * nowhere for the bought items to go, and inventing a destination would be
+ * guessing at a workflow the user hasn't asked for.
+ *
+ * Returns the number of checked items so the caller can confirm what was
+ * completed; null when the list isn't the caller's.
  */
 export async function completeShoppingList(
   listId: string,
   userId: string,
   householdId: string | null,
-): Promise<{ pantryItemsAffected: number } | null> {
+): Promise<{ itemsCompleted: number } | null> {
   const db = await getDb();
 
   const listWhere = householdId
@@ -268,55 +273,15 @@ export async function completeShoppingList(
     .where(listWhere);
   if (!list) return null;
 
-  const checkedItems = await db
-    .select()
+  const [checked] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
     .from(shoppingListItems)
-    .where(and(eq(shoppingListItems.shoppingListId, listId), eq(shoppingListItems.isChecked, true)));
+    .where(
+      and(eq(shoppingListItems.shoppingListId, listId), eq(shoppingListItems.isChecked, true)),
+    );
 
-  let affected = 0;
-
-  const pantryOwnerWhere = householdId
-    ? eq(pantryItems.householdId, householdId)
-    : and(eq(pantryItems.userId, userId), isNull(pantryItems.householdId));
-
-  for (const item of checkedItems) {
-    const normName = item.name.trim();
-    const normUnit = (item.unit ?? "").trim();
-
-    const [existing] = await db
-      .select()
-      .from(pantryItems)
-      .where(
-        and(
-          pantryOwnerWhere,
-          sql`lower(trim(${pantryItems.name})) = lower(${normName})`,
-          sql`lower(trim(coalesce(${pantryItems.unit}, ''))) = lower(${normUnit})`,
-        ),
-      );
-
-    if (existing) {
-      const newQty =
-        existing.quantity !== null && item.quantity !== null
-          ? existing.quantity + item.quantity
-          : (existing.quantity ?? item.quantity ?? null);
-      await db
-        .update(pantryItems)
-        .set({ quantity: newQty, updatedAt: new Date() })
-        .where(eq(pantryItems.id, existing.id));
-    } else {
-      await db.insert(pantryItems).values({
-        userId,
-        householdId: householdId ?? null,
-        name: normName,
-        quantity: item.quantity ?? null,
-        unit: item.unit ?? null,
-      });
-    }
-
-    affected += 1;
-  }
-
+  // Items cascade with the list
   await db.delete(shoppingLists).where(listWhere);
 
-  return { pantryItemsAffected: affected };
+  return { itemsCompleted: checked?.count ?? 0 };
 }

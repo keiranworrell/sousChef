@@ -5,11 +5,11 @@ import { isSignedIn } from "@/lib/server-auth";
 export const metadata: Metadata = {
   title: "sousChef — Your personal cooking companion",
   description:
-    "Manage your recipes, plan your meals, track your pantry, and get intelligent help in the kitchen. Built for home cooks who take food seriously.",
+    "Manage your recipes, plan your meals, build your shopping list automatically, and get intelligent help in the kitchen. Built for home cooks who take food seriously.",
   openGraph: {
     title: "sousChef — Your personal cooking companion",
     description:
-      "Manage your recipes, plan your meals, track your pantry, and get intelligent help in the kitchen.",
+      "Manage your recipes, plan your meals, and build your shopping list automatically.",
     type: "website",
   },
 };
@@ -64,23 +64,6 @@ function ForkIcon(): React.JSX.Element {
       {/* fork-into-collection arrow */}
       <path d="M38 20 Q44 20 44 26 L44 38 Q44 44 38 44" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 2" />
       <polyline points="36,41 38,44 36,47" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
-  );
-}
-
-function PantryIcon(): React.JSX.Element {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      <circle cx="32" cy="32" r="32" fill="#fff7ed" />
-      {/* jar */}
-      <rect x="22" y="26" width="20" height="22" rx="3" fill="#fed7aa" stroke="#f97316" strokeWidth="2" />
-      {/* jar lid */}
-      <rect x="20" y="21" width="24" height="7" rx="2" fill="#f97316" />
-      {/* fill level */}
-      <rect x="22" y="38" width="20" height="10" rx="0 0 3 3" fill="#fb923c" opacity="0.5" />
-      {/* label line */}
-      <line x1="26" y1="33" x2="38" y2="33" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="26" y1="36" x2="34" y2="36" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -231,7 +214,7 @@ export default async function LandingPage(): Promise<React.JSX.Element> {
           <span className="text-orange-500">organised.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
-          One place to manage your recipes, plan your meals, track what&apos;s in your pantry, and get intelligent help when you need it.
+          One place to manage your recipes, plan your meals, and get intelligent help when you need it.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link href="/sign-up" className="btn-primary px-6 py-3 text-base">
@@ -294,12 +277,7 @@ export default async function LandingPage(): Promise<React.JSX.Element> {
             <Feature
               icon={<TimerIcon />}
               title="Meal planning"
-              body="Drag recipes onto a weekly planner and get a shopping list generated automatically, deducted against your pantry."
-            />
-            <Feature
-              icon={<PantryIcon />}
-              title="Pantry tracker"
-              body="Know what you have. Track stock levels and expiry dates, and get alerted when things are running low."
+              body="Drag recipes onto a weekly planner and get a combined shopping list generated automatically."
             />
             <Feature
               icon={<SparkleIcon />}

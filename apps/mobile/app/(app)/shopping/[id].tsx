@@ -117,11 +117,11 @@ export default function ShoppingListScreen(): React.JSX.Element {
       "What would you like to do?",
       [
         {
-          text: `Complete & update pantry (${checkedCount} item${checkedCount !== 1 ? "s" : ""})`,
+          text: `Complete list (${checkedCount} item${checkedCount !== 1 ? "s" : ""})`,
           onPress: () => {
             Alert.alert(
-              "Update pantry?",
-              `This will add ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""} to your pantry and delete this list.`,
+              "Complete list?",
+              `This will delete the list, including ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""}.`,
               [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -132,7 +132,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
                       const api = await getApiClient();
                       const res = await api.shopping.complete(id);
                       if ("error" in res) throw new Error(res.error.message);
-                      router.replace("/pantry");
+                      router.replace("/(app)/shopping");
                     } catch (err) {
                       Alert.alert("Error", err instanceof Error ? err.message : "Something went wrong");
                     } finally {

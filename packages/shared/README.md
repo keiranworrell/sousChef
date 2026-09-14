@@ -19,7 +19,7 @@ All TypeScript types and interfaces for the domain model. These mirror the datab
 Key types:
 - `Recipe`, `RecipeWithDetails`, `RecipeIngredient`, `RecipeStep`, `RecipeTag`
 - `CreateRecipeInput`, `UpdateRecipeInput`, `ImportRecipeInput`
-- `PantryItem`, `ShoppingList`, `FermentationBatch`, `MealPlan` (defined, not yet implemented)
+- `ShoppingList`, `FermentationBatch`, `MealPlan`
 - `ApiResponse<T>`, `ApiSuccess<T>`, `ApiError` — the response envelope every endpoint uses
 
 ### `src/api/index.ts`

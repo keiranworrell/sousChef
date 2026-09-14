@@ -46,7 +46,7 @@ export default function PrivacyPage(): React.JSX.Element {
               if you choose to provide them.
             </li>
             <li>
-              <strong>Content you create</strong> — recipes, pantry items, shopping lists,
+              <strong>Content you create</strong> — recipes, shopping lists,
               fermentation batches, and meal plans you add to the app.
             </li>
             <li>
@@ -99,7 +99,7 @@ export default function PrivacyPage(): React.JSX.Element {
           <h2 className="text-base font-semibold text-gray-900 mb-2">6. Data retention</h2>
           <p>
             We retain your data for as long as your account is active. If you delete your
-            account, all your personal data — including recipes, pantry data, and profile
+            account, all your personal data — including recipes and profile
             information — is permanently deleted within 30 days.
           </p>
         </section>

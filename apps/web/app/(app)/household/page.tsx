@@ -40,7 +40,7 @@ function CreateHouseholdForm({
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Create a household</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Give your household a name. You can then invite others to join and share
-          your pantry, shopping lists, and meal plans.
+          your shopping lists and meal plans.
         </p>
         <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
           <div>
@@ -244,7 +244,7 @@ function HouseholdView({
   }
 
   async function handleDelete(): Promise<void> {
-    if (!confirm(`Delete "${household.name}"? This will permanently remove the household and all its shared pantry items, shopping lists, and meal plans. This cannot be undone.`)) return;
+    if (!confirm(`Delete "${household.name}"? This will permanently remove the household and all its shared shopping lists and meal plans. This cannot be undone.`)) return;
     setDeleting(true);
     setActionError(null);
     try {
@@ -360,7 +360,7 @@ function HouseholdView({
         </div>
         {isOwner && (
           <p className="text-xs text-gray-400">
-            Deleting the household permanently removes all shared pantry items, shopping lists, and meal plans.
+            Deleting the household permanently removes all shared shopping lists and meal plans.
           </p>
         )}
       </div>

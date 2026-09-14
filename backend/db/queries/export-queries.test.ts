@@ -30,7 +30,6 @@ const INTENTIONALLY_EXCLUDED: Record<string, string> = {
   recipeIngredients: "exported nested under recipes",
   recipeSteps: "exported nested under recipes",
   recipeTags: "exported nested under recipes",
-  pantryItemNotes: "exported nested under pantry",
   shoppingListItems: "exported nested under shoppingLists",
   mealPlanEntries: "exported nested under mealPlans",
   fermentationLogs: "exported nested under fermentationBatches",

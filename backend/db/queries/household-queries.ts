@@ -263,7 +263,7 @@ export async function renameHousehold(
 /**
  * Permanently deletes a household. Only the owner may delete.
  * Cascade deletes all household_members, household_invites, notifications,
- * and any pantry/shopping/meal-plan items scoped to the household.
+ * and any shopping lists or meal plans scoped to the household.
  */
 export async function deleteHousehold(userId: string): Promise<void> {
   const db = await getDb();
