@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Household, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 // ── Create household form ──────────────────────────────────────────────────────
@@ -110,7 +111,16 @@ function InviteSearch({
     try {
       const api = await getApiClient();
       const res = await api.households.invite(userId);
-      if (!("error" in res)) setInvited((prev) => new Set([...prev, userId]));
+      if ("error" in res) {
+        // Was the only silent path in this file — every other action here sets
+        // an inline error. A failed invite just left the button un-ticked, so
+        // the user clicks again and wonders why nothing happens.
+        setSearchError(res.error.message);
+        return;
+      }
+      setInvited((prev) => new Set([...prev, userId]));
+    } catch (err) {
+      setSearchError(errorMessage(err, "Couldn't send that invite."));
     } finally {
       setInviting(null);
     }

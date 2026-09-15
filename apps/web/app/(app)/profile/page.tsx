@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { User, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage } from "@/components/ToastProvider";
 
 const DIETARY_SUGGESTIONS = [
   "vegetarian",
@@ -41,6 +42,7 @@ export default function ProfilePage(): React.JSX.Element {
   const [panelTotal, setPanelTotal] = useState(0);
   const [panelLoading, setPanelLoading] = useState(false);
   const [panelLoadingMore, setPanelLoadingMore] = useState(false);
+  const [panelError, setPanelError] = useState<string | null>(null);
 
   // Avatar upload state
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -86,16 +88,24 @@ export default function ProfilePage(): React.JSX.Element {
     setPanel(type);
     setPanelItems([]);
     setPanelTotal(0);
+    setPanelError(null);
     setPanelLoading(true);
     try {
       const api = await getApiClient();
       const res = type === "followers"
         ? await api.users.followers(user.id, { limit: 20, offset: 0 })
         : await api.users.following(user.id, { limit: 20, offset: 0 });
-      if (!("error" in res)) {
-        setPanelItems(res.data.users);
-        setPanelTotal(res.data.total);
+      if ("error" in res) {
+        // Previously fell through, leaving the panel showing an empty list and
+        // a total of 0 — i.e. "you have no followers", which is a claim about
+        // the user's data rather than a report about the request.
+        setPanelError(res.error.message);
+        return;
       }
+      setPanelItems(res.data.users);
+      setPanelTotal(res.data.total);
+    } catch (err) {
+      setPanelError(errorMessage(err, "Couldn't load that list."));
     } finally {
       setPanelLoading(false);
     }
@@ -109,10 +119,14 @@ export default function ProfilePage(): React.JSX.Element {
       const res = panel === "followers"
         ? await api.users.followers(user.id, { limit: 20, offset: panelItems.length })
         : await api.users.following(user.id, { limit: 20, offset: panelItems.length });
-      if (!("error" in res)) {
-        setPanelItems((prev) => [...prev, ...res.data.users]);
-        setPanelTotal(res.data.total);
+      if ("error" in res) {
+        setPanelError(res.error.message);
+        return;
       }
+      setPanelItems((prev) => [...prev, ...res.data.users]);
+      setPanelTotal(res.data.total);
+    } catch (err) {
+      setPanelError(errorMessage(err, "Couldn't load more."));
     } finally {
       setPanelLoadingMore(false);
     }
@@ -364,7 +378,11 @@ export default function ProfilePage(): React.JSX.Element {
             </div>
             <div className="overflow-y-auto flex-1 px-5 py-3">
               {panelLoading && <p className="py-6 text-sm text-center text-gray-400">Loading…</p>}
-              {!panelLoading && panelItems.length === 0 && (
+              {/* "Nobody here yet" is only true if we actually heard back. */}
+              {!panelLoading && panelError && (
+                <p className="py-6 text-center text-sm text-red-600">{panelError}</p>
+              )}
+              {!panelLoading && !panelError && panelItems.length === 0 && (
                 <p className="py-6 text-sm text-center text-gray-400">Nobody here yet.</p>
               )}
               {panelItems.map((item) => (

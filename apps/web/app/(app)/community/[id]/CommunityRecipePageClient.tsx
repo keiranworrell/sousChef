@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { CommunityRecipe, UserProfile } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
 import SourceAttribution from "@/components/SourceAttribution";
 import { unwrap } from "@souschef/shared";
@@ -22,6 +23,7 @@ function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
 }
 
 export default function CommunityRecipePageClient(): React.JSX.Element {
+  const { showError } = useToast();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -89,7 +91,8 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
       } else {
         unwrap(await api.community.like(id));
       }
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't save that like."));
       // Revert on failure
       setIsLiked(wasLiked);
       setLikeCount((prev) => (wasLiked ? prev + 1 : Math.max(0, prev - 1)));
@@ -108,7 +111,8 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
     try {
       const api = await getApiClient();
       unwrap(await api.users.follow(recipe.userId));
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't follow that cook."));
       // Revert on failure
       setFollowing(false);
       setCreatorProfile((prev) =>
@@ -127,7 +131,8 @@ export default function CommunityRecipePageClient(): React.JSX.Element {
     try {
       const api = await getApiClient();
       unwrap(await api.users.unfollow(recipe.userId));
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't unfollow that cook."));
       // Revert on failure
       setFollowing(true);
       setCreatorProfile((prev) =>

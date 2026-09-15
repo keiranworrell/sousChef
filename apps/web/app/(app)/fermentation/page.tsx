@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FermentationBatch, FermentationStatus } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 function daysAgo(dateStr: string): number {
@@ -18,6 +19,7 @@ const STATUS_STYLES: Record<FermentationStatus, string> = {
 };
 
 export default function FermentationPage(): React.JSX.Element {
+  const { showError } = useToast();
   const router = useRouter();
   const [batches, setBatches] = useState<FermentationBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +80,8 @@ export default function FermentationPage(): React.JSX.Element {
       const api = await getApiClient();
       unwrap(await api.fermentation.delete(id));
       setBatches((prev) => prev.filter((b) => b.id !== id));
-    } catch {
-      // ignore
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't delete that batch."));
     } finally {
       setDeletingId(null);
     }

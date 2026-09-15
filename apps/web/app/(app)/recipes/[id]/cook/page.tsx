@@ -6,6 +6,7 @@ import type { RecipeIngredient, RecipeStep, RecipeWithDetails, Substitution } fr
 import { scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 
 // ── Timer ─────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ export default function CookPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showError } = useToast();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [stepIndex, setStepIndex] = useState(0);
@@ -139,6 +141,7 @@ export default function CookPage(): React.JSX.Element {
   const [showFinish, setShowFinish] = useState(false);
   const [cookLogging, setCookLogging] = useState(false);
   const [cookLogged, setCookLogged] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // Captured on the finish screen. This is the one moment the user definitely
   // has an opinion about the dish, so asking here beats making them go back to
   // the recipe page to say it.
@@ -148,10 +151,19 @@ export default function CookPage(): React.JSX.Element {
 
   useEffect(() => {
     async function load(): Promise<void> {
-      const api = await getApiClient();
-      const res = await api.recipes.get(id);
-      if ("data" in res) setRecipe(res.data);
-      setLoading(false);
+      try {
+        const api = await getApiClient();
+        const res = await api.recipes.get(id);
+        if ("error" in res) {
+          setLoadError(res.error.message);
+          return;
+        }
+        setRecipe(res.data);
+      } catch (err) {
+        setLoadError(errorMessage(err, "Couldn't load this recipe."));
+      } finally {
+        setLoading(false);
+      }
     }
     void load();
   }, [id]);
@@ -185,6 +197,12 @@ export default function CookPage(): React.JSX.Element {
         }),
       );
       setCookLogged(true);
+    } catch (err) {
+      // There was no catch here at all, so unwrap's throw escaped as an
+      // unhandled rejection and the button simply stopped responding — the user
+      // had just typed notes about a meal they cooked and had no idea they were
+      // about to lose them.
+      showError(errorMessage(err, "Couldn't log this cook. Your notes are still here — try again."));
     } finally {
       setCookLogging(false);
     }
@@ -207,6 +225,32 @@ export default function CookPage(): React.JSX.Element {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950">
         <p className="text-sm text-gray-500">Loading…</p>
+      </div>
+    );
+  }
+
+  // A failed load and a recipe with no steps are different facts, and they used
+  // to render the same sentence. Telling someone standing at the hob that their
+  // recipe "has no steps" when the request actually 429'd is a confident lie
+  // about their own data, and it sends them off to re-add a recipe that is
+  // already there.
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-gray-950 px-8 text-center">
+        <p className="text-gray-300">Couldn&apos;t load this recipe.</p>
+        <p className="max-w-sm text-sm text-gray-500">{loadError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+        >
+          Try again
+        </button>
+        <button
+          onClick={() => router.back()}
+          className="text-sm text-gray-500 hover:text-gray-300"
+        >
+          ← Go back
+        </button>
       </div>
     );
   }

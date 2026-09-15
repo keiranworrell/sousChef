@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
@@ -13,6 +14,7 @@ const emptyAddForm: AddForm = { name: "", quantity: "", unit: "", category: "" }
 export default function ShoppingListPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { showError } = useToast();
   const [list, setList] = useState<ShoppingListWithItems | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +87,10 @@ export default function ShoppingListPage(): React.JSX.Element {
       setList((prev) =>
         prev ? { ...prev, items: prev.items.map((i) => (i.id === item.id ? res.data : i)) } : prev,
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      // Was silent. Ticking something off in a shop and having the tick not
+      // register is how you get home without the thing.
+      showError(errorMessage(err, "Couldn't update that item."));
     } finally {
       setTogglingId(null);
     }
@@ -96,12 +100,12 @@ export default function ShoppingListPage(): React.JSX.Element {
     setDeletingId(itemId);
     try {
       const api = await getApiClient();
-      await api.shopping.items.delete(id, itemId);
+      unwrap(await api.shopping.items.delete(id, itemId));
       setList((prev) =>
         prev ? { ...prev, items: prev.items.filter((i) => i.id !== itemId) } : prev,
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't remove that item."));
     } finally {
       setDeletingId(null);
     }

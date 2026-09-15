@@ -16,12 +16,13 @@ import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
 import SourceAttribution from "@/components/SourceAttribution";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import CookLogModal from "@/components/CookLogModal";
 import CookLogPanel from "@/components/CookLogPanel";
 
 type AddToListState =
   | { step: "closed" }
-  | { step: "picking"; lists: ShoppingList[]; loading: boolean }
+  | { step: "picking"; lists: ShoppingList[]; loading: boolean; error?: string }
   | { step: "new-name"; lists: ShoppingList[]; newName: string }
   | { step: "saving" }
   | { step: "done"; listId: string };
@@ -29,6 +30,7 @@ type AddToListState =
 export default function RecipeDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { showError } = useToast();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +95,10 @@ export default function RecipeDetailPage(): React.JSX.Element {
       const api = await getApiClient();
       unwrap(await api.recipes.delete(id));
       router.push("/recipes");
-    } catch {
+    } catch (err) {
+      // Was silent: the button un-disabled itself and the recipe stayed put,
+      // so the only signal was that nothing happened.
+      showError(errorMessage(err, "Couldn't delete this recipe."));
       setDeleting(false);
     }
   }
@@ -103,10 +108,18 @@ export default function RecipeDetailPage(): React.JSX.Element {
     try {
       const api = await getApiClient();
       const res = await api.shopping.list();
-      const lists = "data" in res ? res.data.lists : [];
-      setAddToList({ step: "picking", lists, loading: false });
-    } catch {
-      setAddToList({ step: "picking", lists: [], loading: false });
+      if ("error" in res) throw new Error(res.error.message);
+      setAddToList({ step: "picking", lists: res.data.lists, loading: false });
+    } catch (err) {
+      // A failed load used to render the picker with no lists and a "+ New
+      // list" button, which reads as "you have no shopping lists". The user
+      // then makes a second one and ends up shopping from the wrong half of it.
+      setAddToList({
+        step: "picking",
+        lists: [],
+        loading: false,
+        error: errorMessage(err, "Couldn't load your shopping lists."),
+      });
     }
   }
 
@@ -120,9 +133,12 @@ export default function RecipeDetailPage(): React.JSX.Element {
     }));
     try {
       const api = await getApiClient();
-      await api.shopping.items.bulkAdd(listId, items);
+      unwrap(await api.shopping.items.bulkAdd(listId, items));
       setAddToList({ step: "done", listId });
-    } catch {
+    } catch (err) {
+      // Closing the modal silently looked identical to succeeding, so a failed
+      // add sent someone to the shop with half a list.
+      showError(errorMessage(err, "Couldn't add those ingredients to the list."));
       setAddToList({ step: "closed" });
     }
   }
@@ -152,9 +168,10 @@ export default function RecipeDetailPage(): React.JSX.Element {
       const api = await getApiClient();
       const created = await api.shopping.create({ name });
       if ("error" in created) throw new Error(created.error.message);
-      await api.shopping.items.bulkAdd(created.data.id, items);
+      unwrap(await api.shopping.items.bulkAdd(created.data.id, items));
       setAddToList({ step: "done", listId: created.data.id });
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't create that shopping list."));
       setAddToList({ step: "closed" });
     }
   }
@@ -453,6 +470,16 @@ export default function RecipeDetailPage(): React.JSX.Element {
                 <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">Add to shopping list</h2>
                 {addToList.loading ? (
                   <p className="text-sm text-gray-400">Loading lists…</p>
+                ) : addToList.error ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-red-600">{addToList.error}</p>
+                    <button
+                      onClick={() => { void openAddToList(); }}
+                      className="btn-secondary w-full text-sm"
+                    >
+                      Try again
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {addToList.lists.map((list) => (
