@@ -44,6 +44,14 @@ export type User = {
   bio: string | null;
   dietaryPreferences: string[] | null;
   planTier: PlanTier;
+  /**
+   * AI imports left on a free plan; null on premium, meaning no limit.
+   *
+   * Null rather than Infinity or a large number: the UI's question is "do I
+   * show a counter", and null answers it directly. A sentinel number would have
+   * every caller comparing against the same magic value.
+   */
+  aiImportsRemaining: number | null;
   createdAt: ISODateString;
   updatedAt: ISODateString;
   followerCount: number;
