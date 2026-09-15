@@ -1,6 +1,7 @@
 import { and, count, desc, eq, or } from "drizzle-orm";
 import { getDb } from "../client";
 import { cookHistory, recipes } from "../schema";
+import { isRecipeInSharedCollection } from "./collection-share-queries";
 
 export type CookHistoryRecord = typeof cookHistory.$inferSelect;
 
@@ -34,8 +35,13 @@ export type LogCookInput = {
  * first, and the read has to carry the same constraint: fetching by id alone
  * after an ownership check elsewhere just moves the hole around.
  *
- * Own recipes and public ones both qualify — cooking something from the
- * community is the point of the community.
+ * Own recipes, public ones, and anything in a collection shared with the user
+ * all qualify — cooking from the community, or from a collection a friend
+ * shared, is the point of both features.
+ *
+ * This must stay the same set getRecipeById allows. A recipe you can open and
+ * cook from but cannot log is a dead end the user will read as a bug, and they
+ * would be right.
  */
 export async function logCook(
   userId: string,
@@ -44,7 +50,7 @@ export async function logCook(
 ): Promise<CookHistoryEntryWithRecipe | null> {
   const db = await getDb();
 
-  const [recipe] = await db
+  let [recipe] = await db
     .select({ title: recipes.title, imageUrl: recipes.imageUrl })
     .from(recipes)
     .where(
@@ -55,7 +61,20 @@ export async function logCook(
     )
     .limit(1);
 
-  if (!recipe) return null;
+  if (!recipe) {
+    // Neither owned nor public. The remaining legitimate route is a collection
+    // shared with this user; anything else stays a null, which the caller turns
+    // into a 404.
+    const viaShare = await isRecipeInSharedCollection(recipeId, userId);
+    if (!viaShare) return null;
+
+    [recipe] = await db
+      .select({ title: recipes.title, imageUrl: recipes.imageUrl })
+      .from(recipes)
+      .where(eq(recipes.id, recipeId))
+      .limit(1);
+    if (!recipe) return null;
+  }
 
   // An empty notes box means "nothing to say", which is the same state as never
   // having opened the form. Storing "" would make the expand affordance appear
