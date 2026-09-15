@@ -111,7 +111,17 @@ export default function CookHistoryPage(): React.JSX.Element {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-gray-900 dark:text-gray-100">{entry.recipe.title}</p>
-                    <p className="mt-0.5 text-sm text-gray-400">{formatDate(entry.cookedAt)}</p>
+                    <p className="mt-0.5 flex items-center gap-2 text-sm text-gray-400">
+                      <span>{formatDate(entry.cookedAt)}</span>
+                      {entry.rating !== null && (
+                        <span className="text-orange-400" aria-label={`${entry.rating} out of 5`}>
+                          {"★".repeat(entry.rating)}
+                        </span>
+                      )}
+                    </p>
+                    {entry.notes && (
+                      <p className="mt-0.5 truncate text-xs text-gray-400">{entry.notes}</p>
+                    )}
                   </div>
                   <span className="shrink-0 text-gray-300">→</span>
                 </Link>

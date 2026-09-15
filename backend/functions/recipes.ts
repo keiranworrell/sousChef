@@ -19,7 +19,12 @@ const IMAGES_CLOUDFRONT_DOMAIN = process.env["IMAGES_CLOUDFRONT_DOMAIN"] ?? "";
 import { importRecipeFromUrl, fetchPageHtml, parseRecipeFromHtml } from "../agents/recipe-import";
 import { importRecipeWithAi, importRecipeFromText } from "../agents/recipe-import-ai";
 import { importRecipeFromPhotos } from "../agents/recipe-import-photo";
-import { logCook, getCookHistory } from "../db/queries/cook-history-queries";
+import {
+  logCook,
+  getCookHistory,
+  getRecipeCookLog,
+  deleteCookLogEntry,
+} from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
@@ -92,6 +97,19 @@ const CookHistoryQuerySchema = z.object({
 const RediscoverQuerySchema = z.object({
   mode: z.enum(["cook-again", "never-tried"]).default("cook-again"),
 });
+
+// Every field is optional: a bare POST is still a valid "I cooked this" log,
+// which is what the one-tap path sends.
+const LogCookSchema = z.object({
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  cookedAt: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .nullable()
+    .optional(),
+});
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -106,9 +124,25 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     const method = event.requestContext.http.method.toUpperCase();
     const recipeId = event.pathParameters?.["id"];
 
+    // GET /recipes/{id}/cook-history — this user's own log for one recipe.
+    // Must be tested before the account-wide route below, which matches the same
+    // suffix; the two are told apart by whether API Gateway bound an id.
+    if (method === "GET" && recipeId && event.rawPath?.endsWith("/cook-history")) {
+      const entries = await getRecipeCookLog(user.id, recipeId);
+      return okResponse({ entries });
+    }
+
+    // DELETE /recipes/{id}/cook-history/{entryId}
+    const deleteLogMatch = event.rawPath?.match(/\/cook-history\/([^/]+)$/);
+    if (method === "DELETE" && deleteLogMatch) {
+      const removed = await deleteCookLogEntry(user.id, deleteLogMatch[1]!);
+      if (!removed) throw new NotFoundError("Cook log entry not found");
+      return okResponse(null, 204);
+    }
+
     // GET /recipes/cook-history — must come before generic GET /recipes check
     // because API Gateway sets no recipeId for this route
-    if (method === "GET" && event.rawPath?.endsWith("/cook-history")) {
+    if (method === "GET" && !recipeId && event.rawPath?.endsWith("/cook-history")) {
       const query = CookHistoryQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await getCookHistory(user.id, query);
       return okResponse(result);
@@ -123,7 +157,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // POST /recipes/{id}/cook
     if (method === "POST" && recipeId && event.rawPath?.endsWith("/cook")) {
-      const entry = await logCook(user.id, recipeId);
+      const body = event.body ? parseBody(event.body, LogCookSchema) : {};
+      const entry = await logCook(user.id, recipeId, body);
       if (!entry) throw new NotFoundError("Recipe not found");
       return okResponse(entry, 201);
     }

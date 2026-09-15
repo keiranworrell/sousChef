@@ -8,6 +8,8 @@ import type {
   FeedResponse,
   CookHistoryEntry,
   CookHistoryResponse,
+  CookLogResponse,
+  LogCookInput,
   RediscoverMode,
   RediscoverResponse,
   CommunityFeedParams,
@@ -245,8 +247,23 @@ export function createApiClient(baseUrl: string, token?: string) {
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
 
-      logCook: (recipeId: string): Promise<ApiResponse<CookHistoryEntry>> =>
-        post<CookHistoryEntry>(`/recipes/${recipeId}/cook`, {}),
+      // No argument still means "I cooked this, nothing more to say" — the
+      // one-tap path that existed before ratings and notes.
+      logCook: (
+        recipeId: string,
+        input: LogCookInput = {},
+      ): Promise<ApiResponse<CookHistoryEntry>> =>
+        post<CookHistoryEntry>(`/recipes/${recipeId}/cook`, input),
+
+      /** This user's own log for one recipe. Private; never the owner's. */
+      cookLog: (recipeId: string): Promise<ApiResponse<CookLogResponse>> =>
+        get<CookLogResponse>(`/recipes/${recipeId}/cook-history`),
+
+      deleteCookLogEntry: (
+        recipeId: string,
+        entryId: string,
+      ): Promise<ApiResponse<null>> =>
+        del<null>(`/recipes/${recipeId}/cook-history/${entryId}`),
 
       rediscover: (mode: RediscoverMode): Promise<ApiResponse<RediscoverResponse>> =>
         get<RediscoverResponse>(`/recipes/rediscover?mode=${encodeURIComponent(mode)}`),
