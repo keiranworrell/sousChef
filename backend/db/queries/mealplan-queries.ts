@@ -11,6 +11,21 @@ export type MealPlanEntryRecord = typeof mealPlanEntries.$inferSelect;
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 
+/**
+ * Display order for meal types within a day. Untagged entries sort last — they
+ * have no claim to a position, so they queue behind anything that does.
+ */
+const MEAL_TYPE_RANK: Record<MealType, number> = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+  snack: 3,
+};
+
+function mealTypeRank(mealType: MealType | null): number {
+  return mealType ? MEAL_TYPE_RANK[mealType] : 99;
+}
+
 export type MealPlanEntryWithRecipe = MealPlanEntryRecord & {
   recipe: {
     id: string;
@@ -28,7 +43,8 @@ export type CreateMealPlanEntryInput = {
   mealPlanId: string;
   recipeId: string;
   dayOfWeek: DayOfWeek;
-  mealType: MealType;
+  /** Optional label. Omit for an untagged entry. */
+  mealType?: MealType | null;
   /** How many people this entry is for. Null/omitted means "as written". */
   servings?: number | null;
 };
@@ -179,7 +195,7 @@ async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithR
     .innerJoin(recipes, eq(mealPlanEntries.recipeId, recipes.id))
     .where(eq(mealPlanEntries.mealPlanId, planId));
 
-  return rows.map((row) => ({
+  const entries = rows.map((row) => ({
     id:         row.id,
     mealPlanId: row.mealPlanId,
     recipeId:   row.recipeId,
@@ -193,6 +209,20 @@ async function getEntriesWithRecipes(planId: string): Promise<MealPlanEntryWithR
       servings: row.recipeServings,
     },
   }));
+
+  // Sort explicitly. Postgres makes no ordering promise without ORDER BY, so
+  // without this a day's list could reshuffle between loads — which looks like
+  // a bug to anyone glancing at their week.
+  //
+  // Day, then meal type, then id. The id tiebreaker keeps two untagged entries
+  // on the same day in a stable order rather than an arbitrary one.
+  return entries.sort((a, b) => {
+    const day = Number(a.dayOfWeek) - Number(b.dayOfWeek);
+    if (day !== 0) return day;
+    const meal = mealTypeRank(a.mealType) - mealTypeRank(b.mealType);
+    if (meal !== 0) return meal;
+    return a.id.localeCompare(b.id);
+  });
 }
 
 export async function createMealPlanEntry(
@@ -205,7 +235,7 @@ export async function createMealPlanEntry(
       mealPlanId: input.mealPlanId,
       recipeId:   input.recipeId,
       dayOfWeek:  String(input.dayOfWeek) as "0" | "1" | "2" | "3" | "4" | "5" | "6",
-      mealType:   input.mealType,
+      mealType:   input.mealType ?? null,
       servings:   input.servings ?? null,
     })
     .returning();

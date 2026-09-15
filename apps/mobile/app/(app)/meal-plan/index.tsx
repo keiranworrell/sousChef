@@ -24,6 +24,18 @@ import { unwrap } from "@souschef/shared";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
+// Untagged entries sort after every labelled one, matching the API's ordering.
+const MEAL_TYPE_RANK: Record<MealType, number> = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+  snack: 3,
+};
+
+function mealTypeRank(mealType: MealType | null): number {
+  return mealType ? MEAL_TYPE_RANK[mealType] : 99;
+}
+
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
   d.setUTCHours(0, 0, 0, 0);
@@ -50,7 +62,9 @@ function formatWeekLabel(monday: Date): string {
   return `${fmt(monday)} – ${fmt(sunday)}`;
 }
 
-type PickerTarget = { dayOfWeek: DayOfWeek; mealType: MealType };
+// A day is the only required choice. Meal type is an optional label chosen in
+// the picker, not a slot that must be filled.
+type PickerTarget = { dayOfWeek: DayOfWeek };
 
 export default function MealPlanScreen(): React.JSX.Element {
   const router = useRouter();
@@ -68,6 +82,11 @@ export default function MealPlanScreen(): React.JSX.Element {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [recipesLoaded, setRecipesLoaded] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  // Optional label for the entry about to be added; most entries won't have one.
+  const [pickerMealType, setPickerMealType] = useState<MealType | null>(null);
+  // How many people the next entry is cooked for. Null = as written. Kept
+  // across picks so planning a week for the same household isn't retyped.
+  const [planServings, setPlanServings] = useState<number | null>(null);
   const [addingEntry, setAddingEntry] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
@@ -93,6 +112,7 @@ export default function MealPlanScreen(): React.JSX.Element {
   async function openPicker(target: PickerTarget): Promise<void> {
     setPickerTarget(target);
     setPickerSearch("");
+    setPickerMealType(null);
     if (!recipesLoaded) {
       try {
         const api = await getApiClient();
@@ -114,7 +134,8 @@ export default function MealPlanScreen(): React.JSX.Element {
       const res = await api.mealPlans.addEntry(plan.id, {
         recipeId,
         dayOfWeek: pickerTarget.dayOfWeek,
-        mealType: pickerTarget.mealType,
+        mealType: pickerMealType,
+        servings: planServings,
       });
       if ("error" in res) throw new Error(res.error.message);
       setPlan((prev) => prev ? { ...prev, entries: [...prev.entries, res.data] } : prev);
@@ -165,10 +186,16 @@ export default function MealPlanScreen(): React.JSX.Element {
     }
   }
 
-  function getEntry(dayOfWeek: DayOfWeek, mealType: MealType): MealPlanEntry | undefined {
-    return plan?.entries.find(
-      (e) => Number(e.dayOfWeek) === dayOfWeek && e.mealType === mealType,
-    );
+  // A day holds a list. Sorted here because optimistically-added entries are
+  // appended to the end of plan.entries whatever day they belong to.
+  function getEntriesForDay(dayOfWeek: DayOfWeek): MealPlanEntry[] {
+    return (plan?.entries ?? [])
+      .filter((e) => Number(e.dayOfWeek) === dayOfWeek)
+      .sort((a, b) => {
+        const meal = mealTypeRank(a.mealType) - mealTypeRank(b.mealType);
+        if (meal !== 0) return meal;
+        return a.id.localeCompare(b.id);
+      });
   }
 
   // Generate shopping list view
@@ -218,9 +245,7 @@ export default function MealPlanScreen(): React.JSX.Element {
         <View style={styles.pickerHeader}>
           <View>
             <Text style={styles.pickerTitle}>Choose a recipe</Text>
-            <Text style={styles.pickerSubtitle}>
-              {DAYS[pickerTarget.dayOfWeek]} · {pickerTarget.mealType}
-            </Text>
+            <Text style={styles.pickerSubtitle}>{DAYS[pickerTarget.dayOfWeek]}</Text>
           </View>
           <TouchableOpacity onPress={() => setPickerTarget(null)}>
             <Text style={styles.cancelText}>Cancel</Text>
@@ -234,6 +259,48 @@ export default function MealPlanScreen(): React.JSX.Element {
             onChangeText={setPickerSearch}
             autoFocus
           />
+        </View>
+        {/* Label is optional, so "None" leads and is the default. */}
+        <View style={styles.chipRow}>
+          <TouchableOpacity
+            style={[styles.chip, pickerMealType === null && styles.chipActive]}
+            onPress={() => setPickerMealType(null)}
+          >
+            <Text style={[styles.chipText, pickerMealType === null && styles.chipTextActive]}>
+              None
+            </Text>
+          </TouchableOpacity>
+          {MEAL_TYPES.map((mealType) => (
+            <TouchableOpacity
+              key={mealType}
+              style={[styles.chip, pickerMealType === mealType && styles.chipActive]}
+              onPress={() => setPickerMealType(mealType)}
+            >
+              <Text
+                style={[styles.chipText, pickerMealType === mealType && styles.chipTextActive]}
+              >
+                {mealType}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.servingsRow}>
+          <Text style={styles.servingsLabel}>Cooking for</Text>
+          <TextInput
+            style={[styles.searchInput, styles.servingsInput]}
+            keyboardType="number-pad"
+            placeholder="as written"
+            value={planServings === null ? "" : String(planServings)}
+            onChangeText={(v) => {
+              const trimmed = v.trim();
+              setPlanServings(
+                trimmed === "" ? null : Math.min(100, Math.max(1, parseInt(trimmed, 10) || 1)),
+              );
+            }}
+          />
+          <Text style={styles.servingsHint}>
+            {planServings ? "people" : "uses the recipe's own servings"}
+          </Text>
         </View>
         <FlatList
           data={filtered}
@@ -321,37 +388,38 @@ export default function MealPlanScreen(): React.JSX.Element {
                     {date.getUTCDate()}
                   </Text>
                 </View>
-                {MEAL_TYPES.map((mealType) => {
-                  const entry = getEntry(day, mealType);
-                  return (
-                    <View key={mealType} style={styles.mealSlot}>
-                      <Text style={styles.mealTypeLabel}>{mealType}</Text>
-                      {entry ? (
-                        <View style={styles.entryCard}>
-                          <Text style={styles.entryTitle} numberOfLines={2}>
-                            {entry.recipe.title}
-                          </Text>
-                          <TouchableOpacity
-                            onPress={() => { void handleRemoveEntry(entry); }}
-                            disabled={removingId === entry.id}
-                            style={styles.removeBtn}
-                          >
-                            <Text style={styles.removeBtnText}>
-                              {removingId === entry.id ? "…" : "✕"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.addSlot}
-                          onPress={() => { void openPicker({ dayOfWeek: day, mealType }); }}
-                        >
-                          <Text style={styles.addSlotText}>+ Add</Text>
-                        </TouchableOpacity>
-                      )}
+                {getEntriesForDay(day).map((entry) => (
+                  <View key={entry.id} style={styles.mealSlot}>
+                    {/* Untagged entries give their width to the title rather
+                        than leaving an empty gutter. */}
+                    {entry.mealType ? (
+                      <Text style={styles.mealTypeLabel}>{entry.mealType}</Text>
+                    ) : null}
+                    <View style={styles.entryCard}>
+                      <Text style={styles.entryTitle} numberOfLines={2}>
+                        {entry.recipe.title}
+                        {entry.servings ? (
+                          <Text style={styles.entryServings}> ×{entry.servings}</Text>
+                        ) : null}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => { void handleRemoveEntry(entry); }}
+                        disabled={removingId === entry.id}
+                        style={styles.removeBtn}
+                      >
+                        <Text style={styles.removeBtnText}>
+                          {removingId === entry.id ? "…" : "✕"}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                  );
-                })}
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={styles.addRow}
+                  onPress={() => { void openPicker({ dayOfWeek: day }); }}
+                >
+                  <Text style={styles.addSlotText}>+ Add a recipe</Text>
+                </TouchableOpacity>
               </View>
             );
           })}
@@ -428,10 +496,41 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   entryTitle: { flex: 1, fontSize: 13, fontWeight: "500", color: "#111827" },
+  entryServings: { fontSize: 12, fontWeight: "400", color: "#f97316" },
   removeBtn: { padding: 2 },
   removeBtnText: { fontSize: 13, color: "#d1d5db" },
-  addSlot: { flex: 1 },
-  addSlotText: { fontSize: 13, color: "#d1d5db" },
+  addRow: { paddingHorizontal: 12, paddingVertical: 10 },
+  addSlotText: { fontSize: 13, color: "#9ca3af" },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: "#fff",
+  },
+  chip: {
+    borderRadius: 999,
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  chipActive: { backgroundColor: "#f97316" },
+  chipText: { fontSize: 12, color: "#4b5563", textTransform: "capitalize" },
+  chipTextActive: { color: "#fff" },
+  servingsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  servingsLabel: { fontSize: 13, color: "#4b5563" },
+  servingsInput: { width: 96 },
+  servingsHint: { flex: 1, fontSize: 11, color: "#9ca3af" },
   // Picker
   pickerHeader: {
     flexDirection: "row",

@@ -22,7 +22,9 @@ const CreateEntrySchema = z.object({
     z.literal(0), z.literal(1), z.literal(2), z.literal(3),
     z.literal(4), z.literal(5), z.literal(6),
   ]),
-  mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
+  // Optional label rather than a required slot — a day holds any number of
+  // recipes, and tagging one is a convenience.
+  mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).nullable().optional(),
   // Omitted means "cook it as written" — distinct from matching the recipe's
   // own servings, so it is nullable rather than defaulted.
   servings: z.number().int().positive().max(100).nullable().optional(),

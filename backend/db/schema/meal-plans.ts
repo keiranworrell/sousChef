@@ -27,7 +27,11 @@ export const mealPlanEntries = pgTable("meal_plan_entries", {
   mealPlanId: uuid("meal_plan_id").notNull().references(() => mealPlans.id, { onDelete: "cascade" }),
   recipeId: uuid("recipe_id").notNull().references(() => recipes.id, { onDelete: "cascade" }),
   dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
-  mealType: mealTypeEnum("meal_type").notNull(),
+  /**
+   * Optional label, not a slot. A day holds any number of entries; tagging one
+   * as breakfast or dinner is a convenience for grouping, not a requirement.
+   */
+  mealType: mealTypeEnum("meal_type"),
   /**
    * How many people this entry is being cooked for. Null means "as written",
    * i.e. use the recipe's own serving count and don't scale.

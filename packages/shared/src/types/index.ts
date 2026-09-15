@@ -511,7 +511,8 @@ export type MealPlanEntry = {
   mealPlanId: UUID;
   recipeId: UUID;
   dayOfWeek: DayOfWeek;
-  mealType: MealType;
+  /** Optional label, not a slot. Null means the entry is untagged. */
+  mealType: MealType | null;
   /**
    * How many people this entry is being cooked for. Null means "as written" —
    * the recipe's own servings, unscaled. Drives shopping list quantities.
@@ -525,7 +526,8 @@ export type MealPlanWithEntries = MealPlan & { entries: MealPlanEntry[] };
 export type CreateMealPlanEntryInput = {
   recipeId: UUID;
   dayOfWeek: DayOfWeek;
-  mealType: MealType;
+  /** Omit or pass null for an untagged entry. */
+  mealType?: MealType | null;
   /** Omit or pass null to cook the recipe as written. */
   servings?: number | null;
 };
