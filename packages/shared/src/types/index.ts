@@ -203,6 +203,23 @@ export type ImportRecipeInput = {
   url: string;
 };
 
+/** Outcome for a single recipe in a file import. */
+export type ImportedRecipeResult =
+  | { status: "imported"; title: string; recipeId: UUID }
+  | { status: "failed"; title: string; reason: string };
+
+export type ImportFileResponse = {
+  imported: number;
+  failed: number;
+  results: ImportedRecipeResult[];
+  /**
+   * Entries in the file that didn't parse as recipes at all, so were never
+   * attempted. Reported rather than dropped — an import that claims 12 when the
+   * file held 15 has quietly lost the user three recipes.
+   */
+  rejected: { index: number; title: string | null; reason: string }[];
+};
+
 export type ImportRecipeTextInput = {
   text: string;
 };

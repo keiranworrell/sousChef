@@ -1,4 +1,6 @@
 import { eq, inArray, or } from "drizzle-orm";
+import type { InterchangeRecipe } from "@souschef/shared";
+import { RECIPE_INTERCHANGE_FORMAT, USER_EXPORT_FORMAT } from "@souschef/shared";
 import { getDb } from "../client";
 import {
   users,
@@ -28,6 +30,14 @@ import {
  * Portability requires a "structured, commonly used and machine-readable"
  * format, which is why this is plain JSON rather than a rendered document.
  *
+ * The `recipes` array is emitted in the souschef-recipe-v1 interchange format
+ * rather than as raw table rows, so the file this produces is one the importer
+ * accepts. Portability means the data can go somewhere, and a dump of our
+ * primary keys that not even we can read back does not meet that bar. Nothing
+ * is lost in the reshaping: internal ids and the owning user id are the only
+ * fields dropped, and neither is personal data about the user beyond what the
+ * `account` block already states.
+ *
  * Completeness is the whole point: an export that quietly omits a table doesn't
  * satisfy the right. Every table carrying a foreign key to `users` is covered
  * here. If a new table is added, it must be added to this export too — that
@@ -37,8 +47,13 @@ import {
 export type UserDataExport = {
   exportedAt: string;
   format: string;
+  /**
+   * The format of the `recipes` array specifically, so a reader can tell what
+   * the recipes conform to without inferring it from the wrapper version.
+   */
+  recipeFormat: string;
   account: Record<string, unknown>;
-  recipes: unknown[];
+  recipes: InterchangeRecipe[];
   collections: unknown[];
   shoppingLists: unknown[];
   mealPlans: unknown[];
@@ -84,12 +99,47 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
   const stepsBy = byRecipe(steps);
   const tagsBy = byRecipe(tags);
 
-  const exportedRecipes = recipeRows.map((r) => ({
-    ...r,
-    ingredients: ingredientsBy.get(r.id) ?? [],
-    steps: stepsBy.get(r.id) ?? [],
+  // Sorted by the stored index, then flattened to array position — the
+  // interchange format carries order by position and nothing else, so the sort
+  // has to happen here rather than being left to whatever order the rows came
+  // back in.
+  const exportedRecipes: InterchangeRecipe[] = recipeRows.map((r) => ({
+    title: r.title,
+    description: r.description,
+    imageUrl: r.imageUrl,
+    servings: r.servings,
+    prepTimeMinutes: r.prepTimeMinutes,
+    cookTimeMinutes: r.cookTimeMinutes,
+    difficulty: r.difficulty,
+    cuisine: r.cuisine,
+    sourceUrl: r.sourceUrl,
+    sourceModified: r.sourceModified,
     tags: (tagsBy.get(r.id) ?? []).map((t) => t.tag),
+    ingredients: (ingredientsBy.get(r.id) ?? [])
+      .slice()
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unit: i.unit,
+        notes: i.notes,
+      })),
+    steps: (stepsBy.get(r.id) ?? [])
+      .slice()
+      .sort((a, b) => a.stepNumber - b.stepNumber)
+      .map((s) => ({
+        instruction: s.instruction,
+        timerSeconds: s.timerSeconds,
+        imageUrl: s.imageUrl,
+      })),
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   }));
+
+  // Collections reference recipes, and the interchange format has no ids to
+  // reference. Title is what survives a round trip, so that is what the
+  // collection membership is expressed in.
+  const recipeTitleById = new Map(recipeRows.map((r) => [r.id, r.title]));
 
   // ── Collections, with membership ───────────────────────────────────────────
   const collectionRows = await db.select().from(collections).where(eq(collections.userId, userId));
@@ -100,6 +150,12 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
   const exportedCollections = collectionRows.map((c) => ({
     ...c,
     recipeIds: items.filter((i) => i.collectionId === c.id).map((i) => i.recipeId),
+    // Titles as well as ids. The ids are meaningful only inside this account,
+    // and the recipes array no longer carries them, so a reader with the file
+    // alone could not otherwise tell what is in a collection.
+    recipeTitles: items
+      .filter((i) => i.collectionId === c.id)
+      .map((i) => recipeTitleById.get(i.recipeId) ?? null),
   }));
 
   // ── Shopping lists, with items ─────────────────────────────────────────────
@@ -160,7 +216,8 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
 
   return {
     exportedAt: new Date().toISOString(),
-    format: "souschef-export-v1",
+    format: USER_EXPORT_FORMAT,
+    recipeFormat: RECIPE_INTERCHANGE_FORMAT,
     account,
     recipes: exportedRecipes,
     collections: exportedCollections,

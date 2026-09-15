@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
-import type { User } from "@souschef/shared";
+import type { ImportFileResponse, User } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 
 export default function SettingsPage(): React.JSX.Element {
@@ -22,6 +22,44 @@ export default function SettingsPage(): React.JSX.Element {
   // Data export state
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  // Data import state
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<ImportFileResponse | null>(null);
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0];
+    // Reset immediately so picking the same file twice still fires a change
+    // event — without this, re-importing after a failure looks like a dead
+    // button.
+    e.target.value = "";
+    if (!file) return;
+
+    setImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      let payload: unknown;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        // Parsed here as well as server-side so an unreadable file costs no
+        // round trip and gets a message about the file rather than the request.
+        throw new Error("That file isn't valid JSON. Pick a sousChef export.");
+      }
+
+      const api = await getApiClient();
+      const res = await api.recipes.importFile(payload);
+      if ("error" in res) throw new Error(res.error.message);
+      setImportResult(res.data);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleExport(): Promise<void> {
     setExporting(true);
@@ -159,6 +197,81 @@ export default function SettingsPage(): React.JSX.Element {
             </div>
             {exportError && (
               <p className="mt-3 text-xs text-red-600">{exportError}</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  Import recipes from a file
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Restore recipes from a sousChef export. Imported recipes are always
+                  private, and where a recipe came from is kept.
+                </p>
+              </div>
+              {/* A label wrapping a hidden input, rather than a button that
+                  clicks a ref. Same result, but the file dialog opens from a
+                  real user gesture on the control itself, which keyboard and
+                  screen-reader users get for free. */}
+              <label
+                className={`btn-secondary shrink-0 cursor-pointer text-sm ${
+                  importing ? "pointer-events-none opacity-50" : ""
+                }`}
+              >
+                {importing ? "Importing…" : "Choose file"}
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  disabled={importing}
+                  onChange={(e) => { void handleImport(e); }}
+                />
+              </label>
+            </div>
+
+            {importError && <p className="mt-3 text-xs text-red-600">{importError}</p>}
+
+            {importResult && (
+              <div className="mt-3 space-y-2 border-t border-gray-100 dark:border-gray-800 pt-3">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Imported {importResult.imported}{" "}
+                  {importResult.imported === 1 ? "recipe" : "recipes"}
+                  {importResult.failed > 0 && `, ${importResult.failed} failed`}
+                  {importResult.rejected.length > 0 &&
+                    `, ${importResult.rejected.length} skipped`}
+                  .
+                </p>
+
+                {/* Every recipe that didn't make it is named. A count alone
+                    leaves the user unable to tell what they've lost. */}
+                {(importResult.failed > 0 || importResult.rejected.length > 0) && (
+                  <ul className="space-y-1">
+                    {importResult.results
+                      .filter((r) => r.status === "failed")
+                      .map((r, i) => (
+                        <li key={`failed-${i}`} className="text-xs text-red-600">
+                          {r.title}: {"reason" in r ? r.reason : "Unknown error"}
+                        </li>
+                      ))}
+                    {importResult.rejected.map((r, i) => (
+                      <li key={`rejected-${i}`} className="text-xs text-amber-600">
+                        {r.title ?? `Entry ${r.index + 1}`}: {r.reason}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {importResult.imported > 0 && (
+                  <Link
+                    href="/recipes"
+                    className="inline-block text-xs font-medium text-orange-500 hover:underline"
+                  >
+                    View your recipes →
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </section>

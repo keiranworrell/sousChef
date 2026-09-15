@@ -40,6 +40,14 @@ export type CreateRecipeInput = {
   cuisine?: string | null;
   isPublic?: boolean;
   sourceUrl?: string | null;
+  /**
+   * Only the importer sets this, to carry attribution across a round trip. The
+   * POST /recipes Zod schema does not include it, so a client creating a recipe
+   * cannot claim a recipe has diverged from a source; and updateRecipe computes
+   * the value itself and overwrites anything passed in, so appearing in
+   * UpdateRecipeInput via the Partial below has no effect.
+   */
+  sourceModified?: boolean;
   ingredients?: CreateIngredientInput[];
   steps?: CreateStepInput[];
   tags?: string[];

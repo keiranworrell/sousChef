@@ -32,6 +32,7 @@ import type {
   FermentationBatchWithLogs,
   FermentationLog,
   ImportRecipeInput,
+  ImportFileResponse,
   ImportRecipeTextInput,
   ImportRecipePhotoInput,
   ListFermentationBatchesResponse,
@@ -246,6 +247,14 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       import: (input: ImportRecipeInput): Promise<ApiResponse<RecipeWithDetails>> =>
         post<RecipeWithDetails>("/recipes/import", input),
+
+      /**
+       * Restore recipes from a sousChef export file. `payload` is the parsed
+       * JSON, posted through unchanged — the server decides which of the
+       * accepted shapes it is, so the client never has to guess.
+       */
+      importFile: (payload: unknown): Promise<ApiResponse<ImportFileResponse>> =>
+        post<ImportFileResponse>("/recipes/import/file", payload),
 
       // No argument still means "I cooked this, nothing more to say" — the
       // one-tap path that existed before ratings and notes.
