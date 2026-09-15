@@ -16,18 +16,22 @@ bakers, and fermentation enthusiasts.
 
 - **Recipe management** — create, edit, import (from URL), scale, and organise recipes
 - **Cooking mode** — fullscreen guided step-by-step cooking with per-step timers and screen wake lock
-- **AI-powered tools** — ingredient substitution, smart scaling, dietary adaptation, and recipe import parsing
-- **Pantry management** — track what you have at home, with expiry alerts and low-stock notifications
-- **Shopping lists** — auto-generated from recipes with smart deduction against pantry contents
-- **Fermentation tracker** — long-term batch projects with timeline logging, photo journals, reminders, and an AI troubleshooting assistant
-- **Meal planning** — weekly drag-and-drop planner with auto-generated shopping lists
+- **Recipe import** — from a URL, pasted text, or a photo. Structured-data parsing first, with an AI agent as the fallback
+- **Ingredient substitution and scaling** — a static substitution table and a pure scaling utility, not AI
+- **Meal planning** — a weekly planner where each day holds any number of recipes, each scalable to the number of people you're cooking for
+- **Shopping lists** — auto-generated from a meal plan, with ingredient names normalised so `salt` and `salt, a sprinkle` merge into one line
+- **Cook log** — rate a cook, note what you'd change, and see your own history on the recipe page
+- **Fermentation tracker** — long-term batch projects with timeline logging and photo journals
 - **Community** — public recipe sharing, bookmarking, collections, comments, and recipe forking
 
 ### Who it's for
 
-Home cooks who want one place to manage their recipes, plan their meals, track their
-pantry, and get intelligent help when they need it. The fermentation and patisserie angles
-are a deliberate niche focus — users who take cooking seriously but aren't professionals.
+Home cooks who want one place to manage their recipes, plan their meals, shop for them,
+and get intelligent help when they need it. The fermentation and patisserie angles are a
+deliberate niche focus — users who take cooking seriously but aren't professionals.
+
+**Pantry tracking was removed in September 2026.** If you find a reference to pantry
+anywhere in the codebase, it is dead and should be deleted, not extended.
 
 ---
 
@@ -61,7 +65,7 @@ lint, test, dev) are defined in `turbo.json` and run with `turbo run <task>`.
 
 | Directory | Purpose |
 |---|---|
-| `backend/functions` | Lambda function handlers, one file per domain (recipes, pantry, shopping, fermentation, mealplans, users) |
+| `backend/functions` | Lambda function handlers, one file per domain (recipes, shopping, fermentation, mealplans, collections, households, users) |
 | `backend/middleware` | Shared Lambda middleware — auth validation, error handling, request parsing |
 | `backend/agents` | AI agent Lambda functions, one per agent type |
 | `backend/db` | Drizzle ORM schema, client setup, and query helpers |
@@ -123,22 +127,26 @@ souschef/
 ├── backend/
 │   ├── functions/                  # Lambda handlers
 │   │   ├── recipes.ts
-│   │   ├── pantry.ts
 │   │   ├── shopping.ts
-│   │   ├── fermentation.ts
 │   │   ├── mealplans.ts
+│   │   ├── collections.ts
+│   │   ├── community.ts
+│   │   ├── feed.ts
+│   │   ├── households.ts
+│   │   ├── notifications.ts
+│   │   ├── images.ts
+│   │   ├── fermentation.ts
 │   │   └── users.ts
 │   ├── middleware/
 │   │   ├── auth.ts                 # Cognito JWT validation
 │   │   ├── errors.ts               # Error handling and response shaping
 │   │   └── validation.ts           # Request body validation (Zod)
 │   ├── agents/
-│   │   ├── substitution.ts
-│   │   ├── scaling.ts
-│   │   ├── pantry-to-recipe.ts
-│   │   ├── fermentation-troubleshoot.ts
 │   │   ├── recipe-import.ts
-│   │   └── dietary-adaptation.ts
+│   │   ├── recipe-import-ai.ts
+│   │   ├── recipe-import-photo.ts
+│   │   ├── fermentation-troubleshoot.ts   # UNWIRED — no handler, no route
+│   │   └── dietary-adaptation.ts          # UNWIRED — no handler, no route
 │   └── db/
 │       ├── schema/                 # Drizzle table definitions
 │       ├── client.ts               # Neon + Drizzle client setup
@@ -176,11 +184,11 @@ souschef/
 |---|---|---|
 | Variables and functions | camelCase | `recipeIngredients`, `getRecipeById` |
 | React components | PascalCase | `RecipeCard`, `CookingMode` |
-| Types and interfaces | PascalCase | `Recipe`, `PantryItem` |
+| Types and interfaces | PascalCase | `Recipe`, `MealPlanEntry` |
 | Constants | SCREAMING_SNAKE_CASE | `MAX_RECIPE_IMAGES`, `DEFAULT_SERVINGS` |
 | Files (non-component) | kebab-case | `recipe-utils.ts`, `auth-middleware.ts` |
 | Files (component) | PascalCase | `RecipeCard.tsx`, `CookingMode.tsx` |
-| Database tables | snake_case | `recipe_ingredients`, `pantry_items` |
+| Database tables | snake_case | `recipe_ingredients`, `meal_plan_entries` |
 | Database columns | snake_case | `created_at`, `user_id` |
 | API routes | kebab-case | `/recipes/:id/ingredients`, `/meal-plans` |
 | JSON keys (API responses) | camelCase | `{ "recipeId": "...", "createdAt": "..." }` |
@@ -226,7 +234,7 @@ All agents in `backend/agents/` follow this pattern:
 - All agents return structured JSON. The system prompt must instruct the model to return only valid JSON with no preamble or markdown fences.
 - Parse responses with a Zod schema. If parsing fails, return a structured error — never let a malformed agent response reach the client.
 - Use `claude-sonnet-4-6` for all agent calls unless there is a documented reason to use another model.
-- Include relevant context (recipe, pantry contents, batch history) in the user message, not the system prompt.
+- Include relevant context (recipe, batch history) in the user message, not the system prompt.
 
 ### Environment Variables
 
@@ -280,7 +288,7 @@ sousChef uses [Conventional Commits](https://www.conventionalcommits.org/).
 | `ci` | Changes to GitHub Actions or CI config |
 | `infra` | Terraform or infrastructure changes |
 
-**Scope** is the area of the codebase affected: `recipes`, `pantry`, `auth`, `web`, `mobile`, `agents`, `terraform`, `ci`, etc.
+**Scope** is the area of the codebase affected: `recipes`, `mealplans`, `shopping`, `auth`, `web`, `mobile`, `agents`, `terraform`, `ci`, etc.
 
 **Examples:**
 
@@ -306,7 +314,7 @@ test(agents): add unit tests for substitution agent response parsing
 
 Examples:
 - `feat/issue-34-recipe-crud-endpoints`
-- `fix/issue-87-pantry-expiry-alert`
+- `fix/issue-87-shopping-list-merge`
 - `ci/issue-7-nextjs-ci-workflow`
 - `infra/issue-15-terraform-bootstrap`
 
