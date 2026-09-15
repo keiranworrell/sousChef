@@ -66,6 +66,58 @@ export default function CollectionsPage(): React.JSX.Element {
     );
   }
 
+
+  // Split by the server's access field rather than by comparing ids. Two
+  // sections because "mine" and "shared with me" answer different questions —
+  // one you can rename and delete, the other you are a guest in.
+  const ownCollections = collections.filter((c) => c.access === "owner");
+  const sharedCollections = collections.filter((c) => c.access !== "owner");
+
+  function renderCard(col: CollectionSummary): React.JSX.Element {
+    return (
+      <Link
+        key={col.id}
+        href={`/collections/${col.id}`}
+        className="group rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden hover:border-orange-200 hover:shadow-sm transition-all"
+      >
+        <div className="h-32 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+          {col.coverImageUrl ? (
+            <img
+              src={col.coverImageUrl}
+              alt={col.name}
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center text-3xl">📁</div>
+          )}
+        </div>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            {/* flex-1 is load-bearing: without it this column is content-sized,
+                and because min-w-0 lets it shrink to zero the shrink-0 badge
+                beside it takes the width and the name truncates to nothing. */}
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate font-semibold text-gray-900 dark:text-gray-100">{col.name}</h2>
+              {col.description && (
+                <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">{col.description}</p>
+              )}
+            </div>
+            {col.isPublic && (
+              <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                Public
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-gray-400">
+            {col.recipeCount} {col.recipeCount === 1 ? "recipe" : "recipes"}
+            {col.ownerName && <> · from {col.ownerName}</>}
+            {col.access === "viewer" && <> · view only</>}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
@@ -141,51 +193,26 @@ export default function CollectionsPage(): React.JSX.Element {
           ]}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {collections.map((col) => (
-            <Link
-              key={col.id}
-              href={`/collections/${col.id}`}
-              className="group rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden hover:border-orange-200 hover:shadow-sm transition-all"
-            >
-              {/* Cover image */}
-              <div className="h-32 bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                {col.coverImageUrl ? (
-                  <img
-                    src={col.coverImageUrl}
-                    alt={col.name}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-3xl">📁</div>
-                )}
+        <>
+          {ownCollections.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {ownCollections.map(renderCard)}
+            </div>
+          )}
+
+          {sharedCollections.length > 0 && (
+            <section className={ownCollections.length > 0 ? "mt-10" : ""}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Shared with you
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sharedCollections.map(renderCard)}
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  {/* flex-1 is load-bearing: without it this column is
-                      content-sized, and because min-w-0 lets it shrink to zero
-                      the shrink-0 badge beside it takes the width and the name
-                      truncates to nothing. */}
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-semibold text-gray-900 dark:text-gray-100">{col.name}</h2>
-                    {col.description && (
-                      <p className="mt-0.5 text-xs text-gray-400 line-clamp-2">{col.description}</p>
-                    )}
-                  </div>
-                  {col.isPublic && (
-                    <span className="shrink-0 rounded-full bg-green-50 dark:bg-green-950 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                      Public
-                    </span>
-                  )}
-                </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  {col.recipeCount} {col.recipeCount === 1 ? "recipe" : "recipes"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+            </section>
+          )}
+        </>
       )}
+
     </div>
   );
 }

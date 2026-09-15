@@ -654,7 +654,7 @@ export type HouseholdInvite = {
 
 // ─── Notifications ─────────────────────────────────────────────────────────────
 
-export type NotificationType = "household_invite";
+export type NotificationType = "household_invite" | "collection_shared";
 
 export type NotificationData = {
   inviteId?:      UUID;
@@ -662,6 +662,12 @@ export type NotificationData = {
   householdName?: string;
   inviterId?:     UUID;
   inviterName?:   string;
+  // collection_shared
+  collectionId?:   UUID;
+  collectionName?: string;
+  sharerId?:       UUID;
+  sharerName?:     string;
+  role?:           CollectionShareRole;
   [key: string]:  unknown;
 };
 

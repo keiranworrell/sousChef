@@ -6,10 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import type { CollectionWithItems, CollectionRecipeItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import RecipeMultiSelectModal from "@/components/RecipeMultiSelectModal";
+import CollectionSharePanel from "@/components/CollectionSharePanel";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 export default function CollectionDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
+  const { showError } = useToast();
   const router = useRouter();
 
   const [collection, setCollection] = useState<CollectionWithItems | null>(null);
@@ -32,6 +35,7 @@ export default function CollectionDetailPage(): React.JSX.Element {
 
   // Bulk add/remove
   const [showPicker, setShowPicker] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     void load();
@@ -114,6 +118,10 @@ export default function CollectionDetailPage(): React.JSX.Element {
       setCollection((prev) =>
         prev ? { ...prev, items: prev.items.filter((i) => i.recipeId !== recipeId), recipeCount: prev.recipeCount - 1 } : prev,
       );
+    } catch (err) {
+      // Missed by the failure sweep because it has no catch at all, so the
+      // throw escaped as an unhandled rejection and the row simply stayed put.
+      showError(errorMessage(err, "Couldn't remove that recipe."));
     } finally {
       setRemovingId(null);
     }
@@ -138,8 +146,24 @@ export default function CollectionDetailPage(): React.JSX.Element {
     );
   }
 
+  // Derived from the server's access field. The client never decides this by
+  // comparing collection.userId to the signed-in user — that is authorisation
+  // living in two places, and the copy in the browser is the one that drifts.
+  const isOwner = collection.access === "owner";
+  const canEdit = isOwner || collection.access === "editor";
+  const hasPrivateRecipes = collection.items.some((i) => !i.isPublic);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {showShare && (
+        <CollectionSharePanel
+          collectionId={id}
+          hasPrivateRecipes={hasPrivateRecipes}
+          isPublic={collection.isPublic}
+          onClose={() => setShowShare(false)}
+        />
+      )}
+
       {showPicker && (
         <RecipeMultiSelectModal
           collectionId={id}
@@ -201,20 +225,41 @@ export default function CollectionDetailPage(): React.JSX.Element {
             {collection.description && (
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{collection.description}</p>
             )}
-            <p className="mt-2 text-xs text-gray-400">{collection.recipeCount} {collection.recipeCount === 1 ? "recipe" : "recipes"}</p>
+            <p className="mt-2 text-xs text-gray-400">
+              {collection.recipeCount} {collection.recipeCount === 1 ? "recipe" : "recipes"}
+              {collection.ownerName && (
+                <>
+                  {" · "}
+                  Shared by {collection.ownerName}
+                  {collection.access === "viewer" ? " · view only" : " · you can add recipes"}
+                </>
+              )}
+            </p>
           </div>
+          {/* Affordances follow the server's access field rather than a
+              comparison of ids on the client. Renaming, deleting and sharing
+              are the owner's alone; adding recipes is also open to editors. */}
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={() => setShowPicker(true)} className="btn-primary text-sm">
-              + Add recipes
-            </button>
-            <button onClick={startEdit} className="btn-secondary text-sm">Edit</button>
-            <button
-              onClick={() => { void handleDelete(); }}
-              disabled={deleting}
-              className="text-sm text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </button>
+            {canEdit && (
+              <button onClick={() => setShowPicker(true)} className="btn-primary text-sm">
+                + Add recipes
+              </button>
+            )}
+            {isOwner && (
+              <>
+                <button onClick={() => setShowShare(true)} className="btn-secondary text-sm">
+                  Share
+                </button>
+                <button onClick={startEdit} className="btn-secondary text-sm">Edit</button>
+                <button
+                  onClick={() => { void handleDelete(); }}
+                  disabled={deleting}
+                  className="text-sm text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -251,14 +296,16 @@ export default function CollectionDetailPage(): React.JSX.Element {
                   {item.isPublic && <span className="text-green-600">Public</span>}
                 </div>
               </div>
-              <button
-                onClick={() => { void handleRemoveRecipe(item.recipeId); }}
-                disabled={removingId === item.recipeId}
-                className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                aria-label="Remove from collection"
-              >
-                Remove
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => { void handleRemoveRecipe(item.recipeId); }}
+                  disabled={removingId === item.recipeId}
+                  className="shrink-0 text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                  aria-label="Remove from collection"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ))}
         </div>
