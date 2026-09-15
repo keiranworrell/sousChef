@@ -18,6 +18,20 @@ const DAYS: { label: string; short: string }[] = [
 
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
+// Entries without a meal type sort last, after every labelled one. Mirrors the
+// ordering the API applies so an optimistically-added entry lands in the same
+// place it will sit after a reload.
+const MEAL_TYPE_RANK: Record<MealType, number> = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+  snack: 3,
+};
+
+function mealTypeRank(mealType: MealType | null): number {
+  return mealType ? MEAL_TYPE_RANK[mealType] : 99;
+}
+
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
   d.setUTCHours(0, 0, 0, 0);
@@ -42,7 +56,9 @@ function formatWeekRange(monday: Date): string {
   return `${monday.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} – ${sunday.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
 }
 
-type PickerTarget = { dayOfWeek: DayOfWeek; mealType: MealType };
+// A day is the only thing you have to choose. Meal type is a label picked
+// inside the overlay, and may be left off entirely.
+type PickerTarget = { dayOfWeek: DayOfWeek };
 
 export default function MealPlanPage(): React.JSX.Element {
   const router = useRouter();
@@ -64,6 +80,9 @@ export default function MealPlanPage(): React.JSX.Element {
   const [recipesLoading, setRecipesLoading] = useState(false);
   const [recipesError, setRecipesError] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
+  // Optional label for the entry about to be added. Resets to null each time
+  // the picker opens — most entries won't be tagged at all.
+  const [pickerMealType, setPickerMealType] = useState<MealType | null>(null);
   const [addingEntry, setAddingEntry] = useState(false);
   const [addEntryError, setAddEntryError] = useState<string | null>(null);
   // How many people the chosen recipe is for. Null = cook it as written.
@@ -117,6 +136,8 @@ export default function MealPlanPage(): React.JSX.Element {
   async function openPicker(target: PickerTarget): Promise<void> {
     setPickerTarget(target);
     setPickerSearch("");
+    setPickerMealType(null);
+    setAddEntryError(null);
     if (!recipesLoaded) {
       setRecipesLoading(true);
       setRecipesError(null);
@@ -143,7 +164,7 @@ export default function MealPlanPage(): React.JSX.Element {
       const res = await api.mealPlans.addEntry(plan.id, {
         recipeId,
         dayOfWeek: pickerTarget.dayOfWeek,
-        mealType: pickerTarget.mealType,
+        mealType: pickerMealType,
         // null means "cook it as written" — only send a number when the user
         // has actually chosen one, so an unset field doesn't silently pin the
         // entry to whatever the recipe happens to serve today.
@@ -235,15 +256,100 @@ export default function MealPlanPage(): React.JSX.Element {
     }
   }
 
-  function getEntry(dayOfWeek: DayOfWeek, mealType: MealType): MealPlanEntry | undefined {
-    return plan?.entries.find(
-      (e) => Number(e.dayOfWeek) === dayOfWeek && e.mealType === mealType,
-    );
+  // A day holds a list, not one recipe per slot. Sorted here rather than
+  // relying on arrival order, because optimistically-added entries are appended
+  // to the end of plan.entries regardless of which day they belong to.
+  function getEntriesForDay(dayOfWeek: DayOfWeek): MealPlanEntry[] {
+    return (plan?.entries ?? [])
+      .filter((e) => Number(e.dayOfWeek) === dayOfWeek)
+      .sort((a, b) => {
+        const meal = mealTypeRank(a.mealType) - mealTypeRank(b.mealType);
+        if (meal !== 0) return meal;
+        return a.id.localeCompare(b.id);
+      });
   }
 
   const filteredRecipes = allRecipes.filter((r) =>
     r.title.toLowerCase().includes(pickerSearch.toLowerCase()),
   );
+
+  // One day column: a heading, the recipes planned for that day, and an add
+  // button. Shared by the mobile 3-day and desktop 7-day views so the two can't
+  // drift apart — they differ only in how many columns are on screen.
+  function renderDayColumn(dayIdx: number): React.JSX.Element {
+    const day = dayIdx as DayOfWeek;
+    const date = addDays(weekStart, dayIdx);
+    const isToday = toISODate(date) === toISODate(new Date());
+    const entries = getEntriesForDay(day);
+    const label = DAYS[dayIdx];
+
+    return (
+      <div
+        key={dayIdx}
+        className={`flex min-w-0 flex-col rounded-xl border p-2 ${
+          isToday
+            ? "border-orange-200 bg-orange-50/40 dark:border-orange-900 dark:bg-orange-950/20"
+            : "border-gray-100 dark:border-gray-800"
+        }`}
+      >
+        <div className="mb-2 px-1 text-center">
+          <span
+            className={`block text-xs font-semibold uppercase tracking-wide ${isToday ? "text-orange-500" : "text-gray-400"}`}
+          >
+            {label?.short}
+          </span>
+          <span
+            className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}
+          >
+            {date.getUTCDate()}
+          </span>
+        </div>
+
+        <ul className="flex-1 space-y-1.5">
+          {entries.map((entry) => (
+            <li
+              key={entry.id}
+              className="group relative rounded-lg border border-orange-100 bg-orange-50 p-2 dark:border-orange-900 dark:bg-orange-950"
+            >
+              {entry.mealType && (
+                <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-orange-400">
+                  {entry.mealType}
+                </span>
+              )}
+              <p className="pr-4 text-xs font-medium leading-snug text-gray-800 break-words dark:text-gray-200">
+                {entry.recipe.title}
+                {entry.servings && (
+                  <span className="ml-1.5 text-xs font-normal text-orange-500">
+                    ×{entry.servings}
+                  </span>
+                )}
+              </p>
+              <button
+                onClick={() => { void handleRemoveEntry(entry); }}
+                disabled={removingId === entry.id}
+                className="absolute right-1 top-1 text-gray-300 opacity-0 transition-opacity hover:text-red-400 focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+                aria-label={`Remove ${entry.recipe.title}`}
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          onClick={() => { void openPicker({ dayOfWeek: day }); }}
+          className="mt-1.5 flex min-h-[40px] w-full items-center justify-center rounded-lg border border-dashed border-gray-200 p-2 text-gray-300 transition-colors hover:border-orange-300 hover:text-orange-400 dark:border-gray-700"
+          aria-label={`Add a recipe to ${label?.label}`}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -305,154 +411,16 @@ export default function MealPlanPage(): React.JSX.Element {
                 →
               </button>
             </div>
-            <table className="w-full table-fixed border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className="w-16 py-2 pr-2" />
-                  {[0, 1, 2].map((offset) => {
-                    const dayIdx = mobileStartDay + offset;
-                    const date = addDays(weekStart, dayIdx);
-                    const isToday = toISODate(date) === toISODate(new Date());
-                    const day = DAYS[dayIdx];
-                    return (
-                      <th
-                        key={dayIdx}
-                        className={`py-2 px-1 text-center text-xs font-semibold uppercase tracking-wide ${isToday ? "text-orange-500" : "text-gray-400"}`}
-                      >
-                        <span className="block">{day?.short}</span>
-                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}>
-                          {date.getUTCDate()}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {MEAL_TYPES.map((mealType) => (
-                  <tr key={mealType} className="border-t border-gray-100 dark:border-gray-800">
-                    <td className="py-3 pr-2 text-xs font-semibold capitalize text-gray-400 align-top pt-3.5">
-                      {mealType}
-                    </td>
-                    {[0, 1, 2].map((offset) => {
-                      const dayIdx = (mobileStartDay + offset) as DayOfWeek;
-                      const entry = getEntry(dayIdx, mealType);
-                      return (
-                        <td key={dayIdx} className="p-1 align-top">
-                          {entry ? (
-                            <div className="group relative rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-100 dark:border-orange-900 p-2 min-h-[56px]">
-                              <p className="text-xs font-medium text-gray-800 dark:text-gray-200 leading-snug pr-4 break-words">
-                                {entry.recipe.title}
-                                {entry.servings && (
-                                  <span className="ml-1.5 text-xs font-normal text-orange-500">
-                                    ×{entry.servings}
-                                  </span>
-                                )}
-                              </p>
-                              <button
-                                onClick={() => { void handleRemoveEntry(entry); }}
-                                disabled={removingId === entry.id}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-opacity disabled:opacity-50"
-                                aria-label="Remove"
-                              >
-                                <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none">
-                                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                </svg>
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => { void openPicker({ dayOfWeek: dayIdx, mealType }); }}
-                              className="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
-                              aria-label={`Add ${mealType}`}
-                            >
-                              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
-                                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                              </svg>
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="grid grid-cols-3 gap-2 items-start">
+              {[0, 1, 2].map((offset) => renderDayColumn(mobileStartDay + offset))}
+            </div>
           </div>
 
           {/* ── Desktop: full 7-day table ─────────────────────────────────── */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full table-fixed border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className="w-24 py-2 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400" />
-                  {DAYS.map((day, i) => {
-                    const date = addDays(weekStart, i);
-                    const isToday = toISODate(date) === toISODate(new Date());
-                    return (
-                      <th
-                        key={i}
-                        className={`py-2 px-1 text-center text-xs font-semibold uppercase tracking-wide ${isToday ? "text-orange-500" : "text-gray-400"}`}
-                      >
-                        <span className="block">{day.short}</span>
-                        <span className={`block text-base font-bold ${isToday ? "text-orange-500" : "text-gray-700 dark:text-gray-300"}`}>
-                          {date.getUTCDate()}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {MEAL_TYPES.map((mealType) => (
-                  <tr key={mealType} className="border-t border-gray-100 dark:border-gray-800">
-                    <td className="py-3 pr-3 text-xs font-semibold capitalize text-gray-400 align-top pt-3.5">
-                      {mealType}
-                    </td>
-                    {DAYS.map((_, dayIdx) => {
-                      const day = dayIdx as DayOfWeek;
-                      const entry = getEntry(day, mealType);
-                      return (
-                        <td key={dayIdx} className="p-1 align-top">
-                          {entry ? (
-                            <div className="group relative rounded-lg bg-orange-50 border border-orange-100 p-2 min-h-[56px]">
-                              <p className="text-xs font-medium text-gray-800 leading-snug pr-4">
-                                {entry.recipe.title}
-                                {entry.servings && (
-                                  <span className="ml-1.5 text-xs font-normal text-orange-500">
-                                    ×{entry.servings}
-                                  </span>
-                                )}
-                              </p>
-                              <button
-                                onClick={() => { void handleRemoveEntry(entry); }}
-                                disabled={removingId === entry.id}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-opacity disabled:opacity-50"
-                                aria-label="Remove"
-                              >
-                                <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none">
-                                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                                </svg>
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => { void openPicker({ dayOfWeek: day, mealType }); }}
-                              className="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 p-2 min-h-[56px] text-gray-300 hover:border-orange-300 hover:text-orange-400 transition-colors flex items-center justify-center"
-                              aria-label={`Add ${mealType}`}
-                            >
-                              <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
-                                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                              </svg>
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="hidden sm:block">
+            <div className="grid grid-cols-7 gap-2 items-start">
+              {DAYS.map((_, dayIdx) => renderDayColumn(dayIdx))}
+            </div>
           </div>
         </>
       )}
@@ -511,8 +479,8 @@ export default function MealPlanPage(): React.JSX.Element {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <div>
                 <h2 className="font-semibold text-gray-900 dark:text-gray-100">Choose a recipe</h2>
-                <p className="text-xs text-gray-400 mt-0.5 capitalize">
-                  {DAYS[pickerTarget.dayOfWeek]?.label} · {pickerTarget.mealType}
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {DAYS[pickerTarget.dayOfWeek]?.label}
                 </p>
               </div>
               <button
@@ -532,6 +500,38 @@ export default function MealPlanPage(): React.JSX.Element {
                 onChange={(e) => setPickerSearch(e.target.value)}
                 autoFocus
               />
+            </div>
+            {/* Meal type is a label, not a slot — "none" is a real choice and
+                the default, so it sits first and starts selected. */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Label</span>
+              <button
+                type="button"
+                onClick={() => setPickerMealType(null)}
+                className={`rounded-full px-2.5 py-1 text-xs capitalize transition-colors ${
+                  pickerMealType === null
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                }`}
+                aria-pressed={pickerMealType === null}
+              >
+                None
+              </button>
+              {MEAL_TYPES.map((mealType) => (
+                <button
+                  key={mealType}
+                  type="button"
+                  onClick={() => setPickerMealType(mealType)}
+                  className={`rounded-full px-2.5 py-1 text-xs capitalize transition-colors ${
+                    pickerMealType === mealType
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  }`}
+                  aria-pressed={pickerMealType === mealType}
+                >
+                  {mealType}
+                </button>
+              ))}
             </div>
             {/* Servings applies to whichever recipe is picked next. Put above
                 the list rather than per-row: the user is planning for a fixed
