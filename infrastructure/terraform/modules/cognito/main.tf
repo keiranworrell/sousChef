@@ -7,7 +7,31 @@ resource "aws_cognito_user_pool" "this" {
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
-  # Prevent leaking whether an account exists on sign-in failure
+  # Require the new address to be verified before it replaces the old one.
+  #
+  # This matters more than it looks. Without it, Cognito applies an email change
+  # immediately and simply marks the attribute unverified. Because email is also
+  # the sign-in identity here, that means:
+  #
+  #   - the user's sign-in address changes to one they may have mistyped, and
+  #     account recovery points at an address nobody can read
+  #   - anyone who gets hold of a live session can change the email to their own
+  #     and then take the account over via "forgot password", without ever
+  #     knowing the existing password
+  #
+  # With this set, the old address keeps working until a code sent to the new
+  # one is entered, so an unverified change can't lock anyone out or be used to
+  # take an account over.
+  user_attribute_update_settings {
+    attributes_require_verification_before_update = ["email"]
+  }
+
+  # Treat Foo@example.com and foo@example.com as the same account, so a user who
+  # capitalises differently than they did at sign-up still gets in.
+  #
+  # (This was previously commented as preventing account enumeration on sign-in
+  # failure. It does not do that — enumeration protection is a separate pool
+  # setting, and Cognito enables it by default on pools created since 2020.)
   username_configuration {
     case_sensitive = false
   }
