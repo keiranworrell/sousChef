@@ -1,6 +1,7 @@
 import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lambda";
 import { CognitoIdentityProviderClient, AdminDeleteUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { z } from "zod";
+import { FREE_TIER_AI_IMPORTS } from "@souschef/shared";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
@@ -42,6 +43,25 @@ const UpdateUserSchema = z.object({
   dietaryPreferences: z.array(z.string().min(1).max(50)).nullable().optional(),
 });
 
+/**
+ * How many AI imports this account has left, shaped for the client.
+ *
+ * Null on premium — the client's question is whether to show a counter at all,
+ * and null answers it without every caller comparing against a sentinel.
+ *
+ * Clamped at zero: the check-then-spend pair isn't atomic (see
+ * incrementAiImportCount), so a user can land slightly over the limit, and
+ * "-1 imports remaining" is not a thing to put on a screen.
+ */
+function aiImportAllowance(user: { planTier: string; aiImportCount: number }): {
+  aiImportsRemaining: number | null;
+} {
+  if (user.planTier === "premium") return { aiImportsRemaining: null };
+  return {
+    aiImportsRemaining: Math.max(0, FREE_TIER_AI_IMPORTS - user.aiImportCount),
+  };
+}
+
 export const handler: APIGatewayProxyHandlerV2 = async (
   event,
 ): Promise<APIGatewayProxyResultV2> => {
@@ -79,7 +99,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     // GET /users/me
     if (method === "GET" && path.endsWith("/users/me")) {
       const counts = await getFollowCounts(user.id);
-      return okResponse({ ...user, ...counts });
+      return okResponse({ ...user, ...counts, ...aiImportAllowance(user) });
     }
 
     // GET /users/me/export — UK GDPR right of access / data portability.
@@ -127,7 +147,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const updated = await updateUser(user.id, body);
       if (!updated) throw new NotFoundError("User not found");
       const counts = await getFollowCounts(user.id);
-      return okResponse({ ...updated, ...counts });
+      return okResponse({ ...updated, ...counts, ...aiImportAllowance(updated) });
     }
 
     // GET /users/{id}/followers  — must come before GET /users/{id}

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CreateRecipeInput, RecipeWithDetails } from "@souschef/shared";
-import { predictTags } from "@souschef/shared";
+import { FREE_TIER_AI_IMPORTS, predictTags } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
 
@@ -106,16 +106,36 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
     }
   }
 
-  // Premium plan check — fetched on mount so the AI fallback can fire automatically
-  const [isPremium, setIsPremium] = useState(false);
+  // AI import allowance — fetched on mount so the AI fallback knows whether it
+  // may fire, and so the user can see what they have left before spending one.
+  //
+  // `undefined` while loading is distinct from `null` (premium, no limit) and
+  // from `0` (free, none left). Collapsing loading into 0 would flash "no
+  // imports left" at a premium user on every page load.
+  const [aiImportsRemaining, setAiImportsRemaining] = useState<number | null | undefined>(
+    undefined,
+  );
+  const canUseAi = aiImportsRemaining === null || (aiImportsRemaining ?? 0) > 0;
+
   useEffect(() => {
     getApiClient()
       .then((api) => api.users.me())
       .then((res) => {
-        if (!("error" in res)) setIsPremium(res.data.planTier === "premium");
+        if (!("error" in res)) setAiImportsRemaining(res.data.aiImportsRemaining);
       })
-      .catch(() => { /* non-critical, leave false */ });
+      .catch(() => { /* non-critical — the server is the real gate either way */ });
   }, []);
+
+  /**
+   * Called after any successful AI import so the counter on screen matches
+   * reality without a refetch. The server has already spent the credit; this
+   * just stops the UI claiming the user still has it.
+   */
+  function spendAiCredit(): void {
+    setAiImportsRemaining((prev) =>
+      typeof prev === "number" ? Math.max(0, prev - 1) : prev,
+    );
+  }
 
   // Import state (create mode only)
   type ImportMode = "url" | "note" | "photo";
@@ -197,6 +217,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       applyImportedRecipe(res.data);
       setImported(true);
       setImportedWithAi(true);
+      spendAiCredit();
       // Clean up object URLs
       photoEntries.forEach((e) => URL.revokeObjectURL(e.objectUrl));
       setPhotoEntries([]);
@@ -263,19 +284,27 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
         return;
       }
 
-      // Standard import failed — try AI automatically if user is premium
-      if (isPremium) {
+      // Standard import failed — fall back to AI if this account has an import
+      // to spend. Free accounts get a handful so the feature can prove itself.
+      if (canUseAi) {
         setImportStatus("ai");
         const aiRes = await api.recipes.importAi({ url });
         if (!("error" in aiRes)) {
           applyImportedRecipe(aiRes.data);
           setImported(true);
           setImportedWithAi(true);
+          spendAiCredit();
           return;
         }
         setImportError(aiRes.error.message);
       } else {
-        setImportError(res.error.message);
+        // Two different failures happened: the page had no structured data, and
+        // we can't fall back. Saying only the first would leave the user
+        // retrying a URL that will never work for them.
+        setImportError(
+          `${res.error.message} You've used all your free AI imports, so there's ` +
+            `no AI fallback available — you can add this recipe by hand instead.`,
+        );
       }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Import failed");
@@ -304,6 +333,7 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
       applyImportedRecipe(res.data);
       setImported(true);
       setImportedWithAi(true);
+      spendAiCredit();
     } catch (err) {
       setNoteImportError(err instanceof Error ? err.message : "Import failed");
     } finally {
@@ -520,6 +550,25 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             </div>
           </div>
 
+          {/* Only shown to free accounts with a finite allowance. Premium gets
+              null and sees nothing; undefined means still loading, and a
+              counter that appears a beat late is better than a wrong one. */}
+          {typeof aiImportsRemaining === "number" && (
+            <p className="text-xs text-gray-400">
+              {aiImportsRemaining > 0 ? (
+                <>
+                  {aiImportsRemaining} of {FREE_TIER_AI_IMPORTS} free AI imports left.
+                  Pasting a link only uses one if the site needs AI to read it.
+                </>
+              ) : (
+                <>
+                  No free AI imports left. Links to sites with standard recipe
+                  markup still import without using AI.
+                </>
+              )}
+            </p>
+          )}
+
           {imported ? (
             <div className="flex items-center justify-between">
               <p className="text-sm text-green-600 font-medium">
@@ -547,9 +596,10 @@ export default function RecipeForm({ initial }: Props): React.JSX.Element {
             </div>
           ) : importMode === "photo" ? (
             <>
-              {!isPremium ? (
+              {!canUseAi ? (
                 <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3 text-sm text-orange-700">
-                  Photo import is a <strong>premium</strong> feature. Upgrade your plan to use it.
+                  You&apos;ve used all {FREE_TIER_AI_IMPORTS} of your free AI imports.
+                  Upgrade for unlimited AI imports, or type the recipe in by hand.
                 </div>
               ) : (
                 <>

@@ -1,5 +1,6 @@
 import type { APIGatewayProxyResultV2 } from "aws-lambda";
 import { UnauthorizedError } from "./auth";
+import { FREE_TIER_AI_IMPORTS } from "@souschef/shared";
 import { ValidationError } from "./validation";
 
 export class NotFoundError extends Error {
@@ -33,11 +34,48 @@ export class PremiumRequiredError extends Error {
 /**
  * Throws PremiumRequiredError if the user's planTier is not 'premium'.
  * Call this at the top of any premium-gated route handler.
+ *
+ * Currently unused: the AI import routes moved to a quota (see
+ * assertAiImportAllowed below), which is a strictly friendlier gate. Kept
+ * because the pricing plan still puts the fermentation tracker and household
+ * sharing behind premium, and those are flat gates when they arrive.
  */
 export function assertPremium(planTier: string): void {
   if (planTier !== "premium") {
     throw new PremiumRequiredError();
   }
+}
+
+export class AiQuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AiQuotaExceededError";
+  }
+}
+
+/**
+ * Gate for the AI import routes.
+ *
+ * Premium is never counted against. Free accounts get FREE_TIER_AI_IMPORTS
+ * lifetime, which exists so someone can watch the feature work before deciding
+ * whether it is worth paying for.
+ *
+ * Deliberately a separate error from PremiumRequiredError. "You need premium"
+ * and "you have used your 5 free imports" call for different words on screen
+ * and a different decision from the reader, and a single 402 code would force
+ * the client to guess which one it was.
+ */
+export function assertAiImportAllowed(user: {
+  planTier: string;
+  aiImportCount: number;
+}): void {
+  if (user.planTier === "premium") return;
+  if (user.aiImportCount < FREE_TIER_AI_IMPORTS) return;
+
+  throw new AiQuotaExceededError(
+    `You've used all ${FREE_TIER_AI_IMPORTS} of your free AI imports. ` +
+      `Upgrade for unlimited AI imports, or add this recipe by hand.`,
+  );
 }
 
 type ErrorResponse = {
@@ -90,6 +128,14 @@ export function handleError(err: unknown): APIGatewayProxyResultV2 {
       statusCode: 402,
       headers: JSON_HEADERS,
       body: errorBody("PREMIUM_REQUIRED", err.message),
+    };
+  }
+
+  if (err instanceof AiQuotaExceededError) {
+    return {
+      statusCode: 402,
+      headers: JSON_HEADERS,
+      body: errorBody("AI_QUOTA_EXCEEDED", err.message),
     };
   }
 

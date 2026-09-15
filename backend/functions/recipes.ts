@@ -7,10 +7,10 @@ import {
   okResponse,
   NotFoundError,
   BadRequestError,
-  assertPremium,
+  assertAiImportAllowed,
 } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
-import { getUserByCognitoId } from "../db/queries/user-queries";
+import { getUserByCognitoId, incrementAiImportCount } from "../db/queries/user-queries";
 import {
   listRecipes,
   getRecipeById,
@@ -224,9 +224,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse({ ...result, rejected: parsed.rejected }, 201);
     }
 
-    // POST /recipes/import/ai — AI fallback, premium only, parse only, no save
+    // POST /recipes/import/ai — AI fallback. Costs one AI credit on success.
     if (method === "POST" && event.rawPath?.endsWith("/import/ai")) {
-      assertPremium(user.planTier);
+      assertAiImportAllowed(user);
       const body = parseBody(event.body, ImportRecipeSchema);
 
       // Fetch the HTML once
@@ -254,12 +254,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (
           body: JSON.stringify({ error: { code: "AI_IMPORT_FAILED", message: aiResult.error } }),
         };
       }
+      // Spent only now the model has returned something usable. A credit burned
+      // on a paywalled page is the user paying for our problem.
+      await incrementAiImportCount(user.id);
       return okResponse(aiResult.recipe);
     }
 
-    // POST /recipes/import/photo — AI extract from photos, premium only, no save
+    // POST /recipes/import/photo — AI extract from photos. One credit on success.
     if (method === "POST" && event.rawPath?.endsWith("/import/photo")) {
-      assertPremium(user.planTier);
+      assertAiImportAllowed(user);
       const body = parseBody(
         event.body,
         z.object({
@@ -278,12 +281,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (
           body: JSON.stringify({ error: { code: "PHOTO_IMPORT_FAILED", message: result.error } }),
         };
       }
+      await incrementAiImportCount(user.id);
       return okResponse(result.recipe);
     }
 
-    // POST /recipes/import/text — AI extract from pasted note, premium only, no save
+    // POST /recipes/import/text — AI extract from a note. One credit on success.
     if (method === "POST" && event.rawPath?.endsWith("/import/text")) {
-      assertPremium(user.planTier);
+      assertAiImportAllowed(user);
       const body = parseBody(event.body, ImportRecipeTextSchema);
       const result = await importRecipeFromText(body.text);
       if (!result.ok) {
@@ -293,6 +297,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (
           body: JSON.stringify({ error: { code: "TEXT_IMPORT_FAILED", message: result.error } }),
         };
       }
+      await incrementAiImportCount(user.id);
       return okResponse(result.recipe);
     }
 
