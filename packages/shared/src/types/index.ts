@@ -691,3 +691,52 @@ export type NotificationListResponse = {
   notifications: Notification[];
   unreadCount: number;
 };
+
+// ─── Multi-recipe cooking ──────────────────────────────────────────────────────
+
+/**
+ * One step of an interleaved plan, with its text resolved from the recipe.
+ *
+ * The stored plan holds only a reference (recipe id + step number); the
+ * instruction is read from the recipe at request time. So a step here always
+ * matches what the recipe currently says, and the planner has no way to have
+ * altered it.
+ */
+export type CookSessionStep = {
+  recipeId: UUID;
+  recipeTitle: string;
+  stepNumber: number;
+  instruction: string;
+  timerSeconds: number | null;
+  /** Minutes from the start of the cook. Advisory, not a countdown. */
+  startOffsetMinutes: number;
+  /** Short reason this step sits here, if the planner gave one. */
+  note: string | null;
+};
+
+export type CookSession = {
+  id: UUID;
+  userId: UUID;
+  recipeIds: UUID[];
+  steps: CookSessionStep[];
+  /** The planner's estimate of total elapsed time. Advisory. */
+  totalMinutes: number;
+  currentStep: number;
+  completedAt: ISODateString | null;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type CreateCookSessionResponse = {
+  sessionId: UUID;
+  /**
+   * False when the planner was unavailable or returned a plan that failed
+   * validation, and the recipes were laid out one after another instead. The
+   * client says so rather than passing off a sequential list as a timed plan.
+   */
+  interleaved: boolean;
+};
+
+export type ActiveCookSessionResponse = {
+  sessionId: UUID | null;
+};
