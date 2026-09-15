@@ -94,9 +94,15 @@ export type UserFollowListResponse = {
 export type UserDataExport = {
   exportedAt: ISODateString;
   format: string;
+  /** Format of the `recipes` array specifically — souschef-recipe-v1. */
+  recipeFormat: string;
   account: Record<string, unknown>;
   recipes: unknown[];
   collections: unknown[];
+  collectionShares: {
+    granted: unknown[];
+    received: unknown[];
+  };
   shoppingLists: unknown[];
   mealPlans: unknown[];
   fermentationBatches: unknown[];

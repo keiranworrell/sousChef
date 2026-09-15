@@ -10,6 +10,7 @@ import {
   recipeTags,
   collections,
   collectionItems,
+  collectionShares,
   shoppingLists,
   shoppingListItems,
   mealPlans,
@@ -55,6 +56,15 @@ export type UserDataExport = {
   account: Record<string, unknown>;
   recipes: InterchangeRecipe[];
   collections: unknown[];
+  /**
+   * Collection access this user granted or was granted. Both directions, like
+   * `social` below: a row naming them as recipient is personal data concerning
+   * them, and a row they created is a record of their own activity.
+   */
+  collectionShares: {
+    granted: unknown[];
+    received: unknown[];
+  };
   shoppingLists: unknown[];
   mealPlans: unknown[];
   fermentationBatches: unknown[];
@@ -158,6 +168,36 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
       .map((i) => recipeTitleById.get(i.recipeId) ?? null),
   }));
 
+  // ── Collection shares, both directions ─────────────────────────────────────
+  //
+  // Household shares are not included here. Those rows reference a household
+  // rather than this user, so they are not personal data about them in the way
+  // a named grant is — and the household membership that confers the access is
+  // already exported under `households`.
+  const shareRows = await db
+    .select()
+    .from(collectionShares)
+    .where(
+      or(
+        eq(collectionShares.createdBy, userId),
+        eq(collectionShares.sharedWithUserId, userId),
+      ),
+    );
+
+  // Collection names alongside the ids, for the same reason the recipes array
+  // carries titles: an id is meaningless to anyone reading the file on its own.
+  const collectionNameById = new Map(collectionRows.map((c) => [c.id, c.name]));
+  const withNames = (rows: typeof shareRows): unknown[] =>
+    rows.map((r) => ({
+      ...r,
+      collectionName: collectionNameById.get(r.collectionId) ?? null,
+    }));
+
+  const exportedShares = {
+    granted: withNames(shareRows.filter((r) => r.createdBy === userId)),
+    received: withNames(shareRows.filter((r) => r.sharedWithUserId === userId)),
+  };
+
   // ── Shopping lists, with items ─────────────────────────────────────────────
   const listRows = await db.select().from(shoppingLists).where(eq(shoppingLists.userId, userId));
   const listIds = listRows.map((l) => l.id);
@@ -221,6 +261,7 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
     account,
     recipes: exportedRecipes,
     collections: exportedCollections,
+    collectionShares: exportedShares,
     shoppingLists: exportedLists,
     mealPlans: exportedPlans,
     fermentationBatches: exportedBatches,
