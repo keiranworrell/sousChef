@@ -15,7 +15,10 @@ import type {
   CommunityFeedParams,
   CommunityFeedResponse,
   CommunityRecipe,
+  ActiveCookSessionResponse,
   Collection,
+  CookSession,
+  CreateCookSessionResponse,
   CollectionShare,
   CollectionSharesResponse,
   ShareCollectionInput,
@@ -397,6 +400,28 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       unlike: (recipeId: string): Promise<ApiResponse<null>> =>
         del<null>(`/community/recipes/${recipeId}/like`),
+    },
+
+    cookSessions: {
+      /**
+       * Plan a multi-recipe cook. Costs one AI credit, but only when the
+       * planner actually produced a valid interleaved plan.
+       */
+      create: (recipeIds: string[]): Promise<ApiResponse<CreateCookSessionResponse>> =>
+        post<CreateCookSessionResponse>("/cook-sessions", { recipeIds }),
+
+      get: (id: string): Promise<ApiResponse<CookSession>> =>
+        get<CookSession>(`/cook-sessions/${id}`),
+
+      /** Save progress so a closed tab mid-cook doesn't lose the plan. */
+      updateProgress: (
+        id: string,
+        input: { currentStep?: number; completed?: boolean },
+      ): Promise<ApiResponse<null>> => patch<null>(`/cook-sessions/${id}`, input),
+
+      /** The most recent unfinished session, for offering a resume. */
+      active: (): Promise<ApiResponse<ActiveCookSessionResponse>> =>
+        get<ActiveCookSessionResponse>("/cook-sessions/active"),
     },
 
     collections: {

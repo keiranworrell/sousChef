@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { MealPlanWithEntries, MealPlanEntry, Recipe, DayOfWeek, MealType } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import { errorMessage, useToast } from "@/components/ToastProvider";
+import MultiCookLauncher from "@/components/MultiCookLauncher";
 import { unwrap } from "@souschef/shared";
 
 const DAYS: { label: string; short: string }[] = [
@@ -93,6 +94,13 @@ export default function MealPlanPage(): React.JSX.Element {
   const [planServings, setPlanServings] = useState<number | null>(null);
 
   const [removingId, setRemovingId] = useState<string | null>(null);
+  // Which day's "cook together" launcher is open, if any.
+  const [cookDay, setCookDay] = useState<DayOfWeek | null>(null);
+  // Needed by the launcher to say what a plan will cost. Undefined while
+  // loading, null on premium — see the RecipeForm counter for the same shape.
+  const [aiImportsRemaining, setAiImportsRemaining] = useState<number | null | undefined>(
+    undefined,
+  );
   const [householdName, setHouseholdName] = useState<string | null>(null);
 
   // Mobile: which day to start the 3-day view on (0=Mon … 4=Fri, max so 3 days always fit)
@@ -114,6 +122,18 @@ export default function MealPlanPage(): React.JSX.Element {
       }
     }
     void loadHousehold();
+  }, []);
+
+  useEffect(() => {
+    getApiClient()
+      .then((api) => api.users.me())
+      .then((res) => {
+        if (!("error" in res)) setAiImportsRemaining(res.data.aiImportsRemaining);
+      })
+      .catch(() => {
+        // Non-critical — the launcher just omits the credit line, and the
+        // server is the real gate either way.
+      });
   }, []);
 
   useEffect(() => {
@@ -351,6 +371,16 @@ export default function MealPlanPage(): React.JSX.Element {
             <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
+
+        {/* Only worth offering once there is something to interleave. */}
+        {entries.length >= 2 && (
+          <button
+            onClick={() => setCookDay(day)}
+            className="mt-1.5 w-full rounded-lg px-2 py-1 text-[11px] font-medium text-orange-500 transition-colors hover:bg-orange-50 dark:hover:bg-gray-800"
+          >
+            Cook together
+          </button>
+        )}
       </div>
     );
   }
@@ -427,6 +457,18 @@ export default function MealPlanPage(): React.JSX.Element {
             </div>
           </div>
         </>
+      )}
+
+      {cookDay !== null && (
+        <MultiCookLauncher
+          dayLabel={DAYS[cookDay]?.label ?? ""}
+          candidates={getEntriesForDay(cookDay).map((e) => ({
+            recipeId: e.recipeId,
+            title: e.recipe.title,
+          }))}
+          aiImportsRemaining={aiImportsRemaining}
+          onClose={() => setCookDay(null)}
+        />
       )}
 
       {/* Generate shopping list modal */}

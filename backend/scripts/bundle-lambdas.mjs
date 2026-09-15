@@ -67,6 +67,10 @@ const entryPoints = [
     in: resolve(root, "functions/collections.ts"),
     out: "collections",
   },
+  {
+    in: resolve(root, "functions/cook-sessions.ts"),
+    out: "cook-sessions",
+  },
 ];
 
 for (const entry of entryPoints) {

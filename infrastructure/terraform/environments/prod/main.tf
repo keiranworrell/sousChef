@@ -73,6 +73,23 @@ locals {
     ]
   })
 
+  # Cook sessions Lambda needs both secrets and nothing else. Reusing
+  # recipes_combined_policy would hand it s3:DeleteObject on the images bucket,
+  # which it has no use for — and an unused permission is only ever a liability.
+  cook_sessions_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "secretsmanager:GetSecretValue"
+        Resource = [
+          data.aws_secretsmanager_secret.database_url.arn,
+          data.aws_secretsmanager_secret.anthropic_api_key.arn,
+        ]
+      }
+    ]
+  })
+
   # Users Lambda needs Secrets Manager + Cognito AdminDeleteUser (for account deletion)
   users_combined_policy = jsonencode({
     Version = "2012-10-17"
@@ -210,6 +227,7 @@ module "api_gateway" {
     "POST /recipes/import/ai"    = { burst_limit = 10, rate_limit = 3 }
     "POST /recipes/import/text"  = { burst_limit = 10, rate_limit = 3 }
     "POST /recipes/import/photo" = { burst_limit = 10, rate_limit = 3 }
+    "POST /cook-sessions"        = { burst_limit = 10, rate_limit = 3 }
   }
 }
 
@@ -1350,6 +1368,82 @@ resource "aws_apigatewayv2_route" "collections_revoke_share" {
   api_id    = module.api_gateway.api_id
   route_key = "DELETE /collections/{id}/shares/{shareId}"
   target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+# ── Cook sessions Lambda ──────────────────────────────────────────────────────
+
+data "archive_file" "cook_sessions" {
+  type        = "zip"
+  source_file = "${path.root}/../../../../backend/dist/lambda/cook-sessions.js"
+  output_path = "${path.root}/../../../../backend/dist/lambda/cook-sessions.zip"
+}
+
+module "cook_sessions" {
+  source        = "../../modules/lambda"
+  function_name = "souschef-${var.environment}-cook-sessions"
+  handler       = "cook-sessions.handler"
+  zip_path      = data.archive_file.cook_sessions.output_path
+  # Planning calls the model with every step of up to five recipes, so this
+  # sits with the recipes Lambda's 60s rather than the 30s most handlers use.
+  timeout_seconds = 60
+  memory_mb       = 256
+  # Both secrets, and nothing else — see cook_sessions_policy above.
+  policy_json = local.cook_sessions_policy
+
+  environment_variables = {
+    DATABASE_SECRET_ARN  = data.aws_secretsmanager_secret.database_url.arn
+    ANTHROPIC_SECRET_ARN = data.aws_secretsmanager_secret.anthropic_api_key.arn
+    NODE_ENV             = var.environment
+    COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    COGNITO_CLIENT_IDS   = "${module.cognito.web_client_id},${module.cognito.mobile_client_id}"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "cook_sessions" {
+  name              = "/aws/lambda/${module.cook_sessions.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_permission" "cook_sessions_api" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.cook_sessions.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/cook-sessions*"
+}
+
+resource "aws_apigatewayv2_integration" "cook_sessions" {
+  api_id                 = module.api_gateway.api_id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.cook_sessions.function_arn
+  payload_format_version = "2.0"
+}
+
+# "active" is a literal segment, so this route must exist separately from the
+# {id} route below — API Gateway matches the more specific one first, but the
+# handler also guards the ordering.
+resource "aws_apigatewayv2_route" "cook_sessions_active" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /cook-sessions/active"
+  target    = "integrations/${aws_apigatewayv2_integration.cook_sessions.id}"
+}
+
+resource "aws_apigatewayv2_route" "cook_sessions_create" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /cook-sessions"
+  target    = "integrations/${aws_apigatewayv2_integration.cook_sessions.id}"
+}
+
+resource "aws_apigatewayv2_route" "cook_sessions_get" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /cook-sessions/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.cook_sessions.id}"
+}
+
+resource "aws_apigatewayv2_route" "cook_sessions_progress" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /cook-sessions/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.cook_sessions.id}"
 }
 
 # ── AWS Budget — monthly spend alert ──────────────────────────────────────────
