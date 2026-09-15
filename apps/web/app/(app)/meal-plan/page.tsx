@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MealPlanWithEntries, MealPlanEntry, Recipe, DayOfWeek, MealType } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 const DAYS: { label: string; short: string }[] = [
@@ -61,6 +62,7 @@ function formatWeekRange(monday: Date): string {
 type PickerTarget = { dayOfWeek: DayOfWeek };
 
 export default function MealPlanPage(): React.JSX.Element {
+  const { showError } = useToast();
   const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
   const [plan, setPlan] = useState<MealPlanWithEntries | null>(null);
@@ -189,8 +191,10 @@ export default function MealPlanPage(): React.JSX.Element {
       setPlan((prev) =>
         prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== entry.id) } : prev,
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      // Was silent: the recipe stayed in the day column and the user assumed
+      // the X was broken, when in fact the server had refused.
+      showError(errorMessage(err, "Couldn't remove that recipe from the plan."));
     } finally {
       setRemovingId(null);
     }

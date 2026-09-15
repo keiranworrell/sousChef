@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import type { UserProfile, CommunityRecipe, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 const PAGE_SIZE = 20;
@@ -24,6 +25,7 @@ function FollowPanel({
   onClose: () => void;
   onFollowChange: () => void;
 }): React.JSX.Element {
+  const { showError } = useToast();
   const [items, setItems] = useState<PublicUserListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,8 @@ function FollowPanel({
         unwrap(await api.users.follow(item.id));
       }
       onFollowChange();
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't update that follow."));
       // Revert on failure
       setItems((prev) =>
         prev.map((u) =>
@@ -164,6 +167,7 @@ function FollowPanel({
 // ── Public profile page ────────────────────────────────────────────────────────
 
 export default function UserProfilePage(): React.JSX.Element {
+  const { showError } = useToast();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
@@ -234,7 +238,10 @@ export default function UserProfilePage(): React.JSX.Element {
     try {
       const api = await getApiClient();
       unwrap(await api.users.follow(id));
-    } catch {
+    } catch (err) {
+      // The revert was already here, but on its own it reads as the button
+      // undoing itself for no reason.
+      showError(errorMessage(err, "Couldn't follow that person."));
       // Revert on failure
       setFollowing(false);
       setProfile((prev) => prev ? { ...prev, followerCount: Math.max(0, prev.followerCount - 1) } : prev);
@@ -248,7 +255,8 @@ export default function UserProfilePage(): React.JSX.Element {
     try {
       const api = await getApiClient();
       unwrap(await api.users.unfollow(id));
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't unfollow that person."));
       // Revert on failure
       setFollowing(true);
       setProfile((prev) => prev ? { ...prev, followerCount: prev.followerCount + 1 } : prev);

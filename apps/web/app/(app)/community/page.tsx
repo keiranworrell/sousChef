@@ -7,6 +7,7 @@ import type { CommunityRecipe, PublicUserListItem, PublicCollectionSummary } fro
 import InfiniteListFooter from "@/components/InfiniteListFooter";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
@@ -34,6 +35,7 @@ function HeartIcon({ filled }: { filled: boolean }): React.JSX.Element {
 // ── People tab ─────────────────────────────────────────────────────────────────
 
 function PeopleTab(): React.JSX.Element {
+  const { showError } = useToast();
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<PublicUserListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -95,7 +97,8 @@ function PeopleTab(): React.JSX.Element {
       } else {
         unwrap(await api.users.follow(user.id));
       }
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't update that follow."));
       // Revert on failure
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? user : u)),
@@ -190,6 +193,7 @@ function PeopleTab(): React.JSX.Element {
 type SortMode = "recent" | "popular";
 
 function RecipesTab(): React.JSX.Element {
+  const { showError } = useToast();
   const router = useRouter();
 
   const [q, setQ] = useState("");
@@ -285,7 +289,8 @@ function RecipesTab(): React.JSX.Element {
       } else {
         unwrap(await api.community.like(recipe.id));
       }
-    } catch {
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't save that like."));
       // Revert on failure
       setRecipes((prev) => prev.map((r) => (r.id === recipe.id ? recipe : r)));
     } finally {
@@ -421,6 +426,7 @@ function RecipesTab(): React.JSX.Element {
 // ── Collections tab ────────────────────────────────────────────────────────────
 
 function CollectionsTab(): React.JSX.Element {
+  const { showError } = useToast();
   const [collections, setCollections] = useState<PublicCollectionSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -454,8 +460,8 @@ function CollectionsTab(): React.JSX.Element {
       if ("error" in res) throw new Error(res.error.message);
       setCollections((prev) => [...prev, ...res.data.collections]);
       setTotal(res.data.total);
-    } catch {
-      // swallow
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't load more collections."));
     } finally {
       setLoadingMore(false);
     }

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import type { FeedActivity } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 
 const PAGE_SIZE = 20;
 
@@ -73,6 +74,7 @@ function ActivityCard({ activity }: { activity: FeedActivity }): React.JSX.Eleme
 
 export default function FeedPage(): React.JSX.Element {
   const [activities, setActivities] = useState<FeedActivity[]>([]);
+  const { showError } = useToast();
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -103,8 +105,10 @@ export default function FeedPage(): React.JSX.Element {
       if ("error" in res) throw new Error(res.error.message);
       setActivities((prev) => [...prev, ...res.data.activities]);
       setTotal(res.data.total);
-    } catch {
-      // silently ignore — user can retry
+    } catch (err) {
+      // "User can retry" assumed the user could tell there was anything to
+      // retry. The button just stopped doing things.
+      showError(errorMessage(err, "Couldn't load more activity."));
     } finally {
       setLoadingMore(false);
     }

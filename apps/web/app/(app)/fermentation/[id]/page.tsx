@@ -8,7 +8,9 @@ import type {
   FermentationLog,
   FermentationStatus,
 } from "@souschef/shared";
+import { unwrap } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -31,6 +33,7 @@ type LogForm = {
 const emptyLogForm: LogForm = { ph: "", saltPercent: "", temperatureCelsius: "", weightGrams: "", notes: "" };
 
 export default function BatchDetailPage(): React.JSX.Element {
+  const { showError } = useToast();
   const { id } = useParams<{ id: string }>();
   const [batch, setBatch] = useState<FermentationBatchWithLogs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,8 +72,8 @@ export default function BatchDetailPage(): React.JSX.Element {
       const res = await api.fermentation.update(batch.id, { status });
       if ("error" in res) throw new Error(res.error.message);
       setBatch((prev) => prev ? { ...prev, status: res.data.status } : prev);
-    } catch {
-      // ignore
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't update the batch status."));
     } finally {
       setUpdatingStatus(false);
     }
@@ -108,10 +111,13 @@ export default function BatchDetailPage(): React.JSX.Element {
     setDeletingLogId(log.id);
     try {
       const api = await getApiClient();
-      await api.fermentation.logs.delete(batch.id, log.id);
+      // unwrap, not a bare await: the client returns { error } rather than
+      // throwing, so without this the catch below is unreachable and a failed
+      // delete would still remove the entry from the list on screen.
+      unwrap(await api.fermentation.logs.delete(batch.id, log.id));
       setBatch((prev) => prev ? { ...prev, logs: prev.logs.filter((l) => l.id !== log.id) } : prev);
-    } catch {
-      // ignore
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't delete that log entry."));
     } finally {
       setDeletingLogId(null);
     }

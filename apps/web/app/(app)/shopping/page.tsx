@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import type { ShoppingList } from "@souschef/shared";
 import EmptyState from "@/components/EmptyState";
 import { getApiClient } from "@/lib/api";
+import { errorMessage, useToast } from "@/components/ToastProvider";
 import { unwrap } from "@souschef/shared";
 
 export default function ShoppingPage(): React.JSX.Element {
+  const { showError } = useToast();
   const router = useRouter();
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,8 +71,8 @@ export default function ShoppingPage(): React.JSX.Element {
       const api = await getApiClient();
       unwrap(await api.shopping.delete(id));
       setLists((prev) => prev.filter((l) => l.id !== id));
-    } catch {
-      // ignore
+    } catch (err) {
+      showError(errorMessage(err, "Couldn't delete that list."));
     } finally {
       setDeletingId(null);
     }
