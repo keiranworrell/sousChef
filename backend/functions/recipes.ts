@@ -2,7 +2,13 @@ import type { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from "aws-lamb
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
-import { handleError, okResponse, NotFoundError, assertPremium } from "../middleware/errors";
+import {
+  handleError,
+  okResponse,
+  NotFoundError,
+  BadRequestError,
+  assertPremium,
+} from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
 import { getUserByCognitoId } from "../db/queries/user-queries";
 import {
@@ -26,6 +32,16 @@ import {
   deleteCookLogEntry,
 } from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
+import { importRecipes } from "../db/queries/import-queries";
+import { parseRecipeImport } from "@souschef/shared";
+
+/**
+ * Ceiling on one import. A Lambda has a wall-clock limit and these are
+ * sequential writes, so a genuinely enormous file would time out halfway and
+ * leave the user unsure what landed. Failing up front with a number in the
+ * message beats a partial import with no report.
+ */
+const MAX_IMPORT_RECIPES = 500;
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
 
@@ -168,6 +184,44 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const query = ListQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await listRecipes(user.id, query);
       return okResponse(result);
+    }
+
+    // POST /recipes/import/file — restore from a sousChef export.
+    //
+    // Free for everyone, unlike the AI imports. Getting your own data back into
+    // the product is not a feature to charge for; a paywall on re-import turns
+    // the export into a hostage note.
+    if (method === "POST" && event.rawPath?.endsWith("/import/file")) {
+      let payload: unknown;
+      try {
+        payload = JSON.parse(event.body ?? "");
+      } catch {
+        throw new BadRequestError("That file isn't valid JSON.");
+      }
+
+      const parsed = parseRecipeImport(payload);
+      if ("error" in parsed) throw new BadRequestError(parsed.error);
+
+      if (parsed.recipes.length === 0) {
+        // Everything was rejected, or the file was empty. Either way the user
+        // needs the reasons, not a bare "0 imported".
+        return okResponse({
+          imported: 0,
+          failed: 0,
+          results: [],
+          rejected: parsed.rejected,
+        });
+      }
+
+      if (parsed.recipes.length > MAX_IMPORT_RECIPES) {
+        throw new BadRequestError(
+          `That file holds ${parsed.recipes.length} recipes. ` +
+            `Imports are limited to ${MAX_IMPORT_RECIPES} at a time.`,
+        );
+      }
+
+      const result = await importRecipes(user.id, parsed.recipes);
+      return okResponse({ ...result, rejected: parsed.rejected }, 201);
     }
 
     // POST /recipes/import/ai — AI fallback, premium only, parse only, no save

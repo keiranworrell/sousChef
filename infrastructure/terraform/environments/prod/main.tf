@@ -362,6 +362,12 @@ resource "aws_apigatewayv2_route" "recipes_rediscover" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_import_file" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /recipes/import/file"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 resource "aws_apigatewayv2_route" "recipes_import_ai" {
   api_id    = module.api_gateway.api_id
   route_key = "POST /recipes/import/ai"
