@@ -38,7 +38,14 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
           api.collections.forRecipe(recipeId),
         ]);
         if ("error" in listRes) throw new Error(listRes.error.message);
-        setCollections(listRes.data.collections);
+        // Only collections this user can actually add to. The list now includes
+        // ones shared with them, and offering a viewer a checkbox that the
+        // server will refuse is worse than not offering it.
+        setCollections(
+          listRes.data.collections.filter(
+            (c) => c.access === "owner" || c.access === "editor",
+          ),
+        );
 
         if ("error" in memberRes) throw new Error(memberRes.error.message);
         // Guard the shape explicitly — a malformed or mis-routed response would
@@ -110,6 +117,8 @@ export default function CollectionPickerModal({ recipeId, onClose }: Props): Rea
         ...res.data,
         recipeCount: 1,
         coverImageUrl: null,
+        // You just made it, so you own it.
+        access: "owner",
       };
       setCollections((prev) => [newCol, ...prev]);
       setMemberIds((prev) => new Set([...prev, res.data.id]));

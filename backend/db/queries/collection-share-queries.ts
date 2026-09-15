@@ -6,6 +6,7 @@ import {
   collectionShares,
   householdMembers,
   households,
+  notifications,
   users,
 } from "../schema";
 import type { CollectionShareRole } from "../schema";
@@ -29,6 +30,33 @@ export type CollectionShareDetail = {
   user: { id: string; displayName: string; avatarUrl: string | null } | null;
   household: { id: string; name: string } | null;
 };
+
+/**
+ * The access decision, separated from the fetching.
+ *
+ * Pure on purpose: this is the rule that decides whether one person may read or
+ * change another person's collection, and a rule that important should be
+ * testable without a database. getCollectionAccess below does the querying and
+ * defers every judgement to this.
+ *
+ * Ownership outranks any share. Among shares, the most permissive wins —
+ * someone can be both a household member and individually shared with, and the
+ * narrower of two grants was never meant to take something away.
+ */
+export function resolveAccess(params: {
+  ownerId: string | null;
+  viewerId: string;
+  shareRoles: CollectionShareRole[];
+}): CollectionAccess {
+  const { ownerId, viewerId, shareRoles } = params;
+
+  // No collection at all. Callers turn this into the same 404 as "not yours",
+  // so an id probe learns nothing either way.
+  if (ownerId === null) return null;
+  if (ownerId === viewerId) return "owner";
+  if (shareRoles.length === 0) return null;
+  return shareRoles.includes("editor") ? "editor" : "viewer";
+}
 
 /**
  * The single authorisation check for collections. Every read and write path
@@ -55,8 +83,10 @@ export async function getCollectionAccess(
     .where(eq(collections.id, collectionId))
     .limit(1);
 
-  if (!collection) return null;
-  if (collection.userId === userId) return "owner";
+  if (!collection) return resolveAccess({ ownerId: null, viewerId: userId, shareRoles: [] });
+  if (collection.userId === userId) {
+    return resolveAccess({ ownerId: collection.userId, viewerId: userId, shareRoles: [] });
+  }
 
   // The user's household, if any. A user belongs to at most one, enforced by a
   // unique on household_members.user_id.
@@ -81,9 +111,11 @@ export async function getCollectionAccess(
       ),
     );
 
-  if (shareRows.length === 0) return null;
-  // Most permissive wins — see the note above about overlapping grants.
-  return shareRows.some((r) => r.role === "editor") ? "editor" : "viewer";
+  return resolveAccess({
+    ownerId: collection.userId,
+    viewerId: userId,
+    shareRoles: shareRows.map((r) => r.role),
+  });
 }
 
 /** True when the access level permits adding and removing recipes. */
@@ -235,16 +267,25 @@ export async function getSharedCollectionIds(
         : eq(collectionShares.sharedWithUserId, userId),
     );
 
-  // Collapse duplicates the same way getCollectionAccess does: someone shared
-  // with both directly and through their household appears twice, and the more
-  // permissive grant is the real one.
+  return collapseShareRoles(rows);
+}
+
+/**
+ * Collapse duplicate grants per collection, keeping the most permissive.
+ *
+ * Someone shared with both directly and through their household appears twice.
+ * Pure and exported so the same rule as resolveAccess can be tested rather than
+ * assumed — the two disagreeing would mean a collection listed as read-only
+ * that the user can in fact edit, or worse.
+ */
+export function collapseShareRoles(
+  rows: { collectionId: string; role: CollectionShareRole }[],
+): { collectionId: string; role: CollectionShareRole }[] {
   const byCollection = new Map<string, CollectionShareRole>();
   for (const row of rows) {
-    const existing = byCollection.get(row.collectionId);
-    if (existing === "editor") continue;
+    if (byCollection.get(row.collectionId) === "editor") continue;
     byCollection.set(row.collectionId, row.role);
   }
-
   return [...byCollection].map(([collectionId, role]) => ({ collectionId, role }));
 }
 
@@ -286,4 +327,60 @@ export async function isRecipeInSharedCollection(
     .limit(1);
 
   return Boolean(row);
+}
+
+
+/**
+ * Tell people a collection has been shared with them.
+ *
+ * Best-effort and deliberately outside the share write: a notification that
+ * fails to insert should not undo a share the owner has already been told
+ * succeeded. The share is the fact; the notification is a courtesy.
+ *
+ * For a household share, every current member is notified except the owner.
+ * Members who join later inherit access silently — notifying them at join time
+ * would mean the household join path knowing about collections, and the
+ * collections list already shows them what they have.
+ */
+export async function notifyCollectionShared(params: {
+  collectionId: string;
+  collectionName: string;
+  ownerId: string;
+  ownerName: string;
+  targetUserId?: string | null;
+  targetHouseholdId?: string | null;
+  role: CollectionShareRole;
+}): Promise<void> {
+  const db = await getDb();
+
+  let recipientIds: string[] = [];
+  if (params.targetUserId) {
+    recipientIds = [params.targetUserId];
+  } else if (params.targetHouseholdId) {
+    const members = await db
+      .select({ userId: householdMembers.userId })
+      .from(householdMembers)
+      .where(eq(householdMembers.householdId, params.targetHouseholdId));
+    recipientIds = members.map((m) => m.userId);
+  }
+
+  // Never notify the owner about their own share, which happens whenever they
+  // share with the household they are themselves in.
+  recipientIds = recipientIds.filter((id) => id !== params.ownerId);
+  if (recipientIds.length === 0) return;
+
+  await db.insert(notifications).values(
+    recipientIds.map((userId) => ({
+      userId,
+      type: "collection_shared",
+      referenceId: params.collectionId,
+      data: {
+        collectionId: params.collectionId,
+        collectionName: params.collectionName,
+        sharerId: params.ownerId,
+        sharerName: params.ownerName,
+        role: params.role,
+      },
+    })),
+  );
 }

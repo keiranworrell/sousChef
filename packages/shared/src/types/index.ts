@@ -399,14 +399,51 @@ export type CollectionRecipeItem = {
   addedAt: ISODateString;
 };
 
+/**
+ * What the current viewer may do with a collection.
+ *
+ * Sent by the server on every collection it returns, so the client never works
+ * permissions out by comparing userId — client-side authorisation drifts, and
+ * when it drifts it drifts open.
+ */
+export type CollectionAccess = "owner" | "editor" | "viewer";
+
+export type CollectionShareRole = "viewer" | "editor";
+
 export type CollectionWithItems = Collection & {
   items: CollectionRecipeItem[];
   recipeCount: number;
+  access: CollectionAccess;
+  /** Present only when someone else owns it. */
+  ownerName?: string;
 };
 
 export type CollectionSummary = Collection & {
   recipeCount: number;
   coverImageUrl: string | null;
+  access: CollectionAccess;
+  /** Present only when someone else owns it. */
+  ownerName?: string;
+};
+
+/** One grant of access. Exactly one of user / household is populated. */
+export type CollectionShare = {
+  id: UUID;
+  role: CollectionShareRole;
+  createdAt: ISODateString;
+  user: { id: UUID; displayName: string; avatarUrl: string | null } | null;
+  household: { id: UUID; name: string } | null;
+};
+
+export type CollectionSharesResponse = {
+  shares: CollectionShare[];
+};
+
+/** Exactly one of userId / householdId, matching the server's refinement. */
+export type ShareCollectionInput = {
+  userId?: UUID;
+  householdId?: UUID;
+  role?: CollectionShareRole;
 };
 
 export type PublicCollectionSummary = CollectionSummary & {
