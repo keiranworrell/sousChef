@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
 import type { ImportFileResponse, User } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
+import ChangeEmailForm from "@/components/ChangeEmailForm";
 
 export default function SettingsPage(): React.JSX.Element {
   const router = useRouter();
@@ -158,10 +160,6 @@ export default function SettingsPage(): React.JSX.Element {
                 Edit profile →
               </Link>
             </div>
-            <div className="px-4 py-3">
-              <p className="text-xs text-gray-400 mb-0.5">Email</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{user.email}</p>
-            </div>
             <div className="flex items-center justify-between px-4 py-3">
               <div>
                 <p className="text-xs text-gray-400 mb-0.5">Plan</p>
@@ -169,6 +167,16 @@ export default function SettingsPage(): React.JSX.Element {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Security */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Security</h2>
+          <ChangeEmailForm
+            currentEmail={user.email}
+            onChanged={(email) => setUser((prev) => (prev ? { ...prev, email } : prev))}
+          />
+          <ChangePasswordForm />
         </section>
 
         {/* Your data */}

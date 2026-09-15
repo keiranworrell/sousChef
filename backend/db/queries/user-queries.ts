@@ -44,6 +44,32 @@ export type UpdateUserInput = {
 };
 
 /**
+ * Brings the stored email into line with the one Cognito has verified.
+ *
+ * Deliberately separate from updateUser, and deliberately not reachable from
+ * PATCH /users/me. Email is the one profile field a user must not be able to
+ * set by asserting it: our copy is a cache of a fact Cognito owns, and Cognito
+ * only changes it after the user has proved control of the new address by
+ * entering a code sent to it. The only trustworthy source is the verified token
+ * claim, so that is the only thing that may call this.
+ *
+ * Returns null when nothing needed changing, so callers can tell a no-op from
+ * an update without comparing rows themselves.
+ */
+export async function syncUserEmail(
+  id: string,
+  verifiedEmail: string,
+): Promise<UserRecord | null> {
+  const db = await getDb();
+  const [updated] = await db
+    .update(users)
+    .set({ email: verifiedEmail, updatedAt: new Date() })
+    .where(eq(users.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+/**
  * Deletes a user row by internal ID. All related data is removed via CASCADE.
  */
 export async function deleteUser(id: string): Promise<void> {

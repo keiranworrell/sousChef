@@ -7,7 +7,12 @@ import { parseBody } from "../middleware/validation";
 
 const cognitoClient = new CognitoIdentityProviderClient({});
 const COGNITO_USER_POOL_ID = process.env["COGNITO_USER_POOL_ID"] ?? "";
-import { getUserByCognitoId, updateUser, deleteUser } from "../db/queries/user-queries";
+import {
+  getUserByCognitoId,
+  updateUser,
+  deleteUser,
+  syncUserEmail,
+} from "../db/queries/user-queries";
 import { exportUserData } from "../db/queries/export-queries";
 import {
   followUser,
@@ -42,8 +47,23 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 ): Promise<APIGatewayProxyResultV2> => {
   try {
     const auth = await validateAuth(event);
-    const user = await getUserByCognitoId(auth.cognitoId);
+    let user = await getUserByCognitoId(auth.cognitoId);
     if (!user) throw new NotFoundError("User not found");
+
+    // Reconcile the stored email against the verified token claim.
+    //
+    // Changing an email happens in Cognito, which is the system of record — the
+    // user enters a code sent to the new address, and only then does Cognito
+    // accept it. Our users row is a cache of that fact, and it goes stale the
+    // moment the change lands. Syncing here, from the claim on an already
+    // verified token, means the correct value arrives on the user's next
+    // request without any endpoint that accepts an email from the client.
+    //
+    // The write only happens on an actual difference, so this costs nothing on
+    // the overwhelming majority of requests.
+    if (user.email !== auth.email) {
+      user = (await syncUserEmail(user.id, auth.email)) ?? user;
+    }
 
     const method = event.requestContext.http.method.toUpperCase();
     const path = event.rawPath ?? "";
@@ -64,9 +84,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (
 
     // GET /users/me/export — UK GDPR right of access / data portability.
     //
-    // Must come before GET /users/me: that check uses endsWith, which this path
-    // would otherwise fall through to unmatched. (The same ordering trap that
-    // made /collections/for-recipe unreachable — see PR #126.)
+    // Order is not load-bearing here: "/users/me/export" does not end with
+    // "/users/me", so the check above cannot swallow it. (An earlier comment
+    // claimed the opposite. In a file this full of endsWith checks, a comment
+    // asserting a constraint that isn't real is worse than none — it invites
+    // someone to "preserve" an ordering that was never doing anything, and to
+    // trust the same reasoning where it genuinely does matter.)
     //
     // NOTE: if you add a table that references users.id, add it to
     // exportUserData too. An export that silently omits data does not satisfy
