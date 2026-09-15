@@ -308,10 +308,39 @@ export type CookHistoryEntry = {
   userId: UUID;
   recipeId: UUID;
   cookedAt: ISODateString;
+  /** 1–5, or null for a bare "I cooked this" log. */
+  rating: number | null;
+  notes: string | null;
   recipe: {
     title: string;
     imageUrl: string | null;
   };
+};
+
+/**
+ * One entry in a user's private log for a single recipe.
+ *
+ * No nested recipe, unlike CookHistoryEntry: the caller is already looking at
+ * the recipe page, so repeating the title on every row is noise on the wire.
+ */
+export type CookLogEntry = {
+  id: UUID;
+  userId: UUID;
+  recipeId: UUID;
+  cookedAt: ISODateString;
+  rating: number | null;
+  notes: string | null;
+};
+
+export type CookLogResponse = {
+  entries: CookLogEntry[];
+};
+
+/** Every field optional — a bare log with no rating or notes is valid. */
+export type LogCookInput = {
+  rating?: number | null;
+  notes?: string | null;
+  cookedAt?: string | null;
 };
 
 export type CookHistoryResponse = {

@@ -3,13 +3,21 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { RecipeIngredient, RecipeWithDetails, ShoppingList, Substitution } from "@souschef/shared";
+import type {
+  CookLogEntry,
+  RecipeIngredient,
+  RecipeWithDetails,
+  ShoppingList,
+  Substitution,
+} from "@souschef/shared";
 import { scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import IngredientWithSubs from "@/components/IngredientWithSubs";
 import ActionMenu from "@/components/ActionMenu";
 import CollectionPickerModal from "@/components/CollectionPickerModal";
 import SourceAttribution from "@/components/SourceAttribution";
+import CookLogModal from "@/components/CookLogModal";
+import CookLogPanel from "@/components/CookLogPanel";
 
 type AddToListState =
   | { step: "closed" }
@@ -27,22 +35,12 @@ export default function RecipeDetailPage(): React.JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [addToList, setAddToList] = useState<AddToListState>({ step: "closed" });
   const [copied, setCopied] = useState(false);
-  const [cookLogged, setCookLogged] = useState(false);
-  const [cookLogging, setCookLogging] = useState(false);
   const [adjustedServings, setAdjustedServings] = useState<number | null>(null);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
-
-  async function handleLogCook(): Promise<void> {
-    setCookLogging(true);
-    try {
-      const api = await getApiClient();
-      unwrap(await api.recipes.logCook(id));
-      setCookLogged(true);
-      setTimeout(() => setCookLogged(false), 3000);
-    } finally {
-      setCookLogging(false);
-    }
-  }
+  const [showCookLog, setShowCookLog] = useState(false);
+  const [cookLog, setCookLog] = useState<CookLogEntry[]>([]);
+  const [cookLogLoading, setCookLogLoading] = useState(true);
+  const [cookLogError, setCookLogError] = useState<string | null>(null);
 
   function handleShare(): void {
     const url = `${window.location.origin}/r/${id}`;
@@ -66,6 +64,26 @@ export default function RecipeDetailPage(): React.JSX.Element {
       }
     }
     void load();
+  }, [id]);
+
+  useEffect(() => {
+    async function loadCookLog(): Promise<void> {
+      setCookLogLoading(true);
+      setCookLogError(null);
+      try {
+        const api = await getApiClient();
+        const res = await api.recipes.cookLog(id);
+        if ("error" in res) throw new Error(res.error.message);
+        setCookLog(res.data.entries);
+      } catch (err) {
+        setCookLogError(
+          err instanceof Error ? err.message : "Couldn't load your cook log",
+        );
+      } finally {
+        setCookLogLoading(false);
+      }
+    }
+    void loadCookLog();
   }, [id]);
 
   async function handleDelete(): Promise<void> {
@@ -167,6 +185,31 @@ export default function RecipeDetailPage(): React.JSX.Element {
       {showCollectionPicker && (
         <CollectionPickerModal recipeId={id} onClose={() => setShowCollectionPicker(false)} />
       )}
+      {showCookLog && (
+        <CookLogModal
+          recipeId={id}
+          onClose={() => setShowCookLog(false)}
+          onLogged={(entry) => {
+            // The panel wants the bare log shape, and the API returns the
+            // history shape with the recipe attached. Narrowing here keeps the
+            // panel from depending on which endpoint produced the row.
+            setCookLog((prev) =>
+              [
+                {
+                  id: entry.id,
+                  userId: entry.userId,
+                  recipeId: entry.recipeId,
+                  cookedAt: entry.cookedAt,
+                  rating: entry.rating,
+                  notes: entry.notes,
+                },
+                ...prev,
+              ].sort((a, b) => b.cookedAt.localeCompare(a.cookedAt)),
+            );
+            setShowCookLog(false);
+          }}
+        />
+      )}
       {recipe.imageUrl && (
         <img
           src={recipe.imageUrl}
@@ -217,9 +260,8 @@ export default function RecipeDetailPage(): React.JSX.Element {
             } : undefined}
             actions={[
               {
-                label: cookLogged ? "✓ Logged!" : cookLogging ? "Logging…" : "Log cook",
-                onClick: () => { void handleLogCook(); },
-                disabled: cookLogging || cookLogged,
+                label: "Log cook",
+                onClick: () => setShowCookLog(true),
               },
               ...(recipe.ingredients.length > 0 ? [{
                 label: "Add to list",
@@ -355,6 +397,16 @@ export default function RecipeDetailPage(): React.JSX.Element {
           </ol>
         </section>
       )}
+
+      <CookLogPanel
+        recipeId={id}
+        entries={cookLog}
+        loading={cookLogLoading}
+        error={cookLogError}
+        onRemoved={(entryId) =>
+          setCookLog((prev) => prev.filter((e) => e.id !== entryId))
+        }
+      />
 
       {/* Add to list modal */}
       {addToList.step !== "closed" && addToList.step !== "done" && (

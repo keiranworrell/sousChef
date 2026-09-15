@@ -16,10 +16,14 @@ export type GetCookHistoryOptions = {
   offset: number;
 };
 
-/**
- * Log a cook session for a user and recipe.
- * Returns the newly created cook history entry with recipe details.
- */
+export type LogCookInput = {
+  /** 1–5. Omitted for a bare "I cooked this" log. */
+  rating?: number | null;
+  notes?: string | null;
+  /** When it was cooked. Defaults to now. */
+  cookedAt?: string | null;
+};
+
 /**
  * Records that the user cooked a recipe.
  *
@@ -36,6 +40,7 @@ export type GetCookHistoryOptions = {
 export async function logCook(
   userId: string,
   recipeId: string,
+  input: LogCookInput = {},
 ): Promise<CookHistoryEntryWithRecipe | null> {
   const db = await getDb();
 
@@ -52,9 +57,22 @@ export async function logCook(
 
   if (!recipe) return null;
 
+  // An empty notes box means "nothing to say", which is the same state as never
+  // having opened the form. Storing "" would make the expand affordance appear
+  // on a row with nothing behind it.
+  const notes = input.notes?.trim();
+
   const [entry] = await db
     .insert(cookHistory)
-    .values({ userId, recipeId })
+    .values({
+      userId,
+      recipeId,
+      rating: input.rating ?? null,
+      notes: notes ? notes : null,
+      // Only override the column default when a date was actually supplied —
+      // passing undefined lets defaultNow() do its job.
+      ...(input.cookedAt ? { cookedAt: new Date(input.cookedAt) } : {}),
+    })
     .returning();
 
   if (!entry) throw new Error("Failed to create cook history entry");
@@ -95,6 +113,8 @@ export async function getCookHistory(
       userId: cookHistory.userId,
       recipeId: cookHistory.recipeId,
       cookedAt: cookHistory.cookedAt,
+      rating: cookHistory.rating,
+      notes: cookHistory.notes,
       recipeTitle: recipes.title,
       recipeImageUrl: recipes.imageUrl,
     })
@@ -110,6 +130,8 @@ export async function getCookHistory(
     userId: row.userId,
     recipeId: row.recipeId,
     cookedAt: row.cookedAt,
+    rating: row.rating,
+    notes: row.notes,
     recipe: {
       title: row.recipeTitle,
       imageUrl: row.recipeImageUrl,
@@ -122,4 +144,52 @@ export async function getCookHistory(
     limit,
     offset,
   };
+}
+
+/**
+ * One user's own log for one recipe, most recent first.
+ *
+ * Scoped to userId in the WHERE clause rather than checked beforehand. Cook
+ * notes are private — "the sauce split, use less heat" is the user's own note
+ * on a recipe that may well belong to somebody else — so there is no version of
+ * this that reads another person's rows, and no recipe-ownership check to get
+ * wrong. A recipe the user has never cooked returns an empty list, which is the
+ * same answer a recipe that doesn't exist gives: nothing is disclosed either
+ * way.
+ *
+ * Unpaginated on purpose. This is one person's cooks of one recipe; a user with
+ * hundreds of them has a nicer problem than a missing page control.
+ */
+export async function getRecipeCookLog(
+  userId: string,
+  recipeId: string,
+): Promise<CookHistoryRecord[]> {
+  const db = await getDb();
+
+  return db
+    .select()
+    .from(cookHistory)
+    .where(and(eq(cookHistory.userId, userId), eq(cookHistory.recipeId, recipeId)))
+    .orderBy(desc(cookHistory.cookedAt));
+}
+
+/**
+ * Remove one log entry.
+ *
+ * Both the entry id and the owning user are in the WHERE clause, so an id
+ * belonging to someone else matches nothing and reports not-found rather than
+ * deleting. Returns false when nothing was removed.
+ */
+export async function deleteCookLogEntry(
+  userId: string,
+  entryId: string,
+): Promise<boolean> {
+  const db = await getDb();
+
+  const deleted = await db
+    .delete(cookHistory)
+    .where(and(eq(cookHistory.id, entryId), eq(cookHistory.userId, userId)))
+    .returning({ id: cookHistory.id });
+
+  return deleted.length > 0;
 }

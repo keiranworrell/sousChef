@@ -139,6 +139,11 @@ export default function CookPage(): React.JSX.Element {
   const [showFinish, setShowFinish] = useState(false);
   const [cookLogging, setCookLogging] = useState(false);
   const [cookLogged, setCookLogged] = useState(false);
+  // Captured on the finish screen. This is the one moment the user definitely
+  // has an opinion about the dish, so asking here beats making them go back to
+  // the recipe page to say it.
+  const [finishRating, setFinishRating] = useState<number | null>(null);
+  const [finishNotes, setFinishNotes] = useState("");
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
@@ -173,7 +178,12 @@ export default function CookPage(): React.JSX.Element {
     setCookLogging(true);
     try {
       const api = await getApiClient();
-      unwrap(await api.recipes.logCook(recipe.id));
+      unwrap(
+        await api.recipes.logCook(recipe.id, {
+          rating: finishRating,
+          notes: finishNotes.trim() || null,
+        }),
+      );
       setCookLogged(true);
     } finally {
       setCookLogging(false);
@@ -357,13 +367,45 @@ export default function CookPage(): React.JSX.Element {
           {cookLogged ? (
             <p className="text-sm font-medium text-orange-400">✓ Cook logged</p>
           ) : (
-            <button
-              onClick={() => { void handleLogCook(); }}
-              disabled={cookLogging}
-              className="w-full max-w-xs rounded-xl bg-orange-500 py-4 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
-            >
-              {cookLogging ? "Logging…" : "Log this cook"}
-            </button>
+            <div className="flex w-full max-w-xs flex-col items-center gap-4">
+              <div
+                className="flex items-center gap-1"
+                role="radiogroup"
+                aria-label="Rate this cook"
+              >
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    role="radio"
+                    aria-checked={finishRating === star}
+                    aria-label={`${star} ${star === 1 ? "star" : "stars"}`}
+                    onClick={() => setFinishRating((r) => (r === star ? null : star))}
+                    className={`text-3xl leading-none transition-colors ${
+                      finishRating !== null && star <= finishRating
+                        ? "text-orange-400"
+                        : "text-gray-700 hover:text-orange-300"
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={finishNotes}
+                onChange={(e) => setFinishNotes(e.target.value)}
+                maxLength={2000}
+                placeholder="Notes for next time (optional)"
+                className="min-h-[64px] w-full rounded-xl border border-gray-800 bg-gray-900 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-orange-500 focus:outline-none"
+              />
+              <button
+                onClick={() => { void handleLogCook(); }}
+                disabled={cookLogging}
+                className="w-full rounded-xl bg-orange-500 py-4 font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
+              >
+                {cookLogging ? "Logging…" : "Log this cook"}
+              </button>
+            </div>
           )}
           <button
             onClick={() => router.back()}
