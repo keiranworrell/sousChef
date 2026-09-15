@@ -16,6 +16,9 @@ import type {
   CommunityFeedResponse,
   CommunityRecipe,
   Collection,
+  CollectionShare,
+  CollectionSharesResponse,
+  ShareCollectionInput,
   CollectionWithItems,
   PublicCollectionWithItems,
   CreateCollectionInput,
@@ -405,6 +408,24 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       create: (input: CreateCollectionInput): Promise<ApiResponse<Collection>> =>
         post<Collection>("/collections", input),
+
+      /** Owner only — who else can see this collection is the owner's business. */
+      shares: (id: string): Promise<ApiResponse<CollectionSharesResponse>> =>
+        get<CollectionSharesResponse>(`/collections/${id}/shares`),
+
+      /**
+       * Share with a person or a household. Re-sharing with someone who already
+       * has access changes their role rather than failing, which is what
+       * picking a different role for a name already in the list means.
+       */
+      share: (
+        id: string,
+        input: ShareCollectionInput,
+      ): Promise<ApiResponse<CollectionShare | null>> =>
+        post<CollectionShare | null>(`/collections/${id}/shares`, input),
+
+      revokeShare: (id: string, shareId: string): Promise<ApiResponse<null>> =>
+        del<null>(`/collections/${id}/shares/${shareId}`),
 
       update: (id: string, input: UpdateCollectionInput): Promise<ApiResponse<Collection>> =>
         patch<Collection>(`/collections/${id}`, input),

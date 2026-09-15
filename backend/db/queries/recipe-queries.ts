@@ -2,6 +2,7 @@ import { and, asc, eq, desc, ilike, inArray, or, sql, type SQL } from "drizzle-o
 import { getDb } from "../client";
 import { recipes, recipeIngredients, recipeSteps, recipeTags } from "../schema";
 import { decodeCursor, encodeCursor } from "./cursor";
+import { isRecipeInSharedCollection } from "./collection-share-queries";
 
 export type RecipeRecord = typeof recipes.$inferSelect;
 export type RecipeIngredientRecord = typeof recipeIngredients.$inferSelect;
@@ -196,19 +197,41 @@ export async function listRecipes(
   };
 }
 
+/**
+ * A recipe the user is allowed to read.
+ *
+ * Reachable three ways: they own it, it is public, or it sits in a collection
+ * shared with them. That last case is what makes a shared collection usable —
+ * a viewer who can see the collection but not open anything in it has been
+ * given a list of titles.
+ *
+ * This widens *reads* only. updateRecipe and deleteRecipe keep
+ * `eq(recipes.userId, userId)` in their own WHERE clauses, so nothing here
+ * grants write access, and `canEdit` on the result tells the UI which
+ * affordances to show without it having to work that out from ids.
+ */
 export async function getRecipeById(
   id: string,
   userId: string,
-): Promise<RecipeWithDetails | null> {
+): Promise<(RecipeWithDetails & { canEdit: boolean }) | null> {
   const db = await getDb();
 
   const [recipe] = await db
     .select()
     .from(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .where(eq(recipes.id, id))
     .limit(1);
 
   if (!recipe) return null;
+
+  const owns = recipe.userId === userId;
+  if (!owns && !recipe.isPublic) {
+    const viaShare = await isRecipeInSharedCollection(id, userId);
+    // Same null-for-forbidden rule as collections: the caller turns this into a
+    // 404, so an id probe can't tell "exists but not yours" from "doesn't
+    // exist".
+    if (!viaShare) return null;
+  }
 
   const [ingredients, steps, tags] = await Promise.all([
     db
@@ -224,7 +247,7 @@ export async function getRecipeById(
     db.select().from(recipeTags).where(eq(recipeTags.recipeId, id)),
   ]);
 
-  return { ...recipe, ingredients, steps, tags };
+  return { ...recipe, ingredients, steps, tags, canEdit: owns };
 }
 
 export async function createRecipe(

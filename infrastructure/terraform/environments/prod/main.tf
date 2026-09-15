@@ -1333,6 +1333,25 @@ resource "aws_apigatewayv2_route" "collections_remove_recipe" {
   target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
 }
 
+# Sharing — all three owner-only, enforced in the handler
+resource "aws_apigatewayv2_route" "collections_list_shares" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /collections/{id}/shares"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_create_share" {
+  api_id    = module.api_gateway.api_id
+  route_key = "POST /collections/{id}/shares"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
+resource "aws_apigatewayv2_route" "collections_revoke_share" {
+  api_id    = module.api_gateway.api_id
+  route_key = "DELETE /collections/{id}/shares/{shareId}"
+  target    = "integrations/${aws_apigatewayv2_integration.collections.id}"
+}
+
 # ── AWS Budget — monthly spend alert ──────────────────────────────────────────
 # Sends an email alert when actual AWS spend hits 80% of the $50 monthly limit.
 # Adjust limit_amount as usage grows.

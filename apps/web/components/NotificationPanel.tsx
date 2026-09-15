@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Notification } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
 import { unwrap } from "@souschef/shared";
@@ -171,6 +172,33 @@ export default function NotificationPanel({
           {notifications.map((n) => {
             if (n.type === "household_invite") {
               return <HouseholdInviteItem key={n.id} notification={n} />;
+            }
+            if (n.type === "collection_shared") {
+              const name = n.data?.collectionName ?? "a collection";
+              const sharer = n.data?.sharerName ?? "Someone";
+              return (
+                <Link
+                  key={n.id}
+                  href={n.data?.collectionId ? `/collections/${n.data.collectionId}` : "/collections"}
+                  className="flex items-start gap-3 border-b border-gray-50 py-3 last:border-0 dark:border-gray-800"
+                >
+                  <div className="mt-1.5 shrink-0">
+                    {n.seenAt === null ? (
+                      <span className="block h-2 w-2 rounded-full bg-orange-400" />
+                    ) : (
+                      <span className="block h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-700" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="font-medium">{sharer}</span> shared{" "}
+                      <span className="font-medium">{name}</span> with you
+                      {n.data?.role === "editor" && " — you can add recipes to it"}
+                    </p>
+                    <p className="text-xs text-gray-400">{timeAgo(n.createdAt)}</p>
+                  </div>
+                </Link>
+              );
             }
             // Generic fallback for future notification types
             return (
