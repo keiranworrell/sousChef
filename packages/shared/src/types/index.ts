@@ -375,6 +375,27 @@ export type LogCookInput = {
   cookedAt?: string | null;
 };
 
+/**
+ * A partial edit of an existing log entry.
+ *
+ * Absent means "leave it", null means "clear it". They are not the same, and
+ * treating them as the same would make editing the notes silently drop the
+ * rating.
+ *
+ * `cookedAt` takes no null: on create, null means "default to now"; on edit
+ * there is nothing to clear it to, because the column is NOT NULL.
+ */
+export type UpdateCookLogInput = {
+  rating?: number | null;
+  notes?: string | null;
+  cookedAt?: string;
+};
+
+/** Options for the recipe filter dropdown. */
+export type RecipeTagsResponse = {
+  tags: string[];
+};
+
 export type CookHistoryResponse = {
   entries: CookHistoryEntry[];
   total: number;

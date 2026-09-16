@@ -26,6 +26,57 @@ export type LogCookInput = {
 };
 
 /**
+ * A partial edit of an existing entry.
+ *
+ * The three states of each field matter and are not interchangeable:
+ * absent means "leave it as it is", null means "clear it", and a value means
+ * "set it". Collapsing absent and null — the easy mistake, because both are
+ * falsy — would make every edit of the notes wipe the rating.
+ *
+ * `cookedAt` has no null: the column is NOT NULL, so there is no state to clear
+ * it to. The route schema rejects null rather than this function silently
+ * ignoring it, so a client sending one is told.
+ */
+export type UpdateCookLogInput = {
+  rating?: number | null;
+  notes?: string | null;
+  cookedAt?: string;
+};
+
+/** The column changes to apply. Only keys the caller actually asked for. */
+export type CookLogUpdate = {
+  rating?: number | null;
+  notes?: string | null;
+  cookedAt?: Date;
+};
+
+/**
+ * Turns a partial edit into the exact set of column changes, or null when the
+ * request asked for nothing.
+ *
+ * Pure and exported so the three-state handling above can be tested without a
+ * database — it is the whole substance of the feature, and every bug it could
+ * have is a silent one that overwrites data the user did not mention.
+ */
+export function buildCookLogUpdate(input: UpdateCookLogInput): CookLogUpdate | null {
+  const update: CookLogUpdate = {};
+
+  if ("rating" in input) update.rating = input.rating ?? null;
+
+  if ("notes" in input) {
+    // Empty and whitespace-only mean the same thing as null: nothing to say.
+    // Storing "" would put an expand affordance on a row with nothing behind
+    // it, which is what logCook already avoids on insert.
+    const trimmed = input.notes?.trim();
+    update.notes = trimmed ? trimmed : null;
+  }
+
+  if (input.cookedAt !== undefined) update.cookedAt = new Date(input.cookedAt);
+
+  return Object.keys(update).length > 0 ? update : null;
+}
+
+/**
  * Records that the user cooked a recipe.
  *
  * Returns null if the recipe isn't one they can see. Previously this inserted
@@ -199,6 +250,30 @@ export async function getRecipeCookLog(
  * belonging to someone else matches nothing and reports not-found rather than
  * deleting. Returns false when nothing was removed.
  */
+export async function updateCookLogEntry(
+  userId: string,
+  entryId: string,
+  input: UpdateCookLogInput,
+): Promise<CookHistoryRecord | null> {
+  const update = buildCookLogUpdate(input);
+  if (!update) return null;
+
+  const db = await getDb();
+
+  // Same shape as the delete: both the entry id and the owning user are in the
+  // WHERE clause, so someone else's id matches nothing and comes back as
+  // not-found rather than being edited. Checking ownership in a separate read
+  // first would leave a window between the check and the write, and would mean
+  // two places to keep in agreement instead of one.
+  const [updated] = await db
+    .update(cookHistory)
+    .set(update)
+    .where(and(eq(cookHistory.id, entryId), eq(cookHistory.userId, userId)))
+    .returning();
+
+  return updated ?? null;
+}
+
 export async function deleteCookLogEntry(
   userId: string,
   entryId: string,

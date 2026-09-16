@@ -374,6 +374,18 @@ resource "aws_apigatewayv2_route" "recipes_delete_cook_log" {
   target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
 }
 
+resource "aws_apigatewayv2_route" "recipes_update_cook_log" {
+  api_id    = module.api_gateway.api_id
+  route_key = "PATCH /recipes/{id}/cook-history/{entryId}"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
+resource "aws_apigatewayv2_route" "recipes_tags" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /recipes/tags"
+  target    = "integrations/${aws_apigatewayv2_integration.recipes.id}"
+}
+
 resource "aws_apigatewayv2_route" "recipes_rediscover" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /recipes/rediscover"

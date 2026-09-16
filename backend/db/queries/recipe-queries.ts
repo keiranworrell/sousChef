@@ -9,6 +9,35 @@ export type RecipeIngredientRecord = typeof recipeIngredients.$inferSelect;
 export type RecipeStepRecord = typeof recipeSteps.$inferSelect;
 export type RecipeTagRecord = typeof recipeTags.$inferSelect;
 
+/**
+ * Every distinct tag across this user's own recipes, for the filter dropdown.
+ *
+ * The dropdown previously derived its options from a single 100-recipe page, so
+ * anyone with a larger library had tags missing from their own filter list.
+ *
+ * Grouped case-insensitively, because "Baking" and "baking" are one tag as far
+ * as a person is concerned and the filter now treats them as one too. `min()`
+ * picks a stable representative so the dropdown shows a real capitalisation the
+ * user typed rather than a flattened one.
+ *
+ * Scoped to the user's own recipes, matching listRecipes exactly. A dropdown
+ * built from a wider set than the list it filters would offer options that
+ * return nothing.
+ */
+export async function getRecipeTags(userId: string): Promise<string[]> {
+  const db = await getDb();
+
+  const rows = await db
+    .select({ tag: sql<string>`min(${recipeTags.tag})` })
+    .from(recipeTags)
+    .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
+    .where(eq(recipes.userId, userId))
+    .groupBy(sql`lower(${recipeTags.tag})`)
+    .orderBy(sql`lower(${recipeTags.tag})`);
+
+  return rows.map((r) => r.tag);
+}
+
 export type RecipeWithDetails = RecipeRecord & {
   ingredients: RecipeIngredientRecord[];
   steps: RecipeStepRecord[];
@@ -93,7 +122,18 @@ export async function listRecipes(
       .select({ recipeId: recipeTags.recipeId })
       .from(recipeTags)
       .innerJoin(recipes, eq(recipeTags.recipeId, recipes.id))
-      .where(and(eq(recipes.userId, userId), eq(recipeTags.tag, tag.toLowerCase().trim())));
+      // Compared case-insensitively on both sides. Tags are stored exactly as
+      // typed, but this filter used to lowercase only the search term — so a
+      // recipe tagged "Baking" could never be found by filtering for "Baking",
+      // and the dropdown offered an option that always returned nothing.
+      // Normalising on write would need a backfill and would still lose the
+      // user's capitalisation; comparing both sides fixes existing rows too.
+      .where(
+        and(
+          eq(recipes.userId, userId),
+          sql`lower(${recipeTags.tag}) = ${tag.toLowerCase().trim()}`,
+        ),
+      );
     tagFilteredIds = tagRows.map((r) => r.recipeId);
     if (tagFilteredIds.length === 0) {
       return { recipes: [], nextCursor: null, total: 0, limit };

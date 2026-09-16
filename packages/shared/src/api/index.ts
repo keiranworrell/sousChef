@@ -10,6 +10,8 @@ import type {
   CookHistoryResponse,
   CookLogResponse,
   LogCookInput,
+  UpdateCookLogInput,
+  RecipeTagsResponse,
   RediscoverMode,
   RediscoverResponse,
   CommunityFeedParams,
@@ -274,11 +276,29 @@ export function createApiClient(baseUrl: string, token?: string) {
       cookLog: (recipeId: string): Promise<ApiResponse<CookLogResponse>> =>
         get<CookLogResponse>(`/recipes/${recipeId}/cook-history`),
 
+      /**
+       * Partial edit of one entry.
+       *
+       * Omit a field to leave it alone; send null to clear it. `rating: null`
+       * removes a rating, whereas omitting `rating` while editing the notes
+       * keeps it — the distinction is the point of the endpoint.
+       */
+      updateCookLogEntry: (
+        recipeId: string,
+        entryId: string,
+        input: UpdateCookLogInput,
+      ): Promise<ApiResponse<CookHistoryEntry>> =>
+        patch<CookHistoryEntry>(`/recipes/${recipeId}/cook-history/${entryId}`, input),
+
       deleteCookLogEntry: (
         recipeId: string,
         entryId: string,
       ): Promise<ApiResponse<null>> =>
         del<null>(`/recipes/${recipeId}/cook-history/${entryId}`),
+
+      /** Every tag across the user's own recipes — the filter dropdown's options. */
+      tags: (): Promise<ApiResponse<RecipeTagsResponse>> =>
+        get<RecipeTagsResponse>("/recipes/tags"),
 
       rediscover: (mode: RediscoverMode): Promise<ApiResponse<RediscoverResponse>> =>
         get<RediscoverResponse>(`/recipes/rediscover?mode=${encodeURIComponent(mode)}`),

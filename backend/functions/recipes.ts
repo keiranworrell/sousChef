@@ -17,6 +17,7 @@ import {
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  getRecipeTags,
 } from "../db/queries/recipe-queries";
 
 const s3Client = new S3Client({});
@@ -30,6 +31,8 @@ import {
   getCookHistory,
   getRecipeCookLog,
   deleteCookLogEntry,
+  updateCookLogEntry,
+  buildCookLogUpdate,
 } from "../db/queries/cook-history-queries";
 import { getRediscoverRecipes } from "../db/queries/rediscover-queries";
 import { importRecipes } from "../db/queries/import-queries";
@@ -126,6 +129,25 @@ const LogCookSchema = z.object({
     .nullable()
     .optional(),
 });
+
+/**
+ * Editing an existing entry.
+ *
+ * Same fields as LogCookSchema with one difference: `cookedAt` is optional but
+ * not nullable. On create, null means "use the default of now"; on edit there
+ * is no such state, because the column is NOT NULL and there is nothing to
+ * clear it to. Rejecting null here means a client that sends one is told,
+ * rather than having it silently dropped.
+ */
+const UpdateCookLogSchema = z.object({
+  rating: z.number().int().min(1).max(5).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  cookedAt: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
+});
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -148,12 +170,29 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse({ entries });
     }
 
-    // DELETE /recipes/{id}/cook-history/{entryId}
-    const deleteLogMatch = event.rawPath?.match(/\/cook-history\/([^/]+)$/);
-    if (method === "DELETE" && deleteLogMatch) {
-      const removed = await deleteCookLogEntry(user.id, deleteLogMatch[1]!);
+    // DELETE and PATCH /recipes/{id}/cook-history/{entryId} — one path, told
+    // apart by method. Matched once so the two can't drift apart.
+    const logEntryMatch = event.rawPath?.match(/\/cook-history\/([^/]+)$/);
+
+    if (method === "DELETE" && logEntryMatch) {
+      const removed = await deleteCookLogEntry(user.id, logEntryMatch[1]!);
       if (!removed) throw new NotFoundError("Cook log entry not found");
       return okResponse(null, 204);
+    }
+
+    if (method === "PATCH" && logEntryMatch) {
+      const body = parseBody(event.body ?? "{}", UpdateCookLogSchema);
+
+      // An empty patch is rejected rather than treated as a no-op. Returning
+      // the unchanged row with a 200 would tell the client its edit succeeded
+      // when nothing was sent, which is a harder bug to find than a 400.
+      if (!buildCookLogUpdate(body)) {
+        throw new BadRequestError("Nothing to update — send at least one field.");
+      }
+
+      const updated = await updateCookLogEntry(user.id, logEntryMatch[1]!, body);
+      if (!updated) throw new NotFoundError("Cook log entry not found");
+      return okResponse(updated);
     }
 
     // GET /recipes/cook-history — must come before generic GET /recipes check
@@ -162,6 +201,16 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const query = CookHistoryQuerySchema.parse(event.queryStringParameters ?? {});
       const result = await getCookHistory(user.id, query);
       return okResponse(result);
+    }
+
+    // GET /recipes/tags — options for the filter dropdown.
+    //
+    // Like /recipes/cook-history, this shares a prefix with the generic
+    // GET /recipes below and is told apart by the suffix, so it has to be
+    // tested first.
+    if (method === "GET" && !recipeId && event.rawPath?.endsWith("/recipes/tags")) {
+      const tags = await getRecipeTags(user.id);
+      return okResponse({ tags });
     }
 
     // GET /recipes/rediscover
