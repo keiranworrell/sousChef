@@ -7,6 +7,7 @@
  */
 
 import type { CreateRecipeInput } from "@souschef/shared";
+import { parseIngredient } from "@souschef/shared";
 
 // ── Schema.org types ───────────────────────────────────────────────────────────
 
@@ -208,12 +209,25 @@ export function parseRecipeFromHtml(
     sourceUrl: url,
     isPublic: false,
 
-    // Ingredient strings go into name field — structured quantity/unit parsing
-    // can be added later via the scaling agent
-    ingredients: (schema.recipeIngredient ?? []).map((name, idx) => ({
-      name: name.trim(),
-      orderIndex: idx,
-    })),
+    // Parsed into quantity / unit / name rather than dumped whole into `name`.
+    //
+    // This used to store "300 g bread flour" as the name with a null quantity,
+    // which reads fine on the recipe page and quietly breaks everything
+    // downstream: scaling has nothing to scale, and the shopping list cannot
+    // add two amounts of flour together because neither carries a number.
+    //
+    // parseIngredient is conservative — anything it can't confidently split
+    // comes back whole, which is exactly the old behaviour, so this can only
+    // improve on what was there.
+    ingredients: (schema.recipeIngredient ?? []).map((line, idx) => {
+      const parsed = parseIngredient(line);
+      return {
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+        orderIndex: idx,
+      };
+    }),
 
     steps: instructions.map((instruction, idx) => ({
       stepNumber: idx + 1,

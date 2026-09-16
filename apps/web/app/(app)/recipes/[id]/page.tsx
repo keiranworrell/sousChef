@@ -264,10 +264,11 @@ export default function RecipeDetailPage(): React.JSX.Element {
             className="mt-1"
           />
         </div>
-        {/* Deliberately not shrink-0. The action row wraps internally, so
-            letting this column shrink lets that wrapping engage; pinning it to
-            max-content is what starved the title. */}
-        <div className="sm:min-w-0">
+        {/* Capped, not just shrinkable. min-w-0 alone lets this column take
+            its max-content width first and leaves the title whatever is left —
+            which with seven actions was about 200px, one word per line. A hard
+            ceiling forces the row's own wrapping to engage instead. */}
+        <div className="sm:min-w-0 sm:max-w-[60%]">
           <ActionMenu
             primary={recipe.steps.length > 0 ? {
               label: "Start cooking",

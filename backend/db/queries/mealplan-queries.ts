@@ -107,30 +107,76 @@ function normaliseUnit(quantity: number | null, unit: string | null): Normalised
  * raw name as the key, so it stays a row of its own rather than collapsing
  * every unnameable item into one.
  */
-function aggregateIngredients(
+export function aggregateIngredients(
   raw: Array<{ name: string; quantity: number | null; unit: string | null }>,
 ): MealPlanIngredient[] {
-  const groups = new Map<string, MealPlanIngredient>();
+  // Grouped by canonical name ALONE. Keying on name+unit — which is what this
+  // did before — puts "salt, 6 g" and "salt, a sprinkle" in separate buckets
+  // and produces two salt lines, because one has a unit and the other doesn't.
+  // In a shop you want one line per thing you are buying, and whether some of
+  // it was measured in grams is not a reason to write it down twice.
+  const groups = new Map<string, {
+    displayName: string;
+    // Summed quantity per unit. "" is the bucket for entries with no unit.
+    byUnit: Map<string, number>;
+    // True when at least one entry had no quantity at all ("a sprinkle").
+    hasUnquantified: boolean;
+  }>();
 
   for (const ing of raw) {
     const { quantity: normQty, unit: normUnit } = normaliseUnit(ing.quantity, ing.unit);
     const canonical = normaliseIngredientName(ing.name);
-    const nameKey = canonical || ing.name.toLowerCase().trim();
-    const key = `${nameKey}|${normUnit ?? ""}`;
+    const key = canonical || ing.name.toLowerCase().trim();
 
-    const existing = groups.get(key);
-    if (existing) {
-      if (existing.quantity !== null && normQty !== null) {
-        existing.quantity += normQty;
-      } else if (normQty !== null) {
-        existing.quantity = normQty;
-      }
-    } else {
-      groups.set(key, { name: ing.name.trim(), quantity: normQty, unit: normUnit });
+    const group = groups.get(key) ?? {
+      displayName: ing.name.trim(),
+      byUnit: new Map<string, number>(),
+      hasUnquantified: false,
+    };
+
+    // Shortest original name wins as the label: "salt" reads better on a list
+    // than "salt, a sprinkle", and the longer one is usually a preparation note
+    // rather than a different ingredient.
+    if (ing.name.trim().length < group.displayName.length) {
+      group.displayName = ing.name.trim();
     }
+
+    if (normQty === null) {
+      group.hasUnquantified = true;
+    } else {
+      const unitKey = normUnit ?? "";
+      group.byUnit.set(unitKey, (group.byUnit.get(unitKey) ?? 0) + normQty);
+    }
+
+    groups.set(key, group);
   }
 
-  return Array.from(groups.values());
+  return Array.from(groups.values()).map((group) => {
+    // The unit carrying the most measured entries is the one the line is
+    // expressed in. Anything left over is mentioned rather than dropped —
+    // silently losing "200 ml" because the line is already in grams would be
+    // the same class of error as the duplicate it replaces.
+    const units = [...group.byUnit.entries()].sort((a, b) => b[1] - a[1]);
+    const [primary, ...rest] = units;
+
+    const extras: string[] = rest.map(([unit, qty]) =>
+      unit ? `${formatQuantity(qty)} ${unit}` : formatQuantity(qty),
+    );
+    if (group.hasUnquantified && primary) extras.push("plus a little more");
+
+    const suffix = extras.length > 0 ? ` (+ ${extras.join(", ")})` : "";
+
+    return {
+      name: group.displayName + suffix,
+      quantity: primary ? primary[1] : null,
+      unit: primary ? (primary[0] || null) : null,
+    };
+  });
+}
+
+/** Trims float noise: 1.5 stays 1.5, 2.0000000000000004 becomes 2. */
+function formatQuantity(n: number): string {
+  return String(Math.round(n * 100) / 100);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

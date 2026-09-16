@@ -24,7 +24,7 @@ Return ONLY a valid JSON object — no markdown fences, no preamble, no explanat
   "cuisine": "string or null",
   "ingredients": [
     {
-      "name": "string (full ingredient string, e.g. '200g plain flour')",
+      "name": "string (the ingredient only, e.g. 'plain flour, sifted')",
       "quantity": number or null,
       "unit": "string or null",
       "notes": "string or null",
@@ -42,7 +42,9 @@ Return ONLY a valid JSON object — no markdown fences, no preamble, no explanat
 
 Rules:
 - title is required. If you cannot find a recipe title, return {"error": "No recipe found on this page"}.
-- ingredients must be an array. Each ingredient name should be the full ingredient string as written (e.g. "200g plain flour, sifted"). Extract quantity and unit where clearly identifiable, otherwise leave them null.
+- ingredients must be an array. Split each line into its parts: "200g plain flour, sifted" becomes name "plain flour, sifted", quantity 200, unit "g". The name must NOT repeat the quantity or unit — a name like "300 g bread flour" is wrong, because it leaves the recipe unscalable and the shopping list unable to add two amounts together.
+- Keep preparation notes in the name ("plain flour, sifted"), and keep countable words there too ("cloves garlic", "rashers bacon") — those are part of what you buy, not units of measure.
+- Where an amount is vague ("a good glug", "to taste"), leave quantity and unit null and keep the whole phrase as the name. A guessed number is worse than no number.
 - steps must be an array of ordered instructions. Each instruction is a single step, not a sentence fragment.
 - tags should be a short list of descriptive tags (cuisine, dietary, occasion). Maximum 8 tags.
 - difficulty: guess from context if not stated. Simple recipes with few steps = easy; complex techniques = hard; otherwise medium.
