@@ -147,20 +147,38 @@ export function handleError(err: unknown): APIGatewayProxyResultV2 {
     };
   }
 
-  if (err instanceof Error) {
-    console.error("Unhandled error:", err);
-    return {
-      statusCode: 500,
-      headers: JSON_HEADERS,
-      body: errorBody("INTERNAL_SERVER_ERROR", "An unexpected error occurred"),
-    };
-  }
+  // Unhandled. The user gets a reference and the error's class, and CloudWatch
+  // gets the same reference next to the full stack.
+  //
+  // "An unexpected error occurred" with nothing else is close to useless: it
+  // cannot be correlated with a log line, and it does not distinguish a database
+  // problem from a bug in our own code. Two production 500s were diagnosed by
+  // guesswork because of it. The reference makes any future one a single
+  // CloudWatch query, and the class name alone usually says where to look —
+  // NeonDbError points at the database, TypeError at us.
+  const ref = errorReference();
+  const kind = err instanceof Error ? err.name : typeof err;
+  console.error(`Unhandled error [ref ${ref}] (${kind}):`, err);
 
   return {
     statusCode: 500,
     headers: JSON_HEADERS,
-    body: errorBody("INTERNAL_SERVER_ERROR", "An unexpected error occurred"),
+    body: errorBody(
+      "INTERNAL_SERVER_ERROR",
+      `Something went wrong on our end. Reference: ${ref}`,
+      { reference: ref, kind },
+    ),
   };
+}
+
+/**
+ * Short, human-quotable, and unique enough to find in a day of logs.
+ *
+ * Not a UUID: the point is that someone can read it off a screen and type it
+ * into a log search, and thirty-six characters of hex is not that.
+ */
+function errorReference(): string {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
 export function okResponse<T>(data: T, statusCode = 200): ErrorResponse {
