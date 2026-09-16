@@ -68,20 +68,44 @@ describe("backfill vetting", () => {
     expect(verdict("300 g flour", "g")).toBeNull();
   });
 
-  it("refuses a parse that is not a reduction of the original name", () => {
-    // Guards against a future parser change that starts rewriting rather than
-    // splitting. The backfill must not be where that is discovered.
-    expect(vet(row("300 g flour"), { name: "wheat", quantity: 300, unit: "g" })).toMatch(
-      /not contained in the original/,
-    );
+  it("refuses a split that took nothing off the front", () => {
+    // A quantity the parser reports without shortening the name did not come
+    // from the text, so there is nothing to gain by writing it.
+    //
+    // Note the unit: a parse that pulled 300 out of "300 g flour" would always
+    // have pulled the "g" too. An earlier version of this test passed
+    // `unit: null` here, which no real parse could produce — and it failed,
+    // because a unitless 300 trips the count ceiling long before this rule.
+    // A fixture the parser could never emit tests nothing.
+    expect(
+      vet(row("300 g flour"), { name: "300 g flour", quantity: 300, unit: "g" }),
+    ).toMatch(/nothing was split off/);
   });
 
   it("refuses degenerate results", () => {
-    expect(vet(row("2 g"), { name: "g", quantity: 2, unit: null })).not.toBeNull();
-    expect(vet(row("0 g flour"), { name: "flour", quantity: 0, unit: "g" })).not.toBeNull();
-    expect(
-      vet(row("300 g flour"), { name: "300 g flour", quantity: 300, unit: null }),
-    ).toMatch(/nothing was split off/);
+    expect(verdict("0 g flour")).toMatch(/zero or negative/);
+  });
+
+  describe("defensive guards", () => {
+    // These fixtures are deliberately not things the current parser produces.
+    // They exist so that a future change to `parseIngredient` that starts
+    // emitting them is caught here rather than in the database.
+
+    it("refuses a parse that rewrites rather than reduces the name", () => {
+      expect(vet(row("300 g flour"), { name: "wheat", quantity: 300, unit: "g" })).toMatch(
+        /not contained in the original/,
+      );
+    });
+
+    it("refuses a name reduced to almost nothing", () => {
+      expect(vet(row("2 g"), { name: "g", quantity: 2, unit: null })).toMatch(/too short/);
+    });
+
+    it("refuses a non-finite quantity", () => {
+      expect(vet(row("x flour"), { name: "flour", quantity: NaN, unit: null })).toMatch(
+        /not a finite number/,
+      );
+    });
   });
 
   it("keeps the noun on countable-but-unitless ingredients", () => {

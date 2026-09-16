@@ -97,6 +97,11 @@ const MIN_NAME_LENGTH = 2;
  * *shape* — it will happily read a number off the front of anything. The rules
  * here are about *plausibility*, which is a different question and one the
  * parser has no business answering.
+ *
+ * Structural checks run before plausibility ones. Both reject, so the order does
+ * not change what gets written — but the reason strings are grouped and read in
+ * the dry-run report, and "nothing was split off" is a truer account of a line
+ * than "implausible count" when both happen to be true of it.
  */
 export function vet(
   row: { name: string; unit: string | null },
@@ -105,13 +110,8 @@ export function vet(
   if (parsed.quantity === null) return null; // not a rejection — nothing to do
   if (!Number.isFinite(parsed.quantity)) return "quantity is not a finite number";
   if (parsed.quantity <= 0) return "quantity is zero or negative";
-  const unit = parsed.unit ?? row.unit;
-  const ceiling = unit ? MAX_MEASURED : MAX_COUNT;
-  if (parsed.quantity > ceiling) {
-    return unit
-      ? `quantity ${parsed.quantity} ${unit} is implausibly large`
-      : `quantity ${parsed.quantity} with no unit is implausible as a count — probably a year or a code`;
-  }
+
+  // --- structural: is this a split at all? ---
 
   const name = parsed.name.trim();
   if (name.length < MIN_NAME_LENGTH) return "parsed name is too short to be an ingredient";
@@ -128,6 +128,16 @@ export function vet(
   // alone keeps the row exactly as it is rather than writing a number that was
   // never in the text.
   if (name.length === row.name.trim().length) return "name unchanged — nothing was split off";
+
+  // --- plausibility: do we believe the number? ---
+
+  const unit = parsed.unit ?? row.unit;
+  const ceiling = unit ? MAX_MEASURED : MAX_COUNT;
+  if (parsed.quantity > ceiling) {
+    return unit
+      ? `quantity ${parsed.quantity} ${unit} is implausibly large`
+      : `quantity ${parsed.quantity} with no unit is implausible as a count — probably a year or a code`;
+  }
 
   // The row has a unit but no quantity, and the text disagrees with the unit.
   // Two sources of truth that contradict each other is exactly the case to
