@@ -11,6 +11,7 @@ import {
   collections,
   collectionItems,
   collectionShares,
+  cookSessions,
   shoppingLists,
   shoppingListItems,
   mealPlans,
@@ -69,6 +70,13 @@ export type UserDataExport = {
   mealPlans: unknown[];
   fermentationBatches: unknown[];
   cookHistory: unknown[];
+  /**
+   * Multi-recipe cooking plans the user generated, with each step's recipe
+   * named. A record of what they planned to cook and how far they got is
+   * activity of theirs, so it belongs here — low-value, but not ours to leave
+   * out.
+   */
+  cookSessions: unknown[];
   social: {
     following: unknown[];
     followers: unknown[];
@@ -234,6 +242,29 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
     logs: logs.filter((l) => l.batchId === b.id),
   }));
 
+  // ── Multi-recipe cooking sessions ──────────────────────────────────────────
+  //
+  // The stored plan holds bare references (recipe id + step number), which
+  // would mean nothing to someone reading the file. Resolving the titles here
+  // is the same courtesy the recipes array and the collection shares already
+  // get: an export is only portable if it can be understood on its own.
+  const sessionRows = await db
+    .select()
+    .from(cookSessions)
+    .where(eq(cookSessions.userId, userId));
+
+  const exportedSessions = sessionRows.map((session) => ({
+    ...session,
+    recipeTitles: session.recipeIds.map((id) => recipeTitleById.get(id) ?? null),
+    plan: {
+      ...session.plan,
+      steps: session.plan.steps.map((step) => ({
+        ...step,
+        recipeTitle: recipeTitleById.get(step.recipeId) ?? null,
+      })),
+    },
+  }));
+
   // ── Everything else ────────────────────────────────────────────────────────
   const [
     cookHistoryRows,
@@ -266,6 +297,7 @@ export async function exportUserData(userId: string): Promise<UserDataExport> {
     mealPlans: exportedPlans,
     fermentationBatches: exportedBatches,
     cookHistory: cookHistoryRows,
+    cookSessions: exportedSessions,
     social: {
       following: followRows.filter((f) => f.followerId === userId),
       followers: followRows.filter((f) => f.followeeId === userId),

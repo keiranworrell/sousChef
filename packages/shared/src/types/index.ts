@@ -107,6 +107,7 @@ export type UserDataExport = {
   mealPlans: unknown[];
   fermentationBatches: unknown[];
   cookHistory: unknown[];
+  cookSessions: unknown[];
   social: {
     following: unknown[];
     followers: unknown[];
