@@ -236,6 +236,22 @@ All agents in `backend/agents/` follow this pattern:
 - Use `claude-sonnet-4-6` for all agent calls unless there is a documented reason to use another model.
 - Include relevant context (recipe, batch history) in the user message, not the system prompt.
 
+### Adding a migration
+
+Every `.sql` file in `migrations/` **must** have an entry in
+`migrations/meta/_journal.json`, and its `when` **must** be greater than the
+entry before it.
+
+Drizzle's migrator reads the journal, not the directory. A file with no entry is
+not "pending" — it is invisible, and `db:migrate` reports success having never
+seen it. And because the migrator compares each entry's `when` against the single
+greatest timestamp already recorded, an entry whose `when` is not greater than its
+predecessor's can never be reached at all. Both failures are silent.
+
+`migrations-journal.test.ts` fails the build on either, and `db:migrate` checks
+again before touching the database. If you hit one of them the fix is the journal,
+not the test.
+
 ### Adding a database table
 
 If a new table has a foreign key to `users`, **add it to `exportUserData` in the
