@@ -234,13 +234,20 @@ export default function RecipeDetailPage(): React.JSX.Element {
           className="w-full h-64 object-cover rounded-xl mb-6"
         />
       )}
-      {/* Stacks on mobile so the actions sit below the title rather than
-          competing with it for width. On sm+ the text column takes flex-1 so it
-          claims the remaining space — without it the column is content-sized,
-          and since min-w-0 lets it shrink to zero it collapsed to ~130px while
-          the action column held its full width. */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
+      {/* Title and actions no longer share a line at any width.
+          
+          They did, and it kept going wrong: the page is max-w-3xl, so the
+          content column is about 736px, and a row of seven buttons needs more
+          than that. Whatever was left went to the title — at one point about
+          200px, which renders "Brioche Burger Buns" as one word per line.
+          Capping the action column helped but only bought headroom; the next
+          action added would have eaten it again.
+          
+          Stacking removes the competition rather than rationing it. The title
+          gets the full width, the actions get their own line beneath, and an
+          eighth action changes nothing about the heading. */}
+      <div className="mb-6 flex flex-col gap-4">
+        <div className="min-w-0">
           <Link href="/recipes" className="text-sm text-orange-500 hover:underline">
             ← Recipes
           </Link>
@@ -264,11 +271,10 @@ export default function RecipeDetailPage(): React.JSX.Element {
             className="mt-1"
           />
         </div>
-        {/* Capped, not just shrinkable. min-w-0 alone lets this column take
-            its max-content width first and leaves the title whatever is left —
-            which with seven actions was about 200px, one word per line. A hard
-            ceiling forces the row's own wrapping to engage instead. */}
-        <div className="sm:min-w-0 sm:max-w-[60%]">
+        {/* Full width now, and ActionMenu right-aligns its own row. The cap
+            that used to live here is gone — it was working around the shared
+            line that no longer exists. */}
+        <div className="min-w-0">
           <ActionMenu
             primary={recipe.steps.length > 0 ? {
               label: "Start cooking",
@@ -372,7 +378,12 @@ export default function RecipeDetailPage(): React.JSX.Element {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Ingredients</h2>
             <span className="text-xs text-gray-400">Tap an ingredient to see substitutions</span>
           </div>
-          <ul className="space-y-2">
+          {/* Two columns from sm up. A single column of "Salt, 6 g" in a 736px
+              container leaves most of the line empty and pushes the method far
+              down the page — the list is short strings, not prose, so it reads
+              better in pairs. Steps stay single-column: those are sentences,
+              and a 360px measure would be worse than the whitespace. */}
+          <ul className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
             {recipe.ingredients.map((ing) => {
               const scaleFactor = adjustedServings !== null
                 ? adjustedServings / recipe.servings
