@@ -52,7 +52,8 @@ Return ONLY a valid JSON object — no markdown fences, no preamble, no explanat
 
 Rules:
 - title is required. If the images do not contain a recipe, return {"error": "No recipe found in the provided images"}.
-- ingredients must be an array. Extract quantity and unit where clearly identifiable; leave null otherwise.
+- ingredients must be an array. Split each line into its parts: "200g plain flour" becomes name "plain flour", quantity 200, unit "g". The name must NOT repeat the quantity or unit.
+- Keep preparation notes and countable words in the name ("plain flour, sifted", "cloves garlic"). Where an amount is vague, leave quantity and unit null and keep the phrase as the name.
 - steps must be an ordered array of instructions.
 - tags should be a short descriptive list (cuisine, dietary, occasion). Maximum 8.
 - difficulty: infer from context if not stated. Few simple steps = easy; complex techniques = hard; otherwise medium.
