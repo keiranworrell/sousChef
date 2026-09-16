@@ -236,6 +236,21 @@ All agents in `backend/agents/` follow this pattern:
 - Use `claude-sonnet-4-6` for all agent calls unless there is a documented reason to use another model.
 - Include relevant context (recipe, batch history) in the user message, not the system prompt.
 
+### Adding a database table
+
+If a new table has a foreign key to `users`, **add it to `exportUserData` in the
+same change**. A GDPR export that silently omits a table does not satisfy the
+Article 15 access right, and this obligation is easy to miss because nothing
+about writing the migration reminds you of it.
+
+There is a test (`export-queries.test.ts`) that fails the build when a table
+references `users.id` and appears neither in the export nor in its
+`INTENTIONALLY_EXCLUDED` list. It has caught this twice. If you hit it, the
+question to answer is not "how do I make the test pass" but "is this row
+personal data about the user?" — and if it is, export it rather than excluding
+it. Where an exported row references something by id, resolve the human-readable
+name alongside it: an export is only portable if it can be read on its own.
+
 ### Environment Variables
 
 - Never commit `.env` files. Every environment variable must be documented in `.env.example` with a description comment and a placeholder value.
