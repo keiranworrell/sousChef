@@ -23,9 +23,40 @@ export default function SignInScreen(): React.JSX.Element {
     setError(null);
     setLoading(true);
     try {
-      const { isSignedIn } = await signIn({ username: email, password });
-      if (isSignedIn) {
-        router.replace("/(app)");
+      // Trimmed: an email arriving from autofill or a keyboard suggestion often
+      // carries a trailing space, and Cognito rejects it as a wrong username
+      // rather than as a malformed one.
+      const { isSignedIn, nextStep } = await signIn({
+        username: email.trim(),
+        password,
+      });
+
+      // Deliberately no navigation on success. The root layout listens for the
+      // `signedIn` event and does the routing; this screen navigating too was
+      // half of the original bug — it pushed to /(app) while the layout still
+      // thought the user was signed out, so the guard immediately bounced them
+      // back here. One owner for auth navigation, and it is the guard.
+      if (isSignedIn) return;
+
+      // Everything below was previously unhandled: a sign-in that needed a
+      // further step returned isSignedIn false and the function simply ended,
+      // so the button spun, stopped, and nothing whatsoever happened.
+      switch (nextStep.signInStep) {
+        case "CONFIRM_SIGN_UP":
+          router.push({
+            pathname: "/(auth)/confirm",
+            params: { email: email.trim() },
+          });
+          return;
+        case "RESET_PASSWORD":
+          setError("You need to reset your password. You can do that on the website.");
+          return;
+        default:
+          // MFA, a forced new password, TOTP setup — none of it is built on
+          // mobile yet. Naming the step beats a button that does nothing.
+          setError(
+            `This account needs a sign-in step the app doesn't support yet (${nextStep.signInStep}). Try the website.`,
+          );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
