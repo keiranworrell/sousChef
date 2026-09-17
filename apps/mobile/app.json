@@ -15,8 +15,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f97316"
       },
-      "package": "com.keiranworrell.souschef",
-      "edgeToEdgeEnabled": true
+      "package": "com.keiranworrell.souschef"
     },
     "plugins": [
       "expo-router",
