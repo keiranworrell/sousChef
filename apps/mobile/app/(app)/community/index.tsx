@@ -124,8 +124,8 @@ export default function CommunityScreen(): React.JSX.Element {
         text: "Sign out",
         style: "destructive",
         onPress: async () => {
+          // The root layout routes on the `signedOut` event — see profile.
           await signOut();
-          router.replace("/(auth)/sign-in");
         },
       },
     ]);

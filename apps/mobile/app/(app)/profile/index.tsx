@@ -6,18 +6,18 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { signOut } from "aws-amplify/auth";
 
 export default function ProfileScreen(): React.JSX.Element {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleSignOut(): Promise<void> {
     setLoading(true);
     try {
+      // No navigation here: the root layout hears `signedOut` and routes. Two
+      // places steering auth navigation is what broke sign-in, and it would
+      // break the same way here the moment the timings shifted.
       await signOut();
-      router.replace("/(auth)/sign-in");
     } finally {
       setLoading(false);
     }
