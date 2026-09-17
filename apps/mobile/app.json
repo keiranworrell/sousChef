@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/adaptive-icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.keiranworrell.souschef"
@@ -14,23 +15,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f97316"
       },
-      "package": "com.keiranworrell.souschef"
-    },
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f97316"
+      "package": "com.keiranworrell.souschef",
+      "edgeToEdgeEnabled": true
     },
     "plugins": [
       "expo-router",
       [
-        "expo-build-properties",
+        "expo-splash-screen",
         {
-          "android": {
-            "kotlinVersion": "1.9.25"
-          }
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#f97316"
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "scheme": "souschef",
     "owner": "keiranworrell",
