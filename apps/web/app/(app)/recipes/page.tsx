@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import type { Recipe } from "@souschef/shared";
+import type { OnboardingState, Recipe } from "@souschef/shared";
 import RecipeCard from "@/components/RecipeCard";
 import EmptyState from "@/components/EmptyState";
 import WelcomeModal, { shouldShowWelcome } from "@/components/WelcomeModal";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import InfiniteListFooter, { ListSkeleton } from "@/components/InfiniteListFooter";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { getApiClient } from "@/lib/api";
@@ -28,10 +29,26 @@ export default function RecipesPage(): React.JSX.Element {
   // doesn't depend on how many recipes happen to be on the current page.
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
 
-  // Check once on mount — must be client-side only (localStorage)
+  // Onboarding progress decides both whether to greet someone and whether to
+  // keep the checklist on the page, so it has to load before either can render.
+  // A failure leaves both hidden: a checklist is an optional nicety, and
+  // guessing at someone's progress is worse than saying nothing.
   useEffect(() => {
-    setShowWelcome(shouldShowWelcome());
+    async function loadOnboarding(): Promise<void> {
+      try {
+        const api = await getApiClient();
+        const res = await api.users.onboarding();
+        if ("data" in res) {
+          setOnboarding(res.data);
+          setShowWelcome(shouldShowWelcome(res.data.fresh));
+        }
+      } catch {
+        // Non-critical.
+      }
+    }
+    void loadOnboarding();
   }, []);
 
   // Rebuilt whenever the filters change, which is what drives the list reset
@@ -102,7 +119,9 @@ export default function RecipesPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+      {showWelcome && (
+        <WelcomeModal onboarding={onboarding} onClose={() => { setShowWelcome(false); }} />
+      )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">My recipes</h1>
         <Link href="/recipes/new" className="btn-primary">
@@ -176,6 +195,20 @@ export default function RecipesPage(): React.JSX.Element {
           </button>
         )}
       </div>
+
+      {/* The resume path. The modal is one-shot and skipping it used to lose
+          onboarding for good; this stays until the loop is actually finished,
+          then removes itself without being dismissed. Hidden while filtering,
+          because someone searching their library is mid-task and not looking
+          to be onboarded. */}
+      {onboarding && !onboarding.complete && !hasFilters && !isLoadingInitial && (
+        <div className="mb-6 rounded-2xl border border-orange-100 bg-orange-50/50 p-4 dark:border-orange-900/50 dark:bg-orange-950/20">
+          <p className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Getting started
+          </p>
+          <OnboardingChecklist state={onboarding} />
+        </div>
+      )}
 
       {isLoadingInitial && (
         <div className="grid gap-4">

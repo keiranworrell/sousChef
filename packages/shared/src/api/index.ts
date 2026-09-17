@@ -12,6 +12,7 @@ import type {
   LogCookInput,
   UpdateCookLogInput,
   RecipeTagsResponse,
+  OnboardingState,
   RediscoverMode,
   RediscoverResponse,
   CommunityFeedParams,
@@ -331,6 +332,10 @@ export function createApiClient(baseUrl: string, token?: string) {
 
       update: (input: UpdateUserInput): Promise<ApiResponse<User>> =>
         patch<User>("/users/me", input),
+
+      /** Checklist progress, computed from the user's own rows. */
+      onboarding: (): Promise<ApiResponse<OnboardingState>> =>
+        get<OnboardingState>("/users/me/onboarding"),
 
       deleteAccount: (): Promise<ApiResponse<null>> =>
         del<null>("/users/me"),

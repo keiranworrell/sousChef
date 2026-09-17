@@ -391,6 +391,27 @@ export type UpdateCookLogInput = {
   cookedAt?: string;
 };
 
+/**
+ * Onboarding progress, derived server-side from what the user actually has.
+ *
+ * Not a stored flag: "set up" means you have recipes, not that you clicked
+ * through a modal once on one device.
+ */
+export type OnboardingStepId = "add-recipe" | "plan-meals" | "shopping-list" | "cook";
+
+export type OnboardingStep = {
+  id: OnboardingStepId;
+  done: boolean;
+};
+
+export type OnboardingState = {
+  steps: OnboardingStep[];
+  /** Every step done — stop showing the checklist. */
+  complete: boolean;
+  /** No recipes at all, so a first-run welcome is appropriate. */
+  fresh: boolean;
+};
+
 /** Options for the recipe filter dropdown. */
 export type RecipeTagsResponse = {
   tags: string[];

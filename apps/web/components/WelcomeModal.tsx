@@ -2,11 +2,28 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import type { OnboardingState } from "@souschef/shared";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 
 const STORAGE_KEY = "sc_onboarding_done";
 
-export function shouldShowWelcome(): boolean {
+/**
+ * Whether the welcome modal should appear.
+ *
+ * Two conditions, and the second is the one that was missing. localStorage
+ * alone answers "has this browser seen the modal", which is not the same
+ * question: it showed again on every new device, and never again to someone who
+ * dismissed it and then did nothing.
+ *
+ * `fresh` comes from the server and means the account genuinely has no recipes.
+ * Someone with a library never sees this again, whatever their localStorage
+ * says; someone who skipped it and still has nothing gets another chance on
+ * their next device. The dismissal is still local, because "not right now" is a
+ * local, temporary sentiment and does not deserve a database write.
+ */
+export function shouldShowWelcome(fresh: boolean): boolean {
   if (typeof window === "undefined") return false;
+  if (!fresh) return false;
   return !localStorage.getItem(STORAGE_KEY);
 }
 
@@ -19,9 +36,15 @@ type Step = 0 | 1 | 2;
 
 type Props = {
   onClose: () => void;
+  /**
+   * Progress, if it has loaded. Null renders a placeholder rather than an empty
+   * checklist — showing four unticked boxes to someone who has already added a
+   * recipe would be worse than a moment's wait.
+   */
+  onboarding: OnboardingState | null;
 };
 
-export default function WelcomeModal({ onClose }: Props): React.JSX.Element {
+export default function WelcomeModal({ onClose, onboarding }: Props): React.JSX.Element {
   const [step, setStep] = useState<Step>(0);
 
   function dismiss(): void {
@@ -131,25 +154,20 @@ export default function WelcomeModal({ onClose }: Props): React.JSX.Element {
           {step === 2 && (
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                Explore the community
+                Here&apos;s the loop
               </h2>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                Browse thousands of recipes shared by home cooks, then fork any one into your collection.
+                Four things, in order. You can come back to this list any time from
+                your recipes.
               </p>
-              <div className="mt-6 rounded-xl border border-orange-100 dark:border-orange-900 bg-orange-50 dark:bg-orange-950 p-5">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                  Find something that looks good
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-                  Browse community recipes, filter by cuisine or ingredient, and fork anything you like straight into your own collection.
-                </p>
-                <Link
-                  href="/community"
-                  onClick={dismiss}
-                  className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
-                >
-                  Browse community recipes
-                </Link>
+              <div className="mt-5">
+                {onboarding ? (
+                  <OnboardingChecklist state={onboarding} onNavigate={dismiss} />
+                ) : (
+                  <p className="px-3 py-6 text-center text-xs text-gray-400">
+                    Loading your progress&hellip;
+                  </p>
+                )}
               </div>
             </div>
           )}
