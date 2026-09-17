@@ -15,6 +15,7 @@ import {
   syncUserEmail,
 } from "../db/queries/user-queries";
 import { exportUserData } from "../db/queries/export-queries";
+import { getOnboardingState } from "../db/queries/onboarding-queries";
 import {
   followUser,
   unfollowUser,
@@ -100,6 +101,15 @@ export const handler: APIGatewayProxyHandlerV2 = async (
     if (method === "GET" && path.endsWith("/users/me")) {
       const counts = await getFollowCounts(user.id);
       return okResponse({ ...user, ...counts, ...aiImportAllowance(user) });
+    }
+
+    // GET /users/me/onboarding — checklist progress, derived from real rows.
+    //
+    // Like /users/me/export, this does not end with "/users/me", so the check
+    // above cannot swallow it and the order here is not load-bearing.
+    if (method === "GET" && path.endsWith("/users/me/onboarding")) {
+      const state = await getOnboardingState(user.id);
+      return okResponse(state);
     }
 
     // GET /users/me/export — UK GDPR right of access / data portability.

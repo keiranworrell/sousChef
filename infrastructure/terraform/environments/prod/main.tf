@@ -1014,6 +1014,12 @@ resource "aws_apigatewayv2_route" "users_me_export" {
   target    = "integrations/${aws_apigatewayv2_integration.users.id}"
 }
 
+resource "aws_apigatewayv2_route" "users_me_onboarding" {
+  api_id    = module.api_gateway.api_id
+  route_key = "GET /users/me/onboarding"
+  target    = "integrations/${aws_apigatewayv2_integration.users.id}"
+}
+
 resource "aws_apigatewayv2_route" "users_profile_get" {
   api_id    = module.api_gateway.api_id
   route_key = "GET /users/{id}"
