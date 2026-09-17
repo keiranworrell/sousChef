@@ -3,6 +3,7 @@ import "react-native-get-random-values";
 
 import React, { useEffect, useState } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Amplify } from "aws-amplify";
 import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
 import { fetchAuthSession } from "aws-amplify/auth";
@@ -46,5 +47,14 @@ export default function RootLayout(): React.JSX.Element {
 
   if (!authChecked) return <></>;
 
-  return <Slot />;
+  // SafeAreaProvider has to wrap everything, and on Android 16 it stops being
+  // optional: edge-to-edge is enforced from API 36, so every screen draws under
+  // the status and navigation bars whether it expects to or not. React
+  // Navigation reads its insets from this provider — without it the tab bar
+  // sits under the gesture bar and headers under the clock.
+  return (
+    <SafeAreaProvider>
+      <Slot />
+    </SafeAreaProvider>
+  );
 }

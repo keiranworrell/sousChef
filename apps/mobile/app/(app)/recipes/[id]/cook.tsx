@@ -5,8 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  SafeAreaView,
 } from "react-native";
+// Not react-native's SafeAreaView, which this file used to import: that one is
+// iOS-only and a plain View on Android, so cooking mode has never had safe-area
+// handling on the platform we're about to ship to. Harmless while the app drew
+// below the system bars; wrong the moment edge-to-edge is enforced, and this is
+// a fullscreen screen you read at arm's length with wet hands.
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import type { RecipeStep, RecipeWithDetails } from "@souschef/shared";
