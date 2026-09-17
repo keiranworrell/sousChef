@@ -40,27 +40,28 @@ Imports a recipe from a URL by parsing Schema.org structured data (`application/
 
 A Claude fallback for sites without structured data is planned for a future iteration.
 
-### `dietary-adaptation.ts` *(stub — not wired to any route)*
-Adapts a recipe to meet a dietary requirement (e.g. vegan, gluten-free, nut-free). Returns a modified recipe with substituted ingredients and any notes on how the dish will differ.
-
-### `fermentation-troubleshoot.ts` *(stub — not wired to any route)*
-AI troubleshooting assistant for fermentation batches. Takes the batch details, timeline logs, and the user's problem description, and suggests likely causes and remediation steps.
-
 ## Removed agents
 
-Three stubs were deleted once the features they were written for shipped
-without them. Each was superseded by a simpler, cheaper approach, and leaving
-them in place made the codebase look like it had more AI surface than it does:
+Five stubs have been deleted. The first three were superseded by simpler,
+cheaper approaches; the last two were never written at all. Leaving any of them
+in place made the codebase look like it had more AI surface than it does:
 
-| Agent | Replaced by |
+| Agent | Why it went |
 |---|---|
 | `substitution.ts` | A static substitution data file in `packages/shared` |
 | `pantry-to-recipe.ts` | Removed with pantry tracking |
 | `scaling.ts` | `scaleQuantity`, a pure utility in `packages/shared` |
+| `dietary-adaptation.ts` | Never implemented — empty prompt, no route, 18 months |
+| `fermentation-troubleshoot.ts` | Never implemented — empty prompt, no route |
 
-They remain in git history if an AI-backed version is ever wanted. Worth noting
-the pattern before reaching for a fourth: in all three cases the non-AI version
-turned out to be sufficient, faster, and free to run.
+They remain in git history if an AI-backed version is ever wanted, though for
+the last two there is nothing in history to recover: both were an import block,
+`SYSTEM_PROMPT = ""`, a TODO and `okResponse(null)`. Writing them fresh would be
+easier than resurrecting them.
+
+Worth noting the pattern before reaching for a sixth. Three times the non-AI
+version turned out to be sufficient, faster and free to run; twice the feature
+simply was not wanted enough to finish.
 
 ## Adding a new agent
 

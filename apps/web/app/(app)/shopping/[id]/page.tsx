@@ -36,6 +36,63 @@ export default function ShoppingListPage(): React.JSX.Element {
   // Deleting
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Merging. Off by default and explicitly entered, because the normal thing to
+  // do on this screen is tick items off — turning every row into a selection
+  // target by default would make the common action the awkward one.
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [mergeName, setMergeName] = useState("");
+  const [merging, setMerging] = useState(false);
+
+  const selectedItems = (list?.items ?? []).filter((i) => selectedIds.includes(i.id));
+
+  function exitMergeMode(): void {
+    setMergeMode(false);
+    setSelectedIds([]);
+    setMergeName("");
+  }
+
+  function toggleSelected(item: ShoppingListItem): void {
+    setSelectedIds((prev) => {
+      const next = prev.includes(item.id)
+        ? prev.filter((x) => x !== item.id)
+        : [...prev, item.id];
+
+      // Default the surviving name to the first thing picked, while leaving it
+      // editable. Without a default the merge button is disabled until they
+      // notice the field, which reads like the feature is broken.
+      setMergeName((current) => {
+        if (next.length === 0) return "";
+        if (prev.length === 0) return item.name;
+        return current;
+      });
+
+      return next;
+    });
+  }
+
+  async function handleMerge(): Promise<void> {
+    if (selectedIds.length < 2 || !mergeName.trim()) return;
+    setMerging(true);
+    setActionError(null);
+    try {
+      const api = await getApiClient();
+      const res = await api.shopping.items.merge(id, selectedIds, mergeName.trim());
+      if ("error" in res) throw new Error(res.error.message);
+
+      // Reload rather than patching local state. The merge deletes rows and
+      // rewrites one, and reconstructing that here would be a second
+      // implementation of the server's rules, free to disagree with it.
+      await load();
+      exitMergeMode();
+    } catch (err) {
+      setActionError(errorMessage(err, "Could not merge those items"));
+      showError(errorMessage(err, "Could not merge those items"));
+    } finally {
+      setMerging(false);
+    }
+  }
+
   useEffect(() => {
     void load();
   }, [id]);
@@ -254,9 +311,89 @@ export default function ShoppingListPage(): React.JSX.Element {
           </div>
         </form>
       ) : (
-        <button className="btn-primary mb-6" onClick={() => setAdding(true)}>
-          + Add item
-        </button>
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <button className="btn-primary" onClick={() => setAdding(true)}>
+            + Add item
+          </button>
+          {/* Only offered when there is something to merge. On a list of one,
+              the button is an invitation to a dead end. */}
+          {list.items.length > 1 && !mergeMode && (
+            <button
+              className="text-sm font-medium text-gray-500 hover:text-orange-600 dark:text-gray-400"
+              onClick={() => setMergeMode(true)}
+            >
+              Merge duplicates
+            </button>
+          )}
+        </div>
+      )}
+
+      {mergeMode && (
+        <div className="mb-6 rounded-xl border border-orange-200 bg-orange-50/60 p-4 dark:border-orange-900/60 dark:bg-orange-950/20">
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Merge duplicates
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            Pick the items that are really the same thing. Their quantities are added
+            together.
+          </p>
+
+          {selectedItems.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                Keep this name
+              </p>
+              {/* The selected names as one-tap options, over a field they can
+                  edit. Choosing between what is already there covers most of
+                  it; the field is for when neither name is the right one. */}
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {selectedItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setMergeName(item.name)}
+                    className={
+                      mergeName === item.name
+                        ? "rounded-full bg-orange-500 px-3 py-1 text-xs font-medium text-white"
+                        : "rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:border-orange-400 dark:border-gray-700 dark:text-gray-400"
+                    }
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+              <input
+                className="input w-full text-sm"
+                value={mergeName}
+                onChange={(e) => setMergeName(e.target.value)}
+                maxLength={255}
+                aria-label="Name for the merged item"
+              />
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              className="btn-primary text-sm disabled:opacity-50"
+              onClick={() => { void handleMerge(); }}
+              disabled={merging || selectedIds.length < 2 || !mergeName.trim()}
+            >
+              {merging
+                ? "Merging…"
+                : `Merge ${selectedIds.length > 1 ? `${selectedIds.length} items` : "items"}`}
+            </button>
+            <button
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              onClick={exitMergeMode}
+              disabled={merging}
+            >
+              Cancel
+            </button>
+            {selectedIds.length === 1 && (
+              <span className="text-xs text-gray-400">Pick at least one more</span>
+            )}
+          </div>
+        </div>
       )}
 
       {list.items.length === 0 && (
@@ -276,6 +413,9 @@ export default function ShoppingListPage(): React.JSX.Element {
               onDelete={handleDelete}
               toggling={togglingId === item.id}
               deleting={deletingId === item.id}
+              mergeMode={mergeMode}
+              selected={selectedIds.includes(item.id)}
+              onSelect={toggleSelected}
             />
           ))}
         </ul>
@@ -296,6 +436,9 @@ export default function ShoppingListPage(): React.JSX.Element {
                 onDelete={handleDelete}
                 toggling={togglingId === item.id}
                 deleting={deletingId === item.id}
+                mergeMode={mergeMode}
+                selected={selectedIds.includes(item.id)}
+                onSelect={toggleSelected}
               />
             ))}
           </ul>
@@ -311,13 +454,63 @@ function ItemRow({
   onDelete,
   toggling,
   deleting,
+  mergeMode,
+  selected,
+  onSelect,
 }: {
   item: ShoppingListItem;
   onToggle: (item: ShoppingListItem) => void;
   onDelete: (id: string) => void;
   toggling: boolean;
   deleting: boolean;
+  mergeMode: boolean;
+  selected: boolean;
+  onSelect: (item: ShoppingListItem) => void;
 }): React.JSX.Element {
+  // In merge mode the whole row selects, and the checkbox and remove button
+  // step aside. Leaving them live would put "tick off", "select for merge" and
+  // "delete" within a few pixels of each other, and two of those are hard to
+  // undo in a shop.
+  if (mergeMode) {
+    return (
+      <li>
+        <button
+          type="button"
+          onClick={() => onSelect(item)}
+          aria-pressed={selected}
+          className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left shadow-sm transition-colors ${
+            selected
+              ? "border-orange-400 bg-orange-50 dark:border-orange-600 dark:bg-orange-950/40"
+              : "border-gray-200 bg-white hover:border-orange-300 dark:border-gray-800 dark:bg-gray-900"
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
+              selected
+                ? "border-orange-500 bg-orange-500"
+                : "border-gray-300 dark:border-gray-600"
+            }`}
+          >
+            {selected && (
+              <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
+            {item.quantity != null && (
+              <span className="ml-2 text-xs text-gray-400">
+                {item.quantity}
+                {item.unit ? ` ${item.unit}` : ""}
+              </span>
+            )}
+          </span>
+        </button>
+      </li>
+    );
+  }
+
   return (
     <li className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2.5 shadow-sm">
       <button

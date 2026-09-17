@@ -597,6 +597,20 @@ export function createApiClient(baseUrl: string, token?: string) {
         update: (listId: string, itemId: string, input: UpdateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> =>
           patch<ShoppingListItem>(`/shopping/${listId}/items/${itemId}`, input),
 
+        /**
+         * Combines two or more items into one under `name`.
+         *
+         * Returns the surviving item; the others are gone once this resolves,
+         * so refetch or drop them from local state rather than leaving rows on
+         * screen that no longer exist.
+         */
+        merge: (
+          listId: string,
+          itemIds: string[],
+          name: string,
+        ): Promise<ApiResponse<ShoppingListItem>> =>
+          post<ShoppingListItem>(`/shopping/${listId}/items/merge`, { itemIds, name }),
+
         delete: (listId: string, itemId: string): Promise<ApiResponse<null>> =>
           del<null>(`/shopping/${listId}/items/${itemId}`),
       },

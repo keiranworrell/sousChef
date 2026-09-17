@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "../client";
 import { mealPlans, mealPlanEntries, recipes, recipeIngredients } from "../schema";
 import { normaliseIngredientName } from "@souschef/shared";
+import { combineQuantities, extrasSuffix } from "./unit-math";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,44 +52,6 @@ export type CreateMealPlanEntryInput = {
 
 // ── Unit normalisation (for ingredient aggregation) ────────────────────────────
 
-/** Converts weight measurements to grams. */
-const WEIGHT_TO_G: Record<string, number> = {
-  g: 1, gram: 1, grams: 1,
-  kg: 1000, kilogram: 1000, kilograms: 1000,
-  oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
-  lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
-};
-
-/** Converts volume measurements to millilitres. */
-const VOLUME_TO_ML: Record<string, number> = {
-  ml: 1, milliliter: 1, milliliters: 1, millilitre: 1, millilitres: 1,
-  l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000,
-  tsp: 4.92892, teaspoon: 4.92892, teaspoons: 4.92892,
-  tbsp: 14.7868, tablespoon: 14.7868, tablespoons: 14.7868,
-  cup: 236.588, cups: 236.588,
-  "fl oz": 29.5735, "fluid oz": 29.5735,
-  pt: 473.176, pint: 473.176, pints: 473.176,
-  qt: 946.353, quart: 946.353, quarts: 946.353,
-  gal: 3785.41, gallon: 3785.41, gallons: 3785.41,
-};
-
-type Normalised = { quantity: number | null; unit: string | null };
-
-function normaliseUnit(quantity: number | null, unit: string | null): Normalised {
-  if (!unit) return { quantity, unit: null };
-  const u = unit.toLowerCase().trim();
-
-  if (Object.prototype.hasOwnProperty.call(WEIGHT_TO_G, u)) {
-    const factor = WEIGHT_TO_G[u]!;
-    return { quantity: quantity !== null ? quantity * factor : null, unit: "g" };
-  }
-  if (Object.prototype.hasOwnProperty.call(VOLUME_TO_ML, u)) {
-    const factor = VOLUME_TO_ML[u]!;
-    return { quantity: quantity !== null ? quantity * factor : null, unit: "ml" };
-  }
-  return { quantity, unit };
-}
-
 /**
  * Aggregates raw ingredients: normalises units, then merges by canonical name
  * plus unit.
@@ -117,22 +80,14 @@ export function aggregateIngredients(
   // it was measured in grams is not a reason to write it down twice.
   const groups = new Map<string, {
     displayName: string;
-    // Summed quantity per unit. "" is the bucket for entries with no unit.
-    byUnit: Map<string, number>;
-    // True when at least one entry had no quantity at all ("a sprinkle").
-    hasUnquantified: boolean;
+    members: Array<{ quantity: number | null; unit: string | null }>;
   }>();
 
   for (const ing of raw) {
-    const { quantity: normQty, unit: normUnit } = normaliseUnit(ing.quantity, ing.unit);
     const canonical = normaliseIngredientName(ing.name);
     const key = canonical || ing.name.toLowerCase().trim();
 
-    const group = groups.get(key) ?? {
-      displayName: ing.name.trim(),
-      byUnit: new Map<string, number>(),
-      hasUnquantified: false,
-    };
+    const group = groups.get(key) ?? { displayName: ing.name.trim(), members: [] };
 
     // Shortest original name wins as the label: "salt" reads better on a list
     // than "salt, a sprinkle", and the longer one is usually a preparation note
@@ -141,42 +96,23 @@ export function aggregateIngredients(
       group.displayName = ing.name.trim();
     }
 
-    if (normQty === null) {
-      group.hasUnquantified = true;
-    } else {
-      const unitKey = normUnit ?? "";
-      group.byUnit.set(unitKey, (group.byUnit.get(unitKey) ?? 0) + normQty);
-    }
-
+    group.members.push({ quantity: ing.quantity, unit: ing.unit });
     groups.set(key, group);
   }
 
+  // The actual arithmetic — unit conversion, summing, and what to do with
+  // amounts that will not convert — lives in combineQuantities, which the
+  // manual merge on the shopping list also calls. It used to be written out
+  // here, which meant two implementations of the same rules with nothing
+  // keeping them honest.
   return Array.from(groups.values()).map((group) => {
-    // The unit carrying the most measured entries is the one the line is
-    // expressed in. Anything left over is mentioned rather than dropped —
-    // silently losing "200 ml" because the line is already in grams would be
-    // the same class of error as the duplicate it replaces.
-    const units = [...group.byUnit.entries()].sort((a, b) => b[1] - a[1]);
-    const [primary, ...rest] = units;
-
-    const extras: string[] = rest.map(([unit, qty]) =>
-      unit ? `${formatQuantity(qty)} ${unit}` : formatQuantity(qty),
-    );
-    if (group.hasUnquantified && primary) extras.push("plus a little more");
-
-    const suffix = extras.length > 0 ? ` (+ ${extras.join(", ")})` : "";
-
+    const combined = combineQuantities(group.members);
     return {
-      name: group.displayName + suffix,
-      quantity: primary ? primary[1] : null,
-      unit: primary ? (primary[0] || null) : null,
+      name: group.displayName + extrasSuffix(combined.extras),
+      quantity: combined.quantity,
+      unit: combined.unit,
     };
   });
-}
-
-/** Trims float noise: 1.5 stays 1.5, 2.0000000000000004 becomes 2. */
-function formatQuantity(n: number): string {
-  return String(Math.round(n * 100) / 100);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import {
   getNextOrderIndex,
   completeShoppingList,
   bulkAddShoppingListItems,
+  mergeShoppingListItems,
 } from "../db/queries/shopping-queries";
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -52,6 +53,18 @@ const BulkAddItemsSchema = z.object({
   })).min(1),
 });
 
+/**
+ * Two or more items become one, under a name the user picks.
+ *
+ * `min(2)` because merging one thing with nothing is not a merge, and the
+ * query layer would reject it anyway — better to say so as a 422 naming the
+ * field than as a 404 that reads like the list is missing.
+ */
+const MergeItemsSchema = z.object({
+  itemIds: z.array(z.string().uuid()).min(2).max(50),
+  name: z.string().min(1).max(255),
+});
+
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export const handler: APIGatewayProxyHandlerV2 = async (
@@ -77,6 +90,25 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       const startIndex = await getNextOrderIndex(listId);
       const items = await bulkAddShoppingListItems(listId, body.items, startIndex);
       return okResponse(items, 201);
+    }
+
+    // POST /shopping/{listId}/items/merge
+    //
+    // Before the generic items block below, which would otherwise match this as
+    // an itemId of "merge" — the same reason /items/bulk is handled up here.
+    const mergeMatch = path.match(/\/shopping\/([^/]+)\/items\/merge$/);
+    if (mergeMatch && method === "POST") {
+      const listId = mergeMatch[1]!;
+      const list = await getShoppingListWithItems(listId, user.id, householdId);
+      if (!list) throw new NotFoundError("Shopping list not found");
+
+      const body = parseBody(event.body, MergeItemsSchema);
+      const merged = await mergeShoppingListItems(listId, body.itemIds, body.name);
+      // Null covers both "an id isn't on this list" and "fewer than two given".
+      // Zod has already rejected the second, so what's left is a caller sending
+      // ids that aren't theirs, which gets not-found rather than a hint.
+      if (!merged) throw new NotFoundError("Those items could not be merged");
+      return okResponse(merged);
     }
 
     // Routes involving items: /shopping/{listId}/items[/{itemId}]
