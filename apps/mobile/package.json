@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@aws-amplify/react-native": "^1.3.3",
-    "@aws-amplify/rtn-passkeys": "^1.1.2",
     "@expo/metro-runtime": "~57.0.15",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
