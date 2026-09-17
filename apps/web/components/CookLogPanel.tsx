@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { CookLogEntry } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
+import { diffCookLogEdit, draftFromEntry, type CookLogDraft } from "@/lib/cook-log-edit";
 
 type Props = {
   recipeId: string;
@@ -10,6 +11,7 @@ type Props = {
   loading: boolean;
   error: string | null;
   onRemoved: (entryId: string) => void;
+  onUpdated: (entry: CookLogEntry) => void;
 };
 
 function formatDate(iso: string): string {
@@ -29,6 +31,46 @@ function Stars({ rating }: { rating: number }): React.JSX.Element {
   );
 }
 
+function StarPicker({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (rating: number | null) => void;
+}): React.JSX.Element {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          // Clicking the current rating clears it. Without this there is no way
+          // back to "cooked it, no opinion" once a star has been tapped.
+          onClick={() => { onChange(value === n ? null : n); }}
+          aria-label={value === n ? `Clear rating` : `Rate ${n} out of 5`}
+          aria-pressed={value !== null && n <= value}
+          className={
+            value !== null && n <= value
+              ? "text-xl leading-none text-orange-400"
+              : "text-xl leading-none text-gray-200 hover:text-orange-200 dark:text-gray-700"
+          }
+        >
+          ★
+        </button>
+      ))}
+      {value !== null && (
+        <button
+          type="button"
+          onClick={() => { onChange(null); }}
+          className="ml-1 text-xs text-gray-400 underline hover:text-gray-600"
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * The user's own cooks of this recipe. Private — it renders on the app's recipe
  * page and never on the public or short-link views, because notes like "too
@@ -40,22 +82,64 @@ export default function CookLogPanel({
   loading,
   error,
   onRemoved,
+  onUpdated,
 }: Props): React.JSX.Element | null {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CookLogDraft | null>(null);
+  const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  function startEditing(entry: CookLogEntry): void {
+    setEditingId(entry.id);
+    setExpandedId(null);
+    setActionError(null);
+    setDraft(draftFromEntry(entry));
+  }
+
+  function cancelEditing(): void {
+    setEditingId(null);
+    setDraft(null);
+  }
+
+  async function handleSave(entry: CookLogEntry): Promise<void> {
+    if (!draft) return;
+    const update = diffCookLogEdit(entry, draft);
+
+    // Nothing changed. Closing the form is the honest response — sending an
+    // empty patch would earn a 400 telling the user off for touching nothing.
+    if (Object.keys(update).length === 0) {
+      cancelEditing();
+      return;
+    }
+
+    setSaving(true);
+    setActionError(null);
+    try {
+      const api = await getApiClient();
+      const res = await api.recipes.updateCookLogEntry(recipeId, entry.id, update);
+      if ("error" in res) throw new Error(res.error.message);
+      onUpdated(res.data);
+      cancelEditing();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not save that change");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleRemove(entryId: string): Promise<void> {
     if (!confirm("Delete this cook log entry?")) return;
     setRemovingId(entryId);
-    setRemoveError(null);
+    setActionError(null);
     try {
       const api = await getApiClient();
       const res = await api.recipes.deleteCookLogEntry(recipeId, entryId);
       if ("error" in res) throw new Error(res.error.message);
       onRemoved(entryId);
     } catch (err) {
-      setRemoveError(err instanceof Error ? err.message : "Could not delete that entry");
+      setActionError(err instanceof Error ? err.message : "Could not delete that entry");
     } finally {
       setRemovingId(null);
     }
@@ -89,12 +173,66 @@ export default function CookLogPanel({
         </span>
       </div>
 
-      {removeError && <p className="mb-2 text-sm text-red-600">{removeError}</p>}
+      {actionError && <p className="mb-2 text-sm text-red-600">{actionError}</p>}
 
       <ul className="divide-y divide-gray-100 dark:divide-gray-800 rounded-xl border border-gray-100 dark:border-gray-800">
         {entries.map((entry) => {
           const isExpanded = expandedId === entry.id;
+          const isEditing = editingId === entry.id;
           const hasNotes = Boolean(entry.notes);
+
+          if (isEditing && draft) {
+            return (
+              <li key={entry.id} className="px-4 py-3">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      Date
+                      <input
+                        type="date"
+                        value={draft.cookedAt}
+                        onChange={(e) => { setDraft({ ...draft, cookedAt: e.target.value }); }}
+                        className="rounded-lg border border-gray-200 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-900"
+                      />
+                    </label>
+                    <StarPicker
+                      value={draft.rating}
+                      onChange={(rating) => { setDraft({ ...draft, rating }); }}
+                    />
+                  </div>
+
+                  <textarea
+                    value={draft.notes}
+                    onChange={(e) => { setDraft({ ...draft, notes: e.target.value }); }}
+                    rows={3}
+                    maxLength={2000}
+                    placeholder="What would you change next time?"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                  />
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { void handleSave(entry); }}
+                      disabled={saving}
+                      className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      disabled={saving}
+                      className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
           return (
             <li key={entry.id}>
               <div className="flex items-center gap-3 px-4 py-2.5">
@@ -104,7 +242,7 @@ export default function CookLogPanel({
                 {hasNotes ? (
                   <button
                     type="button"
-                    onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                    onClick={() => { setExpandedId(isExpanded ? null : entry.id); }}
                     aria-expanded={isExpanded}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
@@ -124,6 +262,21 @@ export default function CookLogPanel({
                     {entry.rating !== null && <Stars rating={entry.rating} />}
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => { startEditing(entry); }}
+                  className="shrink-0 text-gray-300 transition-colors hover:text-orange-400"
+                  aria-label={`Edit cook log entry from ${formatDate(entry.cookedAt)}`}
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M8.5 1.5l2 2L4 10l-2.5.5L2 8l6.5-6.5z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   onClick={() => { void handleRemove(entry.id); }}

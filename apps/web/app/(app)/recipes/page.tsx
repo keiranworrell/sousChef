@@ -24,7 +24,8 @@ export default function RecipesPage(): React.JSX.Element {
   const [tag, setTag] = useState("");
   const [difficulty, setDifficulty] = useState<DifficultyOption>("");
 
-  // All unique tags from the unfiltered recipe list (for the tag dropdown)
+  // Every tag across the user's library, for the dropdown. Server-side, so it
+  // doesn't depend on how many recipes happen to be on the current page.
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -70,22 +71,13 @@ export default function RecipesPage(): React.JSX.Element {
     cacheKey: "recipes",
   });
 
-  // Load all tags once on mount (unfiltered) to populate the tag dropdown
+  // Load the tag options once on mount
   useEffect(() => {
     async function loadTags(): Promise<void> {
       try {
         const api = await getApiClient();
-        // Pulls the largest single page the API allows purely to populate the tag
-        // dropdown. Anyone past that many recipes may have tags missing from the
-        // list — a dedicated GET /recipes/tags endpoint is the proper fix, but
-        // this at least covers a realistic library rather than the first 20.
-        const res = await api.recipes.list({ sort: "newest", limit: 100 });
-        if ("data" in res) {
-          const tags = Array.from(
-            new Set(res.data.recipes.flatMap((r) => r.tags)),
-          ).sort();
-          setAllTags(tags);
-        }
+        const res = await api.recipes.tags();
+        if ("data" in res) setAllTags(res.data.tags);
       } catch {
         // non-critical
       }

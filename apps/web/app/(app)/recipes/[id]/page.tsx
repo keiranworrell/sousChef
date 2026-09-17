@@ -435,6 +435,19 @@ export default function RecipeDetailPage(): React.JSX.Element {
         onRemoved={(entryId) =>
           setCookLog((prev) => prev.filter((e) => e.id !== entryId))
         }
+        onUpdated={(entry) =>
+          // Re-sort: the server orders by cookedAt descending, and editing the
+          // date is one of the things the form allows. Leaving the row where it
+          // was would put the list out of order until the next load.
+          setCookLog((prev) =>
+            prev
+              .map((e) => (e.id === entry.id ? entry : e))
+              .sort(
+                (a, b) =>
+                  new Date(b.cookedAt).getTime() - new Date(a.cookedAt).getTime(),
+              ),
+          )
+        }
       />
 
       {/* Add to list modal */}

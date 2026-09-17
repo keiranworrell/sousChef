@@ -149,17 +149,102 @@ export type FetchResult =
   | { ok: true; html: string }
   | { ok: false; error: string };
 
+/**
+ * Turns a fetch failure into something a cook can act on.
+ *
+ * "Failed to fetch URL (HTTP 403)" is accurate and useless. It tells the reader
+ * nothing about whose fault it is, whether trying again would help, or what else
+ * they could do — and the answers differ sharply by status. A paywall is
+ * permanent and has a workaround; a 503 is temporary and has none; a 404 means
+ * check the link. Collapsing all of them into one sentence with a number in it
+ * makes every case look like a bug in sousChef.
+ *
+ * Pure and exported so the mapping can be tested without a network.
+ */
+export function importFailureMessage(
+  cause: { kind: "http"; status: number } | { kind: "network"; error: unknown },
+  host: string,
+): string {
+  const site = host || "that site";
+
+  if (cause.kind === "http") {
+    const { status } = cause;
+
+    // 401/403 on a recipe page is nearly always a paywall or a bot check rather
+    // than a genuine permission error, and the honest advice is the same either
+    // way: we cannot read the page, but you can.
+    if (status === 401 || status === 403) {
+      return (
+        `${site} wouldn't let us read that page — it's likely behind a paywall or ` +
+        `blocking automated readers. If you can see the recipe yourself, copy the ` +
+        `text and use "Paste text" instead.`
+      );
+    }
+    if (status === 404 || status === 410) {
+      return `There's no page at that address on ${site}. Check the link — the recipe may have been moved or taken down.`;
+    }
+    if (status === 429) {
+      return `${site} is asking us to slow down. Wait a few minutes and try again.`;
+    }
+    if (status === 451) {
+      return `${site} has blocked that page for legal reasons in this region.`;
+    }
+    if (status >= 500) {
+      return `${site} is having problems at the moment. This isn't your link — try again in a little while.`;
+    }
+    return `${site} refused the request (HTTP ${status}). If the page opens in your browser, copy the text and use "Paste text" instead.`;
+  }
+
+  const err = cause.error;
+  const name = err instanceof Error ? err.name : "";
+  const message = err instanceof Error ? err.message : "";
+
+  // AbortSignal.timeout rejects with a TimeoutError; some runtimes still report
+  // AbortError. Both mean the same thing to the reader.
+  if (name === "TimeoutError" || name === "AbortError") {
+    return `${site} took too long to respond. It may be slow right now — try again, or paste the recipe text instead.`;
+  }
+
+  // Undici wraps DNS and connection failures; the cause code is the reliable
+  // signal, the message text is not.
+  const code =
+    typeof err === "object" && err !== null && "cause" in err
+      ? (err as { cause?: { code?: string } }).cause?.code
+      : undefined;
+
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") {
+    return `We couldn't find ${site}. Check the address is right.`;
+  }
+  if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "EPIPE") {
+    return `${site} closed the connection before we could read the page. Try again in a moment.`;
+  }
+  if (code?.startsWith("ERR_TLS") || code === "CERT_HAS_EXPIRED" || code === "DEPTH_ZERO_SELF_SIGNED_CERT") {
+    return `${site} has a security certificate problem, so we didn't load it. That's a fault on their end.`;
+  }
+
+  return message
+    ? `We couldn't reach ${site}. ${message}`
+    : `We couldn't reach ${site}. Check the address and your connection, then try again.`;
+}
+
 /** Validates and fetches a URL, returning the raw HTML. */
 export async function fetchPageHtml(url: string): Promise<FetchResult> {
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
-    return { ok: false, error: "Invalid URL" };
+    return {
+      ok: false,
+      error:
+        "That doesn't look like a web address. Paste the full link, including the https:// at the start.",
+    };
   }
 
   if (!["http:", "https:"].includes(parsed.protocol)) {
-    return { ok: false, error: "URL must use http or https" };
+    return {
+      ok: false,
+      error: `Recipes can only be imported from web pages, and that link is a ${parsed.protocol.replace(":", "")} address.`,
+    };
   }
 
   try {
@@ -173,12 +258,18 @@ export async function fetchPageHtml(url: string): Promise<FetchResult> {
     });
 
     if (!response.ok) {
-      return { ok: false, error: `Failed to fetch URL (HTTP ${response.status})` };
+      return {
+        ok: false,
+        error: importFailureMessage({ kind: "http", status: response.status }, parsed.hostname),
+      };
     }
 
     return { ok: true, html: await response.text() };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Failed to fetch URL" };
+    return {
+      ok: false,
+      error: importFailureMessage({ kind: "network", error: err }, parsed.hostname),
+    };
   }
 }
 
