@@ -236,6 +236,23 @@ All agents in `backend/agents/` follow this pattern:
 - Use `claude-sonnet-4-6` for all agent calls unless there is a documented reason to use another model.
 - Include relevant context (recipe, batch history) in the user message, not the system prompt.
 
+### The mobile app and node_modules
+
+`.npmrc` deliberately does **not** set `shamefully-hoist`. It used to, so that
+Metro could resolve packages; Metro has handled pnpm's symlinked layout for
+several releases and a bundle was verified without the hoist on SDK 57.
+
+Do not add it back. Hoisting flattens every package into the root
+`node_modules`, and pnpm does not reliably clean those copies up when versions
+change — after the Expo 52 → 57 upgrade the root still held `expo@52.0.49`,
+`react@18.3.1` and `react-native@0.76.5` alongside the new ones. For a web app
+that is untidy. For React Native it is a build failure waiting to happen,
+because a native build may contain only one copy of any native module.
+
+If `npx expo-doctor` reports duplicate native modules and the paths point at
+`../../node_modules`, the tree is stale rather than the manifests being wrong:
+delete every `node_modules` and reinstall before changing any versions.
+
 ### Adding a migration
 
 Every `.sql` file in `migrations/` **must** have an entry in
