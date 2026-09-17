@@ -32,12 +32,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      # Fails here rather than inside eas-cli, where a missing token surfaces as
+      # an authentication error that reads like the token is wrong rather than
+      # absent.
+      - name: Check EXPO_TOKEN is set
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "EXPO_TOKEN is not set. Add it under Settings → Secrets and variables → Actions."
+            echo "Generate one at https://expo.dev/settings/access-tokens"
+            exit 1
+          fi
 
+      # eas-cli is invoked directly rather than through expo/expo-github-action.
+      # That action declares the node20 runtime, GitHub now runs actions on
+      # Node 24, and its yarn-based install of eas-cli fails outright. EXPO_TOKEN
+      # in the environment is all eas-cli needs to authenticate, so the action
+      # was only ever saving us one line.
+      #
+      # Pinned to a major rather than `latest`: a build tool that silently
+      # changes version between runs makes "it worked yesterday" unanswerable.
       - name: Build Android APK
         working-directory: apps/mobile
-        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: pnpm dlx eas-cli@^24.7.0 build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
