@@ -1,6 +1,7 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "../client";
 import { shoppingLists, shoppingListItems } from "../schema";
+import { combineQuantities, extrasSuffix } from "./unit-math";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,112 @@ export async function updateShoppingListItem(
     )
     .returning();
   return updated ?? null;
+}
+
+export type MergeableItem = {
+  id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+  isChecked: boolean;
+  orderIndex: number;
+};
+
+export type MergePlan = {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  category: string | null;
+  isChecked: boolean;
+  orderIndex: number;
+};
+
+/**
+ * Works out what the merged row should contain. Pure, so the decisions below
+ * can be tested without a list to merge.
+ *
+ * The automatic aggregation catches predictable pairs via the synonym table.
+ * This is for the long tail it cannot know about — "scallions" and "spring
+ * onions", or two brands of the same thing — where the user is the only one
+ * who can say they are one purchase. They pick the surviving name themselves,
+ * because they are reaching for this precisely when the automatic naming rule
+ * got it wrong, and applying that same rule again would be no help.
+ */
+export function planItemMerge(items: MergeableItem[], chosenName: string): MergePlan {
+  const combined = combineQuantities(items);
+
+  return {
+    // The suffix carries amounts that could not be added to the primary unit,
+    // matching how the automatic path writes them. Dropping them would lose
+    // information the user never asked to lose.
+    name: chosenName.trim() + extrasSuffix(combined.extras),
+    quantity: combined.quantity,
+    unit: combined.unit,
+    // First category anything had. They are nearly always identical — these are
+    // the same purchase — and a null would drop the row out of its aisle.
+    category: items.find((i) => i.category !== null)?.category ?? null,
+    // Checked only if every part was. Merging something bought with something
+    // still needed gives a line you still need, and marking it done would quietly
+    // remove it from the list while you are standing in the shop.
+    isChecked: items.every((i) => i.isChecked),
+    // Sits where the earliest of them sat, rather than jumping to the bottom.
+    orderIndex: Math.min(...items.map((i) => i.orderIndex)),
+  };
+}
+
+/**
+ * Merges two or more items on a list into one.
+ *
+ * Returns null when the ids do not all belong to this list, or when fewer than
+ * two survive that check — the same answer as "not found", because a caller
+ * passing another list's item id should learn nothing about whether it exists.
+ */
+export async function mergeShoppingListItems(
+  listId: string,
+  itemIds: string[],
+  chosenName: string,
+): Promise<ShoppingListItemRecord | null> {
+  if (itemIds.length < 2) return null;
+
+  const db = await getDb();
+
+  // Scoped to the list, so ids belonging elsewhere simply do not come back.
+  const items = await db
+    .select()
+    .from(shoppingListItems)
+    .where(
+      and(
+        eq(shoppingListItems.shoppingListId, listId),
+        inArray(shoppingListItems.id, itemIds),
+      ),
+    );
+
+  // Every id has to resolve. A partial match means the caller sent something
+  // that is not theirs, and merging the remainder would be a surprising
+  // interpretation of a request that was wrong.
+  if (items.length !== new Set(itemIds).size) return null;
+
+  const plan = planItemMerge(items, chosenName);
+
+  // The lowest-ordered row survives so the merged line keeps its place; the
+  // rest go. Updating one and deleting the others, rather than deleting all and
+  // inserting fresh, means the survivor keeps its id — so anything holding a
+  // reference to it still resolves.
+  const survivor = items.reduce((a, b) => (a.orderIndex <= b.orderIndex ? a : b));
+  const doomed = items.filter((i) => i.id !== survivor.id).map((i) => i.id);
+
+  const [updated] = await db
+    .update(shoppingListItems)
+    .set(plan)
+    .where(eq(shoppingListItems.id, survivor.id))
+    .returning();
+
+  if (!updated) return null;
+
+  await db.delete(shoppingListItems).where(inArray(shoppingListItems.id, doomed));
+
+  return updated;
 }
 
 export async function deleteShoppingListItem(

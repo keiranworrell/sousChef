@@ -145,8 +145,7 @@ souschef/
 │   │   ├── recipe-import.ts
 │   │   ├── recipe-import-ai.ts
 │   │   ├── recipe-import-photo.ts
-│   │   ├── fermentation-troubleshoot.ts   # UNWIRED — no handler, no route
-│   │   └── dietary-adaptation.ts          # UNWIRED — no handler, no route
+│   │   └── multi-recipe-cook.ts
 │   └── db/
 │       ├── schema/                 # Drizzle table definitions
 │       ├── client.ts               # Neon + Drizzle client setup
