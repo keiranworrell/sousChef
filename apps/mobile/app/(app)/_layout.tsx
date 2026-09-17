@@ -4,13 +4,22 @@ import { Ionicons } from "@expo/vector-icons";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
+/**
+ * Taken from Ionicons rather than written out, because React Navigation hands
+ * `tabBarIcon` a `ColorValue` — `string | OpaqueColorValue` — not a string.
+ * This was typed as `string` and broke on the Expo 57 upgrade. Deriving it
+ * means the next widening of either type passes through instead of failing the
+ * build.
+ */
+type IoniconsColor = React.ComponentProps<typeof Ionicons>["color"];
+
 function TabIcon({
   name,
   color,
   size,
 }: {
   name: IoniconsName;
-  color: string;
+  color: IoniconsColor;
   size: number;
 }): React.JSX.Element {
   return <Ionicons name={name} size={size} color={color} />;
