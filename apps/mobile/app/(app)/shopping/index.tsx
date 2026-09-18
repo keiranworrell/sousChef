@@ -15,8 +15,10 @@ import { useRouter } from "expo-router";
 import type { ShoppingList } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ShoppingScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function ShoppingScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.pageTitle}>Shopping</Text>
           {!creating && (

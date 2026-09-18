@@ -14,8 +14,10 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails, UpdateRecipeInput } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function EditRecipeScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -105,7 +107,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backLink}>← Back to recipe</Text>
         </TouchableOpacity>

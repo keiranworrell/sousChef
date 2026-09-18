@@ -12,8 +12,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
 import { unwrap } from "@souschef/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function RecipeDetailScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
@@ -70,7 +72,7 @@ export default function RecipeDetailScreen(): React.JSX.Element {
   const totalMins = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
       {/* Header */}
       <Text style={styles.title}>{recipe.title}</Text>
       {recipe.description && (

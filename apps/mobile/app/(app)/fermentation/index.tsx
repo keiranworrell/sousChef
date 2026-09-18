@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import type { FermentationBatch, FermentationStatus } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -34,6 +35,7 @@ function StatusBadge({ status }: { status: FermentationStatus }): React.JSX.Elem
 }
 
 export default function FermentationScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [batches, setBatches] = useState<FermentationBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,7 @@ export default function FermentationScreen(): React.JSX.Element {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView style={styles.container} contentContainerStyle={styles.formContent}>
+        <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.formContent}>
           <TouchableOpacity onPress={() => { setCreating(false); setCreateError(null); }}>
             <Text style={styles.backLink}>← Cancel</Text>
           </TouchableOpacity>
@@ -175,7 +177,7 @@ export default function FermentationScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Fermentation</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setCreating(true)}>
