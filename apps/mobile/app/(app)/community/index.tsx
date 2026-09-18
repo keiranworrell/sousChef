@@ -9,8 +9,9 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import type { RecipeWithDetails } from "@souschef/shared";
+import type { CommunityRecipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -24,7 +25,12 @@ export default function CommunityScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [recipes, setRecipes] = useState<RecipeWithDetails[]>([]);
+  // CommunityRecipe, not RecipeWithDetails. The endpoint has always returned
+  // the creator and the like count on top of the recipe; this screen was typed
+  // one level too narrow, so those three fields were invisible to it. Neither
+  // likes nor any route to the cook existed here — not because they were cut,
+  // but because nothing ever told the screen they were there.
+  const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +44,7 @@ export default function CommunityScreen(): React.JSX.Element {
   const limit = 20;
 
   const [forkingId, setForkingId] = useState<string | null>(null);
+  const [likingId, setLikingId] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // FlatList fires onEndReached more than once per threshold crossing, so the
@@ -105,7 +112,7 @@ export default function CommunityScreen(): React.JSX.Element {
     void load({ q, cuisine, tag, cursor });
   }
 
-  async function handleFork(recipe: RecipeWithDetails): Promise<void> {
+  async function handleFork(recipe: CommunityRecipe): Promise<void> {
     setForkingId(recipe.id);
     try {
       const api = await getApiClient();
@@ -118,12 +125,56 @@ export default function CommunityScreen(): React.JSX.Element {
     }
   }
 
+  /**
+   * Like and unlike, optimistically.
+   *
+   * A heart that waits for a round trip before filling feels broken, so the
+   * card updates first and is put back if the request fails. No alert on
+   * failure: the heart springing back is the message, and a modal over a
+   * browse list for something this small would be worse than the failure.
+   */
+  async function handleLike(recipe: CommunityRecipe): Promise<void> {
+    const wasLiked = recipe.isLiked;
+    setLikingId(recipe.id);
+    applyLike(recipe.id, !wasLiked);
+    try {
+      const api = await getApiClient();
+      const res = wasLiked
+        ? await api.community.unlike(recipe.id)
+        : await api.community.like(recipe.id);
+      if ("error" in res) throw new Error(res.error.message);
+    } catch {
+      applyLike(recipe.id, wasLiked);
+    } finally {
+      setLikingId(null);
+    }
+  }
+
+  function applyLike(recipeId: string, liked: boolean): void {
+    setRecipes((prev) =>
+      prev.map((r) =>
+        r.id === recipeId
+          ? {
+              ...r,
+              isLiked: liked,
+              // Clamped, for the same reason follower counts are: a stale card
+              // can otherwise render "-1 likes".
+              likeCount: liked ? r.likeCount + 1 : Math.max(0, r.likeCount - 1),
+            }
+          : r,
+      ),
+    );
+  }
+
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Community</Text>
+        <TouchableOpacity onPress={() => router.push("/(app)/community/collections")}>
+          <Text style={styles.collectionsLink}>Collections →</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search / filters */}
@@ -216,6 +267,38 @@ export default function CommunityScreen(): React.JSX.Element {
                       : <Text style={styles.forkButtonText}>Fork</Text>}
                   </TouchableOpacity>
                 </View>
+
+                <View style={styles.cardFooter}>
+                  {/* A separate tap target inside the card, and the reason the
+                      whole row is not a single button any more: the creator's
+                      name has to go somewhere you can actually reach them. */}
+                  <TouchableOpacity
+                    onPress={() => router.push(`/(app)/users/${item.creatorId}`)}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                  >
+                    <Text style={styles.creator}>{item.creatorName}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.likeBtn}
+                    onPress={() => { void handleLike(item); }}
+                    disabled={likingId === item.id}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={
+                      item.isLiked ? "Unlike this recipe" : "Like this recipe"
+                    }
+                    accessibilityState={{ selected: item.isLiked }}
+                  >
+                    <Ionicons
+                      name={item.isLiked ? "heart" : "heart-outline"}
+                      size={17}
+                      color={item.isLiked ? "#f43f5e" : "#9ca3af"}
+                    />
+                    <Text style={[styles.likeCount, item.isLiked && styles.likeCountOn]}>
+                      {item.likeCount}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             );
           }}
@@ -252,6 +335,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  collectionsLink: { fontSize: 13, fontWeight: "600", color: "#f97316" },
   searchRow: { paddingHorizontal: 16, paddingBottom: 6 },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
   input: {
@@ -276,6 +360,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardTop: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  creator: { fontSize: 12, fontWeight: "600", color: "#f97316" },
+  likeBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+  likeCount: { fontSize: 12, color: "#9ca3af", fontVariant: ["tabular-nums"] },
+  likeCountOn: { color: "#f43f5e", fontWeight: "600" },
   cardInfo: { flex: 1, gap: 4 },
   cardTitle: { fontSize: 15, fontWeight: "600", color: "#111827", lineHeight: 20 },
   cardDesc: { fontSize: 13, color: "#6b7280", lineHeight: 18 },
