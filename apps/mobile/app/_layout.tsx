@@ -2,6 +2,7 @@
 import "react-native-get-random-values";
 
 import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Amplify } from "aws-amplify";
@@ -11,8 +12,28 @@ import { Hub } from "aws-amplify/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { amplifyConfig } from "../lib/amplify-config";
 
-Amplify.configure(amplifyConfig);
-cognitoUserPoolsTokenProvider.setKeyValueStorage(AsyncStorage);
+/**
+ * Amplify is configured at module scope, which means a throw here kills the
+ * whole bundle before React ever runs — and a bundle that fails to execute
+ * leaves the native splash on screen indefinitely, with nothing to indicate
+ * why. That failure is indistinguishable from a hang, and neither one can be
+ * diagnosed from the outside.
+ *
+ * `setKeyValueStorage(AsyncStorage)` is the plausible candidate: it touches a
+ * native module at import time, and native module readiness at import time is
+ * exactly the sort of thing that changes under a React Native major.
+ *
+ * Caught and kept rather than swallowed. The app is not usable without Amplify,
+ * so this is not a recovery — it is the difference between a screen that says
+ * what went wrong and a screen that says nothing at all.
+ */
+let startupError: string | null = null;
+try {
+  Amplify.configure(amplifyConfig);
+  cognitoUserPoolsTokenProvider.setKeyValueStorage(AsyncStorage);
+} catch (err) {
+  startupError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+}
 
 /**
  * How long to wait for the launch auth check before giving up on it.
@@ -122,7 +143,37 @@ export default function RootLayout(): React.JSX.Element {
     }
   }, [authChecked, isAuthenticated, segments, router]);
 
-  if (!authChecked) return <></>;
+  // Deliberately visible rather than an empty fragment.
+  //
+  // Rendering nothing here makes two very different failures look identical:
+  // the JS running and waiting on the auth check, and the JS never starting at
+  // all — in which case the native splash stays up and nothing React does will
+  // ever replace it. Both present as a motionless splash screen, and there is
+  // no way to tell them apart from the outside.
+  //
+  // If this text appears, the bundle is executing and the problem is the auth
+  // check. If it never appears, the problem is before any of this runs.
+  if (startupError) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.booting}>
+          <Text style={styles.bootingTitle}>sousChef couldn&apos;t start</Text>
+          <Text style={styles.bootingError}>{startupError}</Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (!authChecked) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.booting}>
+          <ActivityIndicator color="#f97316" />
+          <Text style={styles.bootingText}>Getting things ready…</Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   // SafeAreaProvider has to wrap everything, and on Android 16 it stops being
   // optional: edge-to-edge is enforced from API 36, so every screen draws under
@@ -135,3 +186,21 @@ export default function RootLayout(): React.JSX.Element {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  booting: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "#f9fafb",
+  },
+  bootingText: { fontSize: 13, color: "#9ca3af" },
+  bootingTitle: { fontSize: 16, fontWeight: "600", color: "#111827" },
+  bootingError: {
+    fontSize: 12,
+    color: "#dc2626",
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+});
