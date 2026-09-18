@@ -189,37 +189,40 @@ export default function RecipeListScreen(): React.JSX.Element {
               style={styles.card}
               onPress={() => router.push(`/(app)/recipes/${item.id}`)}
             >
-              {/* Thumbnail and text sit side by side. The placeholder keeps its
-                  space when a recipe has no image, so the titles stay on one
-                  vertical line down the list — a column where some rows indent
-                  and others don't reads as broken rather than as varied. */}
-              <View style={styles.cardBody}>
-                {item.imageUrl ? (
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.thumb}
-                    resizeMode="cover"
-                    accessibilityIgnoresInvertColors
-                  />
-                ) : (
-                  <View style={[styles.thumb, styles.thumbEmpty]} />
-                )}
+              {/* A photo runs the full width of the card, above the title,
+                  rather than as a thumbnail beside it. The thumbnail version
+                  needed a placeholder tile on every recipe without a picture
+                  to keep the titles aligned, which meant most of the list was
+                  empty grey squares — solving alignment at the expense of the
+                  thing you actually look at.
 
-                <View style={styles.cardText}>
-                  <View style={styles.cardRow}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                    {item.difficulty && (
-                      <Text style={styles.badge}>{item.difficulty}</Text>
-                    )}
-                  </View>
-                  {item.description && (
-                    <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                  Recipes without a photo now get a plain text card and no
+                  placeholder at all. The two shapes differ, which is the
+                  point: a recipe with a picture should look different from one
+                  without, instead of both being compromised into the same row. */}
+              {item.imageUrl && (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                  accessibilityIgnoresInvertColors
+                />
+              )}
+
+              <View style={styles.cardText}>
+                <View style={styles.cardRow}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+                  {item.difficulty && (
+                    <Text style={styles.badge}>{item.difficulty}</Text>
                   )}
-                  <View style={styles.cardMeta}>
-                    <Text style={styles.metaText}>{item.servings} servings</Text>
-                    {totalMins > 0 && <Text style={styles.metaText}>{totalMins} min</Text>}
-                    {item.cuisine && <Text style={styles.metaText}>{item.cuisine}</Text>}
-                  </View>
+                </View>
+                {item.description && (
+                  <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                )}
+                <View style={styles.cardMeta}>
+                  <Text style={styles.metaText}>{item.servings} servings</Text>
+                  {totalMins > 0 && <Text style={styles.metaText}>{totalMins} min</Text>}
+                  {item.cuisine && <Text style={styles.metaText}>{item.cuisine}</Text>}
                 </View>
               </View>
             </TouchableOpacity>
@@ -292,14 +295,17 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   emptyText: { fontSize: 14, color: "#6b7280" },
   error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, marginBottom: 8 },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#e5e7eb" },
-  cardBody: { flexDirection: "row", gap: 12 },
-  // Fixed size so every row lines up whether or not it has a picture.
-  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  // The empty state is a plain tile rather than an icon or the word "no image":
-  // on a list this is scenery, and labelling the absence draws the eye to it.
-  thumbEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
-  cardText: { flex: 1, minWidth: 0 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    // So the photo's corners follow the card's rather than squaring them off.
+    overflow: "hidden",
+  },
+  // 16:9 rather than a fixed height, so it holds its shape on any screen width.
+  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#f3f4f6" },
+  cardText: { padding: 14, gap: 4 },
   footerLoading: { paddingVertical: 20, alignItems: "center" },
   cardRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   cardTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: "#111827" },

@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "eas-build-on-install": "pnpm install --frozen-lockfile"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "expo-build-properties": "~57.0.18",
     "expo-constants": "~57.0.18",
     "expo-font": "~57.0.4",
+    "expo-image-picker": "~57.0.19",
     "expo-keep-awake": "~57.0.2",
     "expo-linking": "~57.0.10",
     "expo-router": "~57.0.21",
@@ -40,7 +42,8 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~19.2.0",
     "babel-preset-expo": "~57.0.12",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   },
   "expo": {
     "install": {
