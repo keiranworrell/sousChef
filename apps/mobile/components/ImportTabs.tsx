@@ -10,6 +10,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import type { CreateRecipeInput } from "@souschef/shared";
 import { getApiClient } from "../lib/api";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 export type ImportMode = "manual" | "url" | "photo" | "text";
 
@@ -50,6 +52,8 @@ export default function ImportTabs({
   onImported,
   aiImportsRemaining,
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [url, setUrl] = useState("");
   const [pastedText, setPastedText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -177,7 +181,7 @@ export default function ImportTabs({
           <TextInput
             style={styles.input}
             placeholder="https://example.com/recipe/..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             autoCapitalize="none"
             keyboardType="url"
             value={url}
@@ -219,7 +223,7 @@ export default function ImportTabs({
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Paste a recipe here…"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             multiline
             textAlignVertical="top"
             value={pastedText}
@@ -248,13 +252,15 @@ function PrimaryButton({
   disabled: boolean;
   onPress: () => void;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       style={[styles.button, (busy || disabled) && styles.buttonDisabled]}
       onPress={onPress}
       disabled={busy || disabled}
     >
-      {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{label}</Text>}
+      {busy ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.buttonText}>{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -268,6 +274,7 @@ function SecondaryButton({
   disabled: boolean;
   onPress: () => void;
 }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       style={[styles.secondary, disabled && styles.buttonDisabled]}
@@ -279,37 +286,37 @@ function SecondaryButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: t.surfaceSunken,
     borderRadius: 10,
     padding: 3,
     gap: 2,
   },
   tab: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center" },
-  tabActive: { backgroundColor: "#fff" },
-  tabText: { fontSize: 13, fontWeight: "600", color: "#9ca3af" },
-  tabTextActive: { color: "#111827" },
+  tabActive: { backgroundColor: t.surface },
+  tabText: { fontSize: 13, fontWeight: "600", color: t.textFaint },
+  tabTextActive: { color: t.text },
   panel: { marginTop: 12, gap: 10 },
   row: { flexDirection: "row", gap: 10 },
-  hint: { fontSize: 13, color: "#6b7280", lineHeight: 19 },
-  quota: { marginTop: 10, fontSize: 12, color: "#9ca3af" },
-  quotaSpent: { marginTop: 10, fontSize: 12, color: "#b45309", lineHeight: 18 },
+  hint: { fontSize: 13, color: t.textMuted, lineHeight: 19 },
+  quota: { marginTop: 10, fontSize: 12, color: t.textFaint },
+  quotaSpent: { marginTop: 10, fontSize: 12, color: t.accentText, lineHeight: 18 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   textArea: { minHeight: 140 },
   button: {
     flex: 1,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
@@ -317,14 +324,14 @@ const styles = StyleSheet.create({
   secondary: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
   },
-  secondaryText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  secondaryText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-  error: { marginTop: 10, color: "#dc2626", fontSize: 13, lineHeight: 18 },
+  buttonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
+  error: { marginTop: 10, color: t.danger, fontSize: 13, lineHeight: 18 },
 });

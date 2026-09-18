@@ -23,8 +23,12 @@ import {
 } from "../../../lib/upload";
 import Avatar from "../../../components/Avatar";
 import UserListSheet, { type UserListKind } from "../../../components/UserListSheet";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function ProfileScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
 
   const [user, setUser] = useState<User | null>(null);
@@ -221,7 +225,7 @@ export default function ProfileScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -249,7 +253,7 @@ export default function ProfileScreen(): React.JSX.Element {
             <Avatar displayName={displayName || user.displayName} avatarUrl={avatarUrl} size={64} />
             <View style={styles.avatarBadge}>
               {avatarBusy ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={palette.onAccent} />
               ) : (
                 <Text style={styles.avatarBadgeText}>Edit</Text>
               )}
@@ -278,7 +282,7 @@ export default function ProfileScreen(): React.JSX.Element {
           onChangeText={(v) => { setDisplayName(v); setSaved(false); }}
           maxLength={80}
           placeholder="Your name"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={palette.textFaint}
         />
 
         <Text style={styles.label}>Bio</Text>
@@ -289,7 +293,7 @@ export default function ProfileScreen(): React.JSX.Element {
           maxLength={500}
           multiline
           placeholder="What you like to cook"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={palette.textFaint}
         />
 
         <Text style={styles.label}>Dietary preferences</Text>
@@ -316,7 +320,7 @@ export default function ProfileScreen(): React.JSX.Element {
             value={prefInput}
             onChangeText={setPrefInput}
             placeholder="Vegetarian, gluten-free…"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             maxLength={40}
             onSubmitEditing={addPreference}
             returnKeyType="done"
@@ -338,7 +342,7 @@ export default function ProfileScreen(): React.JSX.Element {
           onPress={() => { void handleSave(); }}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save profile</Text>}
+          {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryText}>Save profile</Text>}
         </TouchableOpacity>
       </ScrollView>
 
@@ -351,15 +355,15 @@ export default function ProfileScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   body: { padding: 16, paddingBottom: 48, gap: 8 },
   identity: { flexDirection: "row", alignItems: "center", gap: 20, marginBottom: 4 },
   counts: { flexDirection: "row", gap: 24 },
   count: { alignItems: "center" },
-  countValue: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  countLabel: { fontSize: 12, color: "#9ca3af" },
+  countValue: { fontSize: 18, fontWeight: "700", color: t.text },
+  countLabel: { fontSize: 12, color: t.textFaint },
   avatarBadge: {
     position: "absolute",
     bottom: -2,
@@ -368,53 +372,53 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     paddingHorizontal: 8,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderWidth: 2,
-    borderColor: "#f9fafb",
+    borderColor: t.bg,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  avatarBadgeText: { color: t.onAccent, fontSize: 10, fontWeight: "700" },
   label: {
     marginTop: 10,
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   multiline: { minHeight: 84, textAlignVertical: "top" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
   chip: {
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  chipText: { fontSize: 12, fontWeight: "600", color: "#ea580c" },
+  chipText: { fontSize: 12, fontWeight: "600", color: t.accentStrong },
   prefRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   prefInput: { flex: 1 },
-  addPref: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 11 },
-  addPrefText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  addPref: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 11 },
+  addPrefText: { color: t.onAccent, fontWeight: "600", fontSize: 13 },
   primary: {
     marginTop: 16,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingVertical: 13,
     alignItems: "center",
   },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   disabled: { opacity: 0.5 },
-  error: { color: "#dc2626", fontSize: 13, marginTop: 6 },
-  saved: { color: "#059669", fontSize: 13, fontWeight: "600", marginTop: 6 },
+  error: { color: t.danger, fontSize: 13, marginTop: 6 },
+  saved: { color: t.success, fontSize: 13, fontWeight: "600", marginTop: 6 },
 });

@@ -18,6 +18,8 @@ import type {
 } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -28,10 +30,12 @@ function daysUntil(dateStr: string): number {
 }
 
 function StatusBadge({ status }: { status: FermentationStatus }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const config: Record<FermentationStatus, { label: string; bg: string; color: string }> = {
-    active: { label: "Active", bg: "#fff7ed", color: "#ea580c" },
-    complete: { label: "Complete", bg: "#f0fdf4", color: "#16a34a" },
-    abandoned: { label: "Abandoned", bg: "#f9fafb", color: "#9ca3af" },
+    active: { label: "Active", bg: palette.accentSurface, color: palette.accentStrong },
+    complete: { label: "Complete", bg: palette.successSurface, color: palette.success },
+    abandoned: { label: "Abandoned", bg: palette.surfaceSunken, color: palette.textFaint },
   };
   const { label, bg, color } = config[status];
   return <Text style={[styles.badge, { backgroundColor: bg, color }]}>{label}</Text>;
@@ -50,6 +54,8 @@ const emptyLogForm: LogFormState = {
 };
 
 export default function BatchDetailScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -145,7 +151,7 @@ export default function BatchDetailScreen(): React.JSX.Element {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (error || !batch) {
@@ -196,14 +202,14 @@ export default function BatchDetailScreen(): React.JSX.Element {
               onPress={() => { void handleStatusChange("complete"); }}
               disabled={updatingStatus}
             >
-              <Text style={[styles.statusBtnText, { color: "#16a34a" }]}>Mark complete</Text>
+              <Text style={[styles.statusBtnText, { color: palette.success }]}>Mark complete</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.statusBtn, styles.statusBtnGray, updatingStatus && styles.disabled]}
               onPress={() => { void handleStatusChange("abandoned"); }}
               disabled={updatingStatus}
             >
-              <Text style={[styles.statusBtnText, { color: "#6b7280" }]}>Abandon</Text>
+              <Text style={[styles.statusBtnText, { color: palette.textMuted }]}>Abandon</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -213,7 +219,7 @@ export default function BatchDetailScreen(): React.JSX.Element {
             onPress={() => { void handleStatusChange("active"); }}
             disabled={updatingStatus}
           >
-            <Text style={[styles.statusBtnText, { color: "#f97316" }]}>Reactivate</Text>
+            <Text style={[styles.statusBtnText, { color: palette.accent }]}>Reactivate</Text>
           </TouchableOpacity>
         )}
 
@@ -293,7 +299,7 @@ export default function BatchDetailScreen(): React.JSX.Element {
                 disabled={logSaving}
               >
                 {logSaving
-                  ? <ActivityIndicator color="#fff" />
+                  ? <ActivityIndicator color={palette.onAccent} />
                   : <Text style={styles.primaryButtonText}>Save entry</Text>}
               </TouchableOpacity>
               <TouchableOpacity
@@ -342,6 +348,7 @@ export default function BatchDetailScreen(): React.JSX.Element {
 }
 
 function Measurement({ label, value }: { label: string; value: string }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.measurement}>
       <Text style={styles.measurementLabel}>{label}</Text>
@@ -350,70 +357,70 @@ function Measurement({ label, value }: { label: string; value: string }): React.
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   content: { padding: 16, paddingBottom: 60 },
-  backLink: { fontSize: 14, color: "#f97316", marginBottom: 12 },
+  backLink: { fontSize: 14, color: t.accent, marginBottom: 12 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text },
   badge: { fontSize: 11, fontWeight: "600", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
-  meta: { fontSize: 13, color: "#9ca3af", marginBottom: 16 },
+  meta: { fontSize: 13, color: t.textFaint, marginBottom: 16 },
   statusButtons: { flexDirection: "row", gap: 8, marginBottom: 20 },
   statusBtn: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
-  statusBtnGreen: { borderColor: "#bbf7d0" },
-  statusBtnGray: { borderColor: "#e5e7eb" },
-  statusBtnOrange: { borderColor: "#fed7aa", marginBottom: 20 },
+  statusBtnGreen: { borderColor: t.successBorder },
+  statusBtnGray: { borderColor: t.border },
+  statusBtnOrange: { borderColor: t.accentBorder, marginBottom: 20 },
   statusBtnText: { fontSize: 13, fontWeight: "600" },
   sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#111827" },
-  addLogLink: { fontSize: 14, fontWeight: "600", color: "#f97316" },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: t.text },
+  addLogLink: { fontSize: 14, fontWeight: "600", color: t.accent },
   logForm: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 14,
     marginBottom: 16,
   },
-  logFormTitle: { fontSize: 14, fontWeight: "600", color: "#374151", marginBottom: 12 },
+  logFormTitle: { fontSize: 14, fontWeight: "600", color: t.textSecondary, marginBottom: 12 },
   row: { flexDirection: "row", gap: 8 },
   field: { marginBottom: 10 },
-  fieldLabel: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   multiline: { minHeight: 72, textAlignVertical: "top" },
   formButtons: { flexDirection: "row", gap: 8, marginTop: 4 },
-  primaryButton: { backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  primaryButton: { backgroundColor: t.accent, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
   disabled: { opacity: 0.5 },
-  primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-  secondaryButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  secondaryButtonText: { color: "#374151", fontWeight: "600", fontSize: 14 },
-  errorText: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
-  emptyLogs: { fontSize: 13, color: "#9ca3af", fontStyle: "italic", marginTop: 4, marginBottom: 20 },
+  primaryButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
+  secondaryButton: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  secondaryButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
+  errorText: { color: t.danger, fontSize: 13, marginBottom: 8 },
+  emptyLogs: { fontSize: 13, color: t.textFaint, fontStyle: "italic", marginTop: 4, marginBottom: 20 },
   logEntry: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 12,
     marginBottom: 8,
   },
-  logEntryFirst: { borderColor: "#fed7aa" },
+  logEntryFirst: { borderColor: t.accentBorder },
   logEntryHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  logDate: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  deleteLogText: { fontSize: 12, color: "#d1d5db" },
+  logDate: { fontSize: 13, fontWeight: "600", color: t.textSecondary },
+  deleteLogText: { fontSize: 12, color: t.textFaint },
   logMeasurements: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 },
-  measurement: { backgroundColor: "#f9fafb", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  measurementLabel: { fontSize: 10, fontWeight: "600", color: "#9ca3af", textTransform: "uppercase" },
-  measurementValue: { fontSize: 13, fontWeight: "700", color: "#111827" },
-  logNotes: { fontSize: 13, color: "#6b7280", marginTop: 4, lineHeight: 18 },
+  measurement: { backgroundColor: t.bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  measurementLabel: { fontSize: 10, fontWeight: "600", color: t.textFaint, textTransform: "uppercase" },
+  measurementValue: { fontSize: 13, fontWeight: "700", color: t.text },
+  logNotes: { fontSize: 13, color: t.textMuted, marginTop: 4, lineHeight: 18 },
 });

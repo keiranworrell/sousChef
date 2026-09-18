@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Notification } from "@souschef/shared";
 import { timeAgo } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 /**
  * Notifications, which on mobile exist mainly so household invites can be
@@ -25,6 +27,8 @@ import { getApiClient } from "../../../lib/api";
  * the same change rather than waiting for a notifications PR of its own.
  */
 export default function NotificationsScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -66,7 +70,7 @@ export default function NotificationsScreen(): React.JSX.Element {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : (
         <FlatList
@@ -77,7 +81,7 @@ export default function NotificationsScreen(): React.JSX.Element {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); void load(); }}
-              tintColor="#f97316"
+              tintColor={palette.accent}
             />
           }
           ListEmptyComponent={
@@ -108,6 +112,7 @@ function NotificationRow({
   notification: Notification;
   router: ReturnType<typeof useRouter>;
 }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   if (notification.type === "household_invite") {
     return <HouseholdInviteRow notification={notification} />;
   }
@@ -160,6 +165,8 @@ function HouseholdInviteRow({
 }: {
   notification: Notification;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [state, setState] = useState<InviteState>("pending");
   const [error, setError] = useState<string | null>(null);
 
@@ -213,7 +220,7 @@ function HouseholdInviteRow({
               disabled={state === "working"}
             >
               {state === "working"
-                ? <ActivityIndicator color="#fff" size="small" />
+                ? <ActivityIndicator color={palette.onAccent} size="small" />
                 : <Text style={styles.acceptText}>Accept</Text>}
             </TouchableOpacity>
             <TouchableOpacity
@@ -240,55 +247,56 @@ function HouseholdInviteRow({
 }
 
 function Dot({ unseen }: { unseen: boolean }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return <View style={[styles.dot, unseen ? styles.dotUnseen : styles.dotSeen]} />;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 14,
   },
   rowBody: { flex: 1, minWidth: 0, gap: 3 },
   dot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  dotUnseen: { backgroundColor: "#fb923c" },
-  dotSeen: { backgroundColor: "#e5e7eb" },
-  message: { fontSize: 14, color: "#374151", lineHeight: 20 },
-  strong: { fontWeight: "700", color: "#111827" },
-  when: { fontSize: 12, color: "#9ca3af" },
+  dotUnseen: { backgroundColor: t.accent },
+  dotSeen: { backgroundColor: t.border },
+  message: { fontSize: 14, color: t.textSecondary, lineHeight: 20 },
+  strong: { fontWeight: "700", color: t.text },
+  when: { fontSize: 12, color: t.textFaint },
   actions: { flexDirection: "row", gap: 8, marginTop: 8 },
   accept: {
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
     minWidth: 82,
     alignItems: "center",
   },
-  acceptText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  acceptText: { color: t.onAccent, fontWeight: "600", fontSize: 13 },
   decline: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  declineText: { color: "#374151", fontWeight: "600", fontSize: 13 },
-  outcome: { marginTop: 6, fontSize: 13, fontWeight: "600", color: "#f97316" },
-  outcomeMuted: { marginTop: 6, fontSize: 12, color: "#9ca3af", lineHeight: 17 },
-  rowError: { marginTop: 4, fontSize: 12, color: "#dc2626" },
+  declineText: { color: t.textSecondary, fontWeight: "600", fontSize: 13 },
+  outcome: { marginTop: 6, fontSize: 13, fontWeight: "600", color: t.accent },
+  outcomeMuted: { marginTop: 6, fontSize: 12, color: t.textFaint, lineHeight: 17 },
+  rowError: { marginTop: 4, fontSize: 12, color: t.danger },
   disabled: { opacity: 0.5 },
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 19 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center", lineHeight: 19 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
 });

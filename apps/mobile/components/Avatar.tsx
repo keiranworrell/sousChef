@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
+import { useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   displayName: string;
@@ -19,6 +21,7 @@ export default function Avatar({
   avatarUrl,
   size = 36,
 }: Props): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   const dimensions = { width: size, height: size, borderRadius: size / 2 };
 
   if (avatarUrl) {
@@ -43,8 +46,8 @@ export default function Avatar({
   );
 }
 
-const styles = StyleSheet.create({
-  image: { backgroundColor: "#f3f4f6", borderWidth: 1, borderColor: "#e5e7eb" },
-  fallback: { backgroundColor: "#ffedd5", alignItems: "center", justifyContent: "center" },
-  initial: { fontWeight: "700", color: "#f97316" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  image: { backgroundColor: t.surfaceSunken, borderWidth: 1, borderColor: t.border },
+  fallback: { backgroundColor: t.accentSurface, alignItems: "center", justifyContent: "center" },
+  initial: { fontWeight: "700", color: t.accent },
 });

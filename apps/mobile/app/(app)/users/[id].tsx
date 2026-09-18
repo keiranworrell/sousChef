@@ -16,8 +16,12 @@ import { canFollow, toggleFollow } from "../../../lib/follow-state";
 import Avatar from "../../../components/Avatar";
 import FollowButton from "../../../components/FollowButton";
 import UserListSheet, { type UserListKind } from "../../../components/UserListSheet";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function PublicProfileScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -113,7 +117,7 @@ export default function PublicProfileScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -190,7 +194,7 @@ export default function PublicProfileScreen(): React.JSX.Element {
           </Text>
         }
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator color="#f97316" style={styles.footer} /> : null
+          loadingMore ? <ActivityIndicator color={palette.accent} style={styles.footer} /> : null
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -222,44 +226,44 @@ export default function PublicProfileScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   list: { padding: 16, paddingBottom: 40 },
   column: { gap: 12 },
   header: { gap: 12, marginBottom: 12 },
   back: { alignSelf: "flex-start", paddingVertical: 4 },
-  backText: { fontSize: 14, fontWeight: "600", color: "#f97316" },
+  backText: { fontSize: 14, fontWeight: "600", color: t.accent },
   identity: { flexDirection: "row", alignItems: "center", gap: 16 },
   identityText: { flex: 1, minWidth: 0, gap: 4 },
-  name: { fontSize: 20, fontWeight: "700", color: "#111827" },
+  name: { fontSize: 20, fontWeight: "700", color: t.text },
   counts: { flexDirection: "row", gap: 16 },
-  count: { fontSize: 13, color: "#6b7280" },
-  countValue: { fontWeight: "700", color: "#111827" },
-  bio: { fontSize: 14, color: "#374151", lineHeight: 20 },
+  count: { fontSize: 13, color: t.textMuted },
+  countValue: { fontWeight: "700", color: t.text },
+  bio: { fontSize: 14, color: t.textSecondary, lineHeight: 20 },
   followRow: { flexDirection: "row" },
   sectionLabel: {
     marginTop: 6,
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   card: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
     gap: 6,
   },
-  cardImage: { width: "100%", height: 96, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  cardTitle: { fontSize: 13, fontWeight: "600", color: "#111827" },
-  cardMeta: { fontSize: 11, color: "#9ca3af" },
-  empty: { paddingVertical: 32, textAlign: "center", fontSize: 13, color: "#9ca3af" },
+  cardImage: { width: "100%", height: 96, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  cardTitle: { fontSize: 13, fontWeight: "600", color: t.text },
+  cardMeta: { fontSize: 11, color: t.textFaint },
+  empty: { paddingVertical: 32, textAlign: "center", fontSize: 13, color: t.textFaint },
   footer: { paddingVertical: 16 },
-  error: { color: "#dc2626", fontSize: 13 },
+  error: { color: t.danger, fontSize: 13 },
 });

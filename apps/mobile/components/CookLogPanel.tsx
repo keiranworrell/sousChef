@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import type { CookLogEntry } from "@souschef/shared";
 import { getApiClient } from "../lib/api";
 import StarRating from "./StarRating";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   recipeId: string;
@@ -36,6 +38,8 @@ export default function CookLogPanel({
   onEdit,
   onRemoved,
 }: Props): React.JSX.Element | null {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -127,7 +131,7 @@ export default function CookLogPanel({
                 hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
                 accessibilityLabel={`Edit your cook from ${formatDate(entry.cookedAt)}`}
               >
-                <Ionicons name="pencil-outline" size={16} color="#9ca3af" />
+                <Ionicons name="pencil-outline" size={16} color={palette.textFaint} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => confirmRemove(entry)}
@@ -138,7 +142,7 @@ export default function CookLogPanel({
                 <Ionicons
                   name="close-outline"
                   size={18}
-                  color={removingId === entry.id ? "#e5e7eb" : "#9ca3af"}
+                  color={removingId === entry.id ? palette.border : palette.textFaint}
                 />
               </TouchableOpacity>
             </View>
@@ -149,18 +153,18 @@ export default function CookLogPanel({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   section: { marginBottom: 24 },
   header: { marginBottom: 10 },
-  sectionTitle: { fontSize: 17, fontWeight: "600", color: "#111827" },
-  count: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
-  list: { borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12, backgroundColor: "#fff" },
+  sectionTitle: { fontSize: 17, fontWeight: "600", color: t.text },
+  count: { marginTop: 2, fontSize: 12, color: t.textFaint },
+  list: { borderWidth: 1, borderColor: t.border, borderRadius: 12, backgroundColor: t.surface },
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 14, paddingVertical: 10 },
-  rowDivided: { borderTopWidth: 1, borderTopColor: "#f3f4f6" },
+  rowDivided: { borderTopWidth: 1, borderTopColor: t.border },
   rowMain: { flex: 1, minWidth: 0 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  date: { fontSize: 13, color: "#374151", fontVariant: ["tabular-nums"] },
-  notesToggle: { marginLeft: "auto", fontSize: 11, color: "#9ca3af" },
-  notes: { marginTop: 6, fontSize: 13, color: "#6b7280", lineHeight: 19 },
-  error: { color: "#dc2626", fontSize: 13, marginTop: 4 },
+  date: { fontSize: 13, color: t.textSecondary, fontVariant: ["tabular-nums"] },
+  notesToggle: { marginLeft: "auto", fontSize: 11, color: t.textFaint },
+  notes: { marginTop: 6, fontSize: 13, color: t.textMuted, lineHeight: 19 },
+  error: { color: t.danger, fontSize: 13, marginTop: 4 },
 });

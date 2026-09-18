@@ -16,6 +16,8 @@ import { timeAgo } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { describeActivity } from "../../../lib/feed-activity";
 import Avatar from "../../../components/Avatar";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 const PAGE = 20;
 
@@ -27,6 +29,8 @@ const PAGE = 20;
  * in the app is cursor-based and the difference is not an oversight here.
  */
 export default function FeedScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -68,7 +72,7 @@ export default function FeedScreen(): React.JSX.Element {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : (
         <FlatList
@@ -79,7 +83,7 @@ export default function FeedScreen(): React.JSX.Element {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); void fetchPage(0); }}
-              tintColor="#f97316"
+              tintColor={palette.accent}
             />
           }
           onEndReachedThreshold={0.5}
@@ -89,7 +93,7 @@ export default function FeedScreen(): React.JSX.Element {
             void fetchPage(activities.length);
           }}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator color="#f97316" style={styles.footer} /> : null
+            loadingMore ? <ActivityIndicator color={palette.accent} style={styles.footer} /> : null
           }
           ListEmptyComponent={
             !error ? (
@@ -159,38 +163,38 @@ export default function FeedScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 12,
   },
   rowBody: { flex: 1, minWidth: 0, gap: 3 },
-  sentence: { fontSize: 14, color: "#374151", lineHeight: 20 },
-  strong: { fontWeight: "700", color: "#111827" },
-  when: { fontSize: 12, color: "#9ca3af" },
-  thumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: "#f3f4f6" },
+  sentence: { fontSize: 14, color: t.textSecondary, lineHeight: 20 },
+  strong: { fontWeight: "700", color: t.text },
+  when: { fontSize: 12, color: t.textFaint },
+  thumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: t.surfaceSunken },
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 19 },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center", lineHeight: 19 },
   emptyCta: {
     marginTop: 8,
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
-  emptyCtaText: { fontSize: 13, fontWeight: "700", color: "#ea580c" },
+  emptyCtaText: { fontSize: 13, fontWeight: "700", color: t.accentStrong },
   footer: { paddingVertical: 16 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
 });

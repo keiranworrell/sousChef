@@ -1,6 +1,8 @@
 import React from "react";
 import { Text, StyleSheet, Linking, Alert } from "react-native";
 import { hostnameOf } from "@souschef/shared";
+import { useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   sourceUrl: string | null;
@@ -23,6 +25,7 @@ export default function SourceAttribution({
   sourceUrl,
   sourceModified = false,
 }: Props): React.JSX.Element | null {
+  const styles = useThemedStyles(makeStyles);
   const hostname = hostnameOf(sourceUrl);
   if (!hostname || !sourceUrl) return null;
 
@@ -50,7 +53,7 @@ export default function SourceAttribution({
   );
 }
 
-const styles = StyleSheet.create({
-  text: { fontSize: 12, color: "#9ca3af", marginBottom: 12 },
-  host: { fontWeight: "600", color: "#6b7280" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  text: { fontSize: 12, color: t.textFaint, marginBottom: 12 },
+  host: { fontWeight: "600", color: t.textMuted },
 });

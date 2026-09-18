@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import type { Substitution } from "@souschef/shared";
 import { getSubstitutions } from "@souschef/shared";
+import { useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   /** The ingredient being looked up, or null when the sheet is closed. */
@@ -36,6 +38,7 @@ export default function SubstitutionSheet({
   onReplace,
   onClose,
 }: Props): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   const subs = ingredientName ? getSubstitutions(ingredientName) : [];
 
   return (
@@ -80,10 +83,10 @@ export default function SubstitutionSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
@@ -93,26 +96,26 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#f97316",
+    color: t.accent,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  title: { marginTop: 2, fontSize: 17, fontWeight: "700", color: "#111827", textTransform: "capitalize" },
+  title: { marginTop: 2, fontSize: 17, fontWeight: "700", color: t.text, textTransform: "capitalize" },
   list: { maxHeight: 340 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
-  divided: { borderTopWidth: 1, borderTopColor: "#f3f4f6" },
+  divided: { borderTopWidth: 1, borderTopColor: t.border },
   rowText: { flex: 1, minWidth: 0, gap: 2 },
-  subName: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  subNotes: { fontSize: 12, color: "#9ca3af", lineHeight: 17 },
-  use: { borderWidth: 1, borderColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  useText: { fontSize: 12, fontWeight: "700", color: "#ea580c" },
-  footnote: { fontSize: 12, color: "#9ca3af", lineHeight: 17 },
+  subName: { fontSize: 15, fontWeight: "600", color: t.text },
+  subNotes: { fontSize: 12, color: t.textFaint, lineHeight: 17 },
+  use: { borderWidth: 1, borderColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
+  useText: { fontSize: 12, fontWeight: "700", color: t.accentStrong },
+  footnote: { fontSize: 12, color: t.textFaint, lineHeight: 17 },
   close: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
-  closeText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  closeText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
 });

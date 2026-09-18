@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import type { OnboardingState } from "@souschef/shared";
 import { completedCount } from "@souschef/shared";
 import { presentSteps } from "../lib/onboarding-steps";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   state: OnboardingState;
@@ -32,6 +34,8 @@ export default function OnboardingChecklist({
   state,
   welcome = false,
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const steps = presentSteps(state);
   const done = completedCount(state);
@@ -58,7 +62,7 @@ export default function OnboardingChecklist({
         <View key={step.id} style={styles.step}>
           {step.done ? (
             <View style={styles.tick}>
-              <Ionicons name="checkmark" size={12} color="#fff" />
+              <Ionicons name="checkmark" size={12} color={palette.onAccent} />
             </View>
           ) : (
             <View style={styles.circle} />
@@ -88,28 +92,28 @@ export default function OnboardingChecklist({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 16,
     gap: 12,
   },
   welcome: { gap: 4 },
-  welcomeTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  welcomeBlurb: { fontSize: 13, color: "#6b7280", lineHeight: 19 },
+  welcomeTitle: { fontSize: 18, fontWeight: "700", color: t.text },
+  welcomeBlurb: { fontSize: 13, color: t.textMuted, lineHeight: 19 },
   progressRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  track: { flex: 1, height: 6, borderRadius: 999, backgroundColor: "#f3f4f6", overflow: "hidden" },
-  fill: { height: 6, borderRadius: 999, backgroundColor: "#f97316" },
-  progressText: { fontSize: 11, color: "#9ca3af", fontVariant: ["tabular-nums"] },
+  track: { flex: 1, height: 6, borderRadius: 999, backgroundColor: t.surfaceSunken, overflow: "hidden" },
+  fill: { height: 6, borderRadius: 999, backgroundColor: t.accent },
+  progressText: { fontSize: 11, color: t.textFaint, fontVariant: ["tabular-nums"] },
   step: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   tick: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 1,
@@ -119,20 +123,20 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     marginTop: 1,
   },
   stepBody: { flex: 1, minWidth: 0, gap: 4 },
-  stepLabel: { fontSize: 14, fontWeight: "600", color: "#374151" },
-  stepLabelDone: { color: "#9ca3af", fontWeight: "500", textDecorationLine: "line-through" },
-  stepHint: { fontSize: 12, color: "#9ca3af", lineHeight: 17 },
+  stepLabel: { fontSize: 14, fontWeight: "600", color: t.textSecondary },
+  stepLabelDone: { color: t.textFaint, fontWeight: "500", textDecorationLine: "line-through" },
+  stepHint: { fontSize: 12, color: t.textFaint, lineHeight: 17 },
   cta: {
     alignSelf: "flex-start",
     marginTop: 2,
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  ctaText: { fontSize: 12, fontWeight: "700", color: "#ea580c" },
+  ctaText: { fontSize: 12, fontWeight: "700", color: t.accentStrong },
 });

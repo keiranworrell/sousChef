@@ -1,5 +1,7 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useTheme, useThemedStyles } from "../components/ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 /**
  * The route at `/`, which is where a cold start lands before the guard in the
@@ -15,21 +17,23 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
  * again, it names itself rather than sitting there looking like a crash.
  */
 export default function Index(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.container}>
-      <ActivityIndicator color="#f97316" />
+      <ActivityIndicator color={palette.accent} />
       <Text style={styles.text}>Getting things ready…</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#f9fafb",
+    backgroundColor: t.bg,
   },
-  text: { fontSize: 13, color: "#9ca3af" },
+  text: { fontSize: 13, color: t.textFaint },
 });

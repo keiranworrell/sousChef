@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   value: number | null;
@@ -22,6 +24,7 @@ export default function StarRating({
   onChange,
   size = 28,
 }: Props): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   const readOnly = !onChange;
 
   return (
@@ -70,8 +73,8 @@ export default function StarRating({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 4 },
-  filled: { color: "#fb923c" },
-  empty: { color: "#e5e7eb" },
+  filled: { color: t.accent },
+  empty: { color: t.border },
 });

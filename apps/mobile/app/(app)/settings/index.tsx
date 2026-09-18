@@ -17,9 +17,14 @@ import type { User } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { exportFileName } from "../../../lib/data-export";
 import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import { PREFERENCE_LABELS, PREFERENCE_ORDER } from "../../../lib/theme-preference";
+import type { Palette } from "../../../lib/theme";
 
 
 export default function SettingsScreen(): React.JSX.Element {
+  const { palette, preference, setPreference } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
 
   const [user, setUser] = useState<User | null>(null);
@@ -155,7 +160,7 @@ export default function SettingsScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={[styles.container, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -194,12 +199,43 @@ export default function SettingsScreen(): React.JSX.Element {
       )}
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        <View style={styles.card}>
+          <View style={styles.themeRow}>
+            {PREFERENCE_ORDER.map((option) => {
+              const active = preference === option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.themeOption, active && styles.themeOptionActive]}
+                  onPress={() => setPreference(option)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>
+                    {PREFERENCE_LABELS[option]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {/* Only said when it is doing something. On "Light" or "Dark" this
+              would be describing a setting the user has just overridden. */}
+          {preference === "system" && (
+            <Text style={styles.note}>
+              Following your phone&apos;s display setting.
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Change password</Text>
         <View style={styles.card}>
           <TextInput
             style={styles.input}
             placeholder="Current password"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             secureTextEntry
             autoComplete="current-password"
             value={oldPassword}
@@ -208,7 +244,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <TextInput
             style={styles.input}
             placeholder="New password"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             secureTextEntry
             autoComplete="new-password"
             value={newPassword}
@@ -222,7 +258,7 @@ export default function SettingsScreen(): React.JSX.Element {
             disabled={pwSaving || !oldPassword || !newPassword}
           >
             {pwSaving
-              ? <ActivityIndicator color="#fff" />
+              ? <ActivityIndicator color={palette.onAccent} />
               : <Text style={styles.buttonText}>Change password</Text>}
           </TouchableOpacity>
         </View>
@@ -242,7 +278,7 @@ export default function SettingsScreen(): React.JSX.Element {
             disabled={exporting}
           >
             {exporting ? (
-              <ActivityIndicator color="#ea580c" size="small" />
+              <ActivityIndicator color={palette.accentStrong} size="small" />
             ) : (
               <Text style={styles.secondaryBtnText}>Download your data</Text>
             )}
@@ -263,7 +299,7 @@ export default function SettingsScreen(): React.JSX.Element {
           <TextInput
             style={styles.input}
             placeholder='Type DELETE to confirm'
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={palette.textFaint}
             autoCapitalize="characters"
             autoCorrect={false}
             value={deleteConfirm}
@@ -276,7 +312,7 @@ export default function SettingsScreen(): React.JSX.Element {
             disabled={deleting || deleteConfirm !== "DELETE"}
           >
             {deleting
-              ? <ActivityIndicator color="#fff" />
+              ? <ActivityIndicator color={palette.onAccent} />
               : <Text style={styles.buttonText}>Delete my account</Text>}
           </TouchableOpacity>
         </View>
@@ -302,6 +338,7 @@ function Row({
   value: string;
   last?: boolean;
 }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.row, last && styles.rowLast]}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -310,28 +347,28 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { alignItems: "center", justifyContent: "center" },
   content: { padding: 16, gap: 20 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827", marginTop: 4 },
+  title: { fontSize: 24, fontWeight: "700", color: t.text, marginTop: 4 },
   section: { gap: 8 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 14,
     gap: 10,
   },
-  dangerCard: { borderColor: "#fecaca" },
+  dangerCard: { borderColor: t.dangerBorder },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -339,46 +376,58 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: t.border,
   },
   rowLast: { borderBottomWidth: 0, paddingBottom: 0 },
-  rowLabel: { fontSize: 14, color: "#6b7280" },
-  rowValue: { flex: 1, textAlign: "right", fontSize: 14, fontWeight: "500", color: "#111827" },
+  rowLabel: { fontSize: 14, color: t.textMuted },
+  rowValue: { flex: 1, textAlign: "right", fontSize: 14, fontWeight: "500", color: t.text },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
+    color: t.text,
   },
   button: {
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
   dangerButton: {
-    backgroundColor: "#dc2626",
+    backgroundColor: t.danger,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  buttonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   secondaryBtn: {
     borderWidth: 1,
-    borderColor: "#fed7aa",
-    backgroundColor: "#fff7ed",
+    borderColor: t.accentBorder,
+    backgroundColor: t.accentSurface,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
-  secondaryBtnText: { color: "#ea580c", fontWeight: "600", fontSize: 14 },
-  note: { fontSize: 13, color: "#6b7280", lineHeight: 19 },
-  error: { color: "#dc2626", fontSize: 13 },
-  success: { color: "#15803d", fontSize: 13 },
+  secondaryBtnText: { color: t.accentStrong, fontWeight: "600", fontSize: 14 },
+  themeRow: { flexDirection: "row", gap: 8 },
+  themeOption: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: t.borderStrong,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  themeOptionActive: { backgroundColor: t.accentSurface, borderColor: t.accent },
+  themeOptionText: { fontSize: 13, fontWeight: "600", color: t.textMuted },
+  themeOptionTextActive: { color: t.accentText },
+  note: { fontSize: 13, color: t.textMuted, lineHeight: 19 },
+  error: { color: t.danger, fontSize: 13 },
+  success: { color: t.success, fontSize: 13 },
   signOut: { alignItems: "center", paddingVertical: 14 },
-  signOutText: { color: "#dc2626", fontWeight: "600", fontSize: 15 },
+  signOutText: { color: t.danger, fontWeight: "600", fontSize: 15 },
 });

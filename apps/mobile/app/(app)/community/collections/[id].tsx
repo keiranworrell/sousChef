@@ -12,6 +12,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PublicCollectionWithItems } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
+import { useTheme, useThemedStyles } from "../../../../components/ThemeProvider";
+import type { Palette } from "../../../../lib/theme";
 
 /**
  * Someone else's public collection.
@@ -22,6 +24,8 @@ import { getApiClient } from "../../../../lib/api";
  * one of them would be refused.
  */
 export default function PublicCollectionScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -49,7 +53,7 @@ export default function PublicCollectionScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -126,38 +130,38 @@ export default function PublicCollectionScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: "#f9fafb",
+    backgroundColor: t.bg,
   },
   list: { padding: 16, gap: 10 },
   header: { gap: 6, marginBottom: 8 },
   back: { alignSelf: "flex-start", paddingVertical: 4 },
-  backText: { fontSize: 14, fontWeight: "600", color: "#f97316" },
-  title: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  owner: { fontSize: 13, fontWeight: "600", color: "#f97316" },
-  description: { fontSize: 13, color: "#6b7280", lineHeight: 19, marginTop: 2 },
-  count: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
+  backText: { fontSize: 14, fontWeight: "600", color: t.accent },
+  title: { fontSize: 22, fontWeight: "700", color: t.text },
+  owner: { fontSize: 13, fontWeight: "600", color: t.accent },
+  description: { fontSize: 13, color: t.textMuted, lineHeight: 19, marginTop: 2 },
+  count: { fontSize: 12, color: t.textFaint, marginTop: 2 },
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 10,
   },
-  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  thumbEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  thumbEmpty: { borderWidth: 1, borderColor: t.border },
   cardText: { flex: 1, minWidth: 0, gap: 3 },
-  cardTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  cardMeta: { fontSize: 12, color: "#9ca3af" },
-  empty: { paddingVertical: 40, textAlign: "center", fontSize: 13, color: "#9ca3af" },
-  error: { color: "#dc2626", fontSize: 13, textAlign: "center", paddingHorizontal: 24 },
+  cardTitle: { fontSize: 14, fontWeight: "600", color: t.text },
+  cardMeta: { fontSize: 12, color: t.textFaint },
+  empty: { paddingVertical: 40, textAlign: "center", fontSize: 13, color: t.textFaint },
+  error: { color: t.danger, fontSize: 13, textAlign: "center", paddingHorizontal: 24 },
 });

@@ -18,11 +18,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImportTabs, { type ImportMode } from "../../../components/ImportTabs";
 import { draftToFormFields } from "../../../lib/recipe-draft";
 import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 type IngredientField = { name: string; quantity: string; unit: string };
 type StepField = { instruction: string; timerSeconds: string };
 
 export default function NewRecipeScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -197,8 +201,8 @@ export default function NewRecipeScreen(): React.JSX.Element {
             <Switch
               value={isPublic}
               onValueChange={setIsPublic}
-              trackColor={{ false: "#d1d5db", true: "#fdba74" }}
-              thumbColor={isPublic ? "#f97316" : "#fff"}
+              trackColor={{ false: palette.borderStrong, true: palette.accentStrong }}
+              thumbColor={isPublic ? palette.accent : palette.onAccent}
             />
           </View>
         </Section>
@@ -264,7 +268,7 @@ export default function NewRecipeScreen(): React.JSX.Element {
             onPress={handleSubmit}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Create recipe</Text>}
+            {loading ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.submitButtonText}>Create recipe</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -278,6 +282,7 @@ export default function NewRecipeScreen(): React.JSX.Element {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -287,6 +292,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: object }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.field, style]}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -295,33 +301,33 @@ function Field({ label, children, style }: { label: string; children: React.Reac
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   content: { padding: 16, paddingBottom: 40 },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 20 },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text, marginBottom: 20 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  sectionTitle: { fontSize: 12, fontWeight: "700", color: t.textFaint, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
   field: { marginBottom: 10 },
-  fieldLabel: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, color: "#111827", backgroundColor: "#fff" },
+  fieldLabel: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
+  input: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14, color: t.text, backgroundColor: t.surface },
   multiline: { minHeight: 72, textAlignVertical: "top" },
   row: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
-  segmented: { flexDirection: "row", borderRadius: 8, borderWidth: 1, borderColor: "#d1d5db", overflow: "hidden" },
-  segment: { flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: "#fff" },
-  segmentActive: { backgroundColor: "#f97316" },
-  segmentText: { fontSize: 12, fontWeight: "500", color: "#374151" },
-  segmentTextActive: { color: "#fff" },
+  segmented: { flexDirection: "row", borderRadius: 8, borderWidth: 1, borderColor: t.borderStrong, overflow: "hidden" },
+  segment: { flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: t.surface },
+  segmentActive: { backgroundColor: t.accent },
+  segmentText: { fontSize: 12, fontWeight: "500", color: t.textSecondary },
+  segmentTextActive: { color: t.onAccent },
   stepRow: { flexDirection: "row", gap: 8, alignItems: "flex-start", marginBottom: 8 },
-  stepNum: { fontSize: 13, fontWeight: "600", color: "#9ca3af", marginTop: 10, width: 18 },
-  removeBtn: { fontSize: 20, color: "#9ca3af", marginTop: 6 },
-  addLink: { fontSize: 13, fontWeight: "600", color: "#f97316", marginTop: 4 },
+  stepNum: { fontSize: 13, fontWeight: "600", color: t.textFaint, marginTop: 10, width: 18 },
+  removeBtn: { fontSize: 20, color: t.textFaint, marginTop: 6 },
+  addLink: { fontSize: 13, fontWeight: "600", color: t.accent, marginTop: 4 },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
-  switchHint: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
-  error: { color: "#dc2626", fontSize: 13, marginBottom: 12 },
+  switchHint: { fontSize: 11, color: t.textFaint, marginTop: 1 },
+  error: { color: t.danger, fontSize: 13, marginBottom: 12 },
   footer: { gap: 10 },
-  submitButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
+  submitButton: { backgroundColor: t.accent, borderRadius: 10, paddingVertical: 13, alignItems: "center" },
   disabled: { opacity: 0.5 },
-  submitButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  cancelButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
-  cancelButtonText: { color: "#374151", fontWeight: "600", fontSize: 15 },
+  submitButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 15 },
+  cancelButton: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 10, paddingVertical: 13, alignItems: "center" },
+  cancelButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 15 },
 });
