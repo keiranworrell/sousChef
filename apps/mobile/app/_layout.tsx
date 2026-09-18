@@ -13,27 +13,41 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { amplifyConfig } from "../lib/amplify-config";
 
 /**
- * Amplify is configured at module scope, which means a throw here kills the
- * whole bundle before React ever runs — and a bundle that fails to execute
- * leaves the native splash on screen indefinitely, with nothing to indicate
- * why. That failure is indistinguishable from a hang, and neither one can be
- * diagnosed from the outside.
+ * Boot markers, deliberately console.log so they reach `adb logcat` in a
+ * release build.
  *
- * `setKeyValueStorage(AsyncStorage)` is the plausible candidate: it touches a
- * native module at import time, and native module readiness at import time is
- * exactly the sort of thing that changes under a React Native major.
+ * The evidence so far: on a cold start with a stored session, logcat shows
+ * `Running "main"` and then nothing at all. The bundle begins executing and
+ * stops before the root layout renders — the "[Layout children]" warning that
+ * appears on a working launch is absent on a failing one.
  *
- * Caught and kept rather than swallowed. The app is not usable without Amplify,
- * so this is not a recovery — it is the difference between a screen that says
- * what went wrong and a screen that says nothing at all.
+ * A try/catch cannot help with that, because nothing is throwing. Something
+ * here is blocking, and a blocked JS thread means no render, no setTimeout and
+ * no error screen. These markers turn "somewhere in module scope" into a line
+ * number: whichever is the last to appear is the call that did not return.
+ *
+ * Remove once the cause is found. They are diagnostics, not logging.
  */
+function boot(marker: string): void {
+  console.log(`[boot] ${marker}`);
+}
+
+boot("module scope entered");
+
 let startupError: string | null = null;
 try {
+  boot("before Amplify.configure");
   Amplify.configure(amplifyConfig);
+  boot("after Amplify.configure");
+
   cognitoUserPoolsTokenProvider.setKeyValueStorage(AsyncStorage);
+  boot("after setKeyValueStorage");
 } catch (err) {
   startupError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  boot(`threw: ${startupError}`);
 }
+
+boot("module scope complete");
 
 /**
  * How long to wait for the launch auth check before giving up on it.
@@ -68,6 +82,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
 }
 
 export default function RootLayout(): React.JSX.Element {
+  boot("RootLayout rendering");
   const router = useRouter();
   const segments = useSegments();
   const [authChecked, setAuthChecked] = useState(false);
@@ -118,7 +133,9 @@ export default function RootLayout(): React.JSX.Element {
         // Timing out into "signed out" is the recoverable answer. It shows the
         // sign-in screen, which is wrong only until they sign in; the
         // alternative is a screen with nothing on it and nothing to do.
+        boot("before fetchAuthSession");
         const session = await withTimeout(fetchAuthSession(), AUTH_CHECK_TIMEOUT_MS);
+        boot(`after fetchAuthSession, tokens=${!!session?.tokens}`);
         if (!supersededByEvent.current) setIsAuthenticated(!!session?.tokens);
       } catch {
         if (!supersededByEvent.current) setIsAuthenticated(false);
