@@ -9,13 +9,14 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { CookLogEntry, RecipeWithDetails } from "@souschef/shared";
-import { scaleQuantity, unwrap } from "@souschef/shared";
+import type { CookLogEntry, RecipeWithDetails, Substitution } from "@souschef/shared";
+import { hasSubstitutions, scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
 import CollectionPicker from "../../../../components/CollectionPicker";
 import CookLogPanel from "../../../../components/CookLogPanel";
 import CookLogSheet from "../../../../components/CookLogSheet";
 import SourceAttribution from "../../../../components/SourceAttribution";
+import SubstitutionSheet from "../../../../components/SubstitutionSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** Matches the web page's cap. Beyond this the arithmetic stops meaning much. */
@@ -38,6 +39,9 @@ export default function RecipeDetailScreen(): React.JSX.Element {
   const [cookLogError, setCookLogError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CookLogEntry | null>(null);
+
+  /** The ingredient whose substitutions are open, by id. */
+  const [subsFor, setSubsFor] = useState<string | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -93,6 +97,27 @@ export default function RecipeDetailScreen(): React.JSX.Element {
     setSheetOpen(false);
     setEditingEntry(null);
   }, []);
+
+  /**
+   * Swap an ingredient for a substitute, on screen only.
+   *
+   * Not persisted, and the sheet says as much. Cooking with oat milk tonight
+   * is not a decision about what the recipe is, and writing it through would
+   * quietly rewrite a recipe someone may have shared or imported.
+   */
+  function handleReplace(ingredientId: string, sub: Substitution): void {
+    setRecipe((prev) =>
+      prev
+        ? {
+            ...prev,
+            ingredients: prev.ingredients.map((ing) =>
+              ing.id === ingredientId ? { ...ing, name: sub.name } : ing,
+            ),
+          }
+        : prev,
+    );
+    setSubsFor(null);
+  }
 
   function handleDelete(): void {
     Alert.alert("Delete recipe", "This can't be undone.", [
@@ -232,8 +257,15 @@ export default function RecipeDetailScreen(): React.JSX.Element {
             </View>
           )}
 
+          {recipe.ingredients.some((ing) => hasSubstitutions(ing.name)) && (
+            <Text style={styles.subsHint}>
+              Underlined ingredients have substitutions — tap one.
+            </Text>
+          )}
+
           {recipe.ingredients.map((ing) => {
             const quantity = scaleQuantity(ing.quantity, ing.name, scaleFactor);
+            const swappable = hasSubstitutions(ing.name);
             return (
               <View key={ing.id} style={styles.ingredientRow}>
                 {quantity !== null && (
@@ -241,7 +273,23 @@ export default function RecipeDetailScreen(): React.JSX.Element {
                     {quantity}{ing.unit ? ` ${ing.unit}` : ""}
                   </Text>
                 )}
-                <Text style={styles.ingredientName}>{ing.name}</Text>
+                {/* Only the ones with something to show are tappable. A tap
+                    target that opens an empty sheet teaches people not to
+                    bother trying the next one. */}
+                {swappable ? (
+                  <TouchableOpacity
+                    style={styles.ingredientNameWrap}
+                    onPress={() => setSubsFor(ing.id)}
+                    accessibilityRole="button"
+                    accessibilityHint={`Show what you can use instead of ${ing.name}`}
+                  >
+                    <Text style={[styles.ingredientName, styles.ingredientSwappable]}>
+                      {ing.name}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.ingredientName}>{ing.name}</Text>
+                )}
                 {ing.notes && <Text style={styles.ingredientNotes}>({ing.notes})</Text>}
               </View>
             );
@@ -286,6 +334,14 @@ export default function RecipeDetailScreen(): React.JSX.Element {
         entry={editingEntry}
         onClose={() => { setSheetOpen(false); setEditingEntry(null); }}
         onSaved={handleSaved}
+      />
+
+      <SubstitutionSheet
+        ingredientName={
+          recipe.ingredients.find((ing) => ing.id === subsFor)?.name ?? null
+        }
+        onReplace={(sub) => { if (subsFor) handleReplace(subsFor, sub); }}
+        onClose={() => setSubsFor(null)}
       />
 
       <CollectionPicker
@@ -359,6 +415,13 @@ const styles = StyleSheet.create({
   ingredientQty: { fontSize: 13, fontWeight: "600", color: "#111827", minWidth: 60 },
   ingredientQtyScaled: { color: "#ea580c" },
   ingredientName: { fontSize: 13, color: "#374151", flex: 1 },
+  ingredientNameWrap: { flex: 1 },
+  ingredientSwappable: {
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
+    textDecorationColor: "#d1d5db",
+  },
+  subsHint: { fontSize: 12, color: "#9ca3af", marginBottom: 8, marginTop: -4 },
   ingredientNotes: { fontSize: 12, color: "#9ca3af" },
   stepRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
   stepNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#fff7ed", alignItems: "center", justifyContent: "center", marginTop: 1 },
