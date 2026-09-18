@@ -246,8 +246,24 @@ export type ImportRecipePhotoInput = {
   mimeTypes: string[];
 };
 
+/**
+ * Every field optional, including ingredients and steps.
+ *
+ * Those two used to be omitted, which was a lie about what the endpoint does:
+ * `updateRecipe` deletes and reinserts both whenever they are present, and the
+ * route's Zod schema is `CreateRecipeSchema.partial()`, so it has always
+ * accepted them. The web form sends them and they are saved.
+ *
+ * It got away with it because the web form builds a `CreateRecipeInput` and
+ * passes the variable rather than an object literal, so TypeScript's
+ * excess-property check never fired. Mobile could not edit ingredients at all,
+ * and the type was the only thing saying it could not.
+ *
+ * Supplying either one replaces the whole set — this is not a patch of
+ * individual rows. Sending `ingredients: []` removes them all.
+ */
 export type UpdateRecipeInput = Partial<
-  Omit<CreateRecipeInput, "ingredients" | "steps" | "tags">
+  Omit<CreateRecipeInput, "tags">
 > & { tags?: string[] };
 
 /**

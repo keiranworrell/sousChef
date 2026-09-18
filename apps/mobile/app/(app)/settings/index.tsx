@@ -13,18 +13,8 @@ import { signOut, updatePassword } from "aws-amplify/auth";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { User } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
 
-/**
- * Trailing space for the tab bar, which overlays the bottom of this screen.
- *
- * Settings is a tab route (hidden from the bar with href: null), so the bar is
- * drawn over it. expo-router 57 moved off @react-navigation/bottom-tabs to
- * standard-navigation and no longer exposes a hook for the bar's height, so
- * this is an allowance rather than a measurement. It only has to be generous:
- * it is trailing padding on a scroll view, so too much costs nothing and too
- * little clips the last control — which is what it was doing to "Sign out".
- */
-const TAB_BAR_ALLOWANCE = 76;
 
 export default function SettingsScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
