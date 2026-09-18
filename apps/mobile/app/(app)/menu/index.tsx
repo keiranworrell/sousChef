@@ -15,13 +15,19 @@ type MenuEntry = {
  * Everything that isn't one of the four tabs.
  *
  * The web app's overflow menu has seven destinations; mobile has screens for
- * two of them. The other five — collections, cook history, rediscover,
+ * three of them. The other five — collections, cook history, rediscover,
  * household, feed — are listed nowhere here rather than listed and disabled.
  * A menu of things you cannot tap tells the user what the app cannot do every
  * time they open it, which is a strange thing to volunteer. This list grows as
  * the screens get built.
  */
 const ENTRIES: MenuEntry[] = [
+  {
+    label: "Collections",
+    description: "Group recipes, and see ones shared with you",
+    icon: "albums-outline",
+    href: "/(app)/collections",
+  },
   {
     label: "Fermentation",
     description: "Long-running batches and their logs",
