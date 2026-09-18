@@ -17,6 +17,12 @@ import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  EMPTY_SELECTION,
+  canMerge,
+  toggleMergeSelection,
+  type MergeSelection,
+} from "../../../lib/merge-selection";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
 const emptyForm: AddForm = { name: "", quantity: "", unit: "", category: "" };
@@ -34,6 +40,14 @@ export default function ShoppingListScreen(): React.JSX.Element {
   const [addForm, setAddForm] = useState<AddForm>(emptyForm);
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // Off by default. The thing you do on this screen is tick items off, and
+  // turning every row into a selection target would make the common action the
+  // awkward one.
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selection, setSelection] = useState<MergeSelection>(EMPTY_SELECTION);
+  const [merging, setMerging] = useState(false);
+  const [mergeError, setMergeError] = useState<string | null>(null);
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -94,6 +108,33 @@ export default function ShoppingListScreen(): React.JSX.Element {
       // ignore
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  function exitMergeMode(): void {
+    setMergeMode(false);
+    setSelection(EMPTY_SELECTION);
+    setMergeError(null);
+  }
+
+  async function handleMerge(): Promise<void> {
+    if (!canMerge(selection)) return;
+    setMerging(true);
+    setMergeError(null);
+    try {
+      const api = await getApiClient();
+      const res = await api.shopping.items.merge(id, selection.ids, selection.name.trim());
+      if ("error" in res) throw new Error(res.error.message);
+
+      // Reload rather than patching local state. The merge deletes rows and
+      // rewrites one, and reconstructing that here would be a second
+      // implementation of the server's rules, free to disagree with it.
+      await load();
+      exitMergeMode();
+    } catch (err) {
+      setMergeError(err instanceof Error ? err.message : "Couldn't merge those items");
+    } finally {
+      setMerging(false);
     }
   }
 
@@ -286,9 +327,95 @@ export default function ShoppingListScreen(): React.JSX.Element {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <TouchableOpacity style={styles.addButton} onPress={() => setAdding(true)}>
-            <Text style={styles.addButtonText}>+ Add item</Text>
-          </TouchableOpacity>
+          mergeMode ? (
+            <View style={styles.mergeBar}>
+              <Text style={styles.mergeTitle}>Merge duplicates</Text>
+              <Text style={styles.mergeBlurb}>
+                Pick the lines that are really the same thing. Their quantities
+                are added together.
+              </Text>
+
+              {selection.ids.length > 0 && (
+                <>
+                  <Text style={styles.mergeLabel}>Keep this name</Text>
+                  {/* The selected names as one-tap options, over a field they
+                      can edit. Choosing between what is already there covers
+                      most of it; the field is for when neither is right. */}
+                  <View style={styles.chipRow}>
+                    {list.items
+                      .filter((i) => selection.ids.includes(i.id))
+                      .map((i) => (
+                        <TouchableOpacity
+                          key={i.id}
+                          style={[styles.nameChip, selection.name === i.name && styles.nameChipOn]}
+                          onPress={() => setSelection((s) => ({ ...s, name: i.name }))}
+                        >
+                          <Text
+                            style={[
+                              styles.nameChipText,
+                              selection.name === i.name && styles.nameChipTextOn,
+                            ]}
+                          >
+                            {i.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </View>
+                  <TextInput
+                    style={styles.mergeInput}
+                    value={selection.name}
+                    onChangeText={(name) => setSelection((s) => ({ ...s, name }))}
+                    maxLength={255}
+                    accessibilityLabel="Name for the merged item"
+                  />
+                </>
+              )}
+
+              {mergeError && <Text style={styles.mergeErrorText}>{mergeError}</Text>}
+
+              <View style={styles.mergeActions}>
+                <TouchableOpacity
+                  style={[styles.mergeBtn, (!canMerge(selection) || merging) && styles.disabled]}
+                  onPress={() => { void handleMerge(); }}
+                  disabled={!canMerge(selection) || merging}
+                >
+                  {merging ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.mergeBtnText}>
+                      {selection.ids.length >= 2
+                        ? `Merge ${selection.ids.length} items`
+                        : "Merge"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mergeCancel}
+                  onPress={exitMergeMode}
+                  disabled={merging}
+                >
+                  <Text style={styles.mergeCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+
+              {selection.ids.length === 1 && (
+                <Text style={styles.mergeHint}>Pick at least one more.</Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.addButton} onPress={() => setAdding(true)}>
+                <Text style={styles.addButtonText}>+ Add item</Text>
+              </TouchableOpacity>
+              {/* Only offered when there is something to merge. On a list of
+                  one, the button is an invitation to a dead end. */}
+              {list.items.length > 1 && (
+                <TouchableOpacity onPress={() => setMergeMode(true)}>
+                  <Text style={styles.mergeLink}>Merge duplicates</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -308,6 +435,11 @@ export default function ShoppingListScreen(): React.JSX.Element {
                 onDelete={handleDelete}
                 toggling={togglingId === item.id}
                 deleting={deletingId === item.id}
+                mergeMode={mergeMode}
+                selected={selection.ids.includes(item.id)}
+                onSelect={() =>
+                  setSelection((s) => toggleMergeSelection(s, item, list.items))
+                }
               />
             </>
           );
@@ -323,13 +455,47 @@ function ItemRow({
   onDelete,
   toggling,
   deleting,
+  mergeMode,
+  selected,
+  onSelect,
 }: {
   item: ShoppingListItem;
   onToggle: (item: ShoppingListItem) => void;
   onDelete: (id: string) => void;
   toggling: boolean;
   deleting: boolean;
+  mergeMode: boolean;
+  selected: boolean;
+  onSelect: () => void;
 }): React.JSX.Element {
+  /**
+   * In merge mode the whole row selects, and the tick and delete controls are
+   * gone. Leaving them live would put "remove this line" a thumb's width from
+   * "combine this line", which is a bad place for an irreversible action.
+   */
+  if (mergeMode) {
+    return (
+      <TouchableOpacity
+        style={[styles.itemRow, selected && styles.itemRowSelected]}
+        onPress={onSelect}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+      >
+        <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+          {selected && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.quantity != null && (
+            <Text style={styles.itemMeta}>
+              {item.quantity}{item.unit ? ` ${item.unit}` : ""}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View style={[styles.itemRow, item.isChecked && styles.itemRowChecked]}>
       <TouchableOpacity
@@ -457,6 +623,73 @@ const styles = StyleSheet.create({
   },
   primaryButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
   disabled: { opacity: 0.5 },
+  headerActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  mergeLink: { fontSize: 13, fontWeight: "600", color: "#6b7280", paddingHorizontal: 4, paddingVertical: 10 },
+  itemRowSelected: { borderColor: "#f97316", backgroundColor: "#fff7ed" },
+  mergeBar: {
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    marginBottom: 12,
+  },
+  mergeTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
+  mergeBlurb: { fontSize: 12, color: "#9a3412", lineHeight: 17 },
+  mergeLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9a3412",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  nameChip: {
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    backgroundColor: "#fff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  nameChipOn: { backgroundColor: "#f97316", borderColor: "#f97316" },
+  nameChipText: { fontSize: 12, color: "#9a3412" },
+  nameChipTextOn: { color: "#fff", fontWeight: "700" },
+  mergeInput: {
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: "#111827",
+  },
+  mergeActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  mergeBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mergeBtnText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  mergeCancel: {
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mergeCancelText: { color: "#9a3412", fontWeight: "600", fontSize: 13 },
+  mergeHint: { fontSize: 12, color: "#9a3412" },
+  mergeErrorText: { fontSize: 12, color: "#dc2626" },
   primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
   errorText: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
 });

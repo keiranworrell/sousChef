@@ -1,15 +1,19 @@
-import type { OnboardingState, OnboardingStepId } from "@souschef/shared";
+import type { OnboardingState, OnboardingStepId, PresentedStep } from "@souschef/shared";
+import {
+  completedCount as sharedCompletedCount,
+  firstOutstanding,
+  presentSteps as sharedPresentSteps,
+} from "@souschef/shared";
 
 /**
- * Presentation for each onboarding step.
+ * Presentation for each onboarding step, on the web.
  *
- * The server says which steps are done; it says nothing about what they are
- * called or where they lead, because that is a UI question and baking copy into
- * an API response means a wording change needs a deploy of both.
+ * The ordering and progress rules live in `packages/shared` because mobile
+ * applies the same ones. What stays here is the copy and the hrefs, which are
+ * this app's routes and nobody else's.
  */
 
 export type OnboardingStepCopy = {
-  id: OnboardingStepId;
   label: string;
   /** Shown only while the step is outstanding — it's an instruction, not a description. */
   hint: string;
@@ -17,7 +21,7 @@ export type OnboardingStepCopy = {
   cta: string;
 };
 
-export const ONBOARDING_COPY: Record<OnboardingStepId, Omit<OnboardingStepCopy, "id">> = {
+export const ONBOARDING_COPY: Record<OnboardingStepId, OnboardingStepCopy> = {
   "add-recipe": {
     label: "Add your first recipe",
     hint: "Import one from a URL or a photo, or write it out yourself.",
@@ -27,7 +31,9 @@ export const ONBOARDING_COPY: Record<OnboardingStepId, Omit<OnboardingStepCopy, 
   "plan-meals": {
     label: "Plan a few meals",
     hint: "Drop recipes onto the days you'll cook them.",
-    href: "/meal-plans",
+    // Was "/meal-plans", which is not a route this app has and never was — the
+    // page is at /meal-plan. The checklist's own button 404'd.
+    href: "/meal-plan",
     cta: "Open the planner",
   },
   "shopping-list": {
@@ -44,29 +50,16 @@ export const ONBOARDING_COPY: Record<OnboardingStepId, Omit<OnboardingStepCopy, 
   },
 };
 
-export type PresentedStep = OnboardingStepCopy & { done: boolean };
+export type WebPresentedStep = PresentedStep<OnboardingStepCopy>;
 
-export function presentSteps(state: OnboardingState): PresentedStep[] {
-  return state.steps.map((step) => ({
-    id: step.id,
-    done: step.done,
-    ...ONBOARDING_COPY[step.id],
-  }));
+export function presentSteps(state: OnboardingState): WebPresentedStep[] {
+  return sharedPresentSteps(state, ONBOARDING_COPY);
 }
 
-/**
- * The step to push someone towards: the first one they haven't done.
- *
- * Null when everything is done. Deliberately the *first* outstanding step
- * rather than the next in sequence after the last completed one — someone who
- * cooks a recipe without ever planning a week should still be nudged to try the
- * planner, not skipped past it.
- */
-export function nextStep(state: OnboardingState): PresentedStep | null {
-  return presentSteps(state).find((s) => !s.done) ?? null;
+export function nextStep(state: OnboardingState): WebPresentedStep | null {
+  return firstOutstanding(state, ONBOARDING_COPY);
 }
 
-/** How many are done, for a progress indicator. */
 export function completedCount(state: OnboardingState): number {
-  return state.steps.filter((s) => s.done).length;
+  return sharedCompletedCount(state);
 }

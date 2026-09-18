@@ -9,10 +9,11 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
-import type { Recipe } from "@souschef/shared";
+import { useFocusEffect, useRouter } from "expo-router";
+import type { OnboardingState, Recipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import OnboardingChecklist from "../../../components/OnboardingChecklist";
 
 export default function RecipeListScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
@@ -77,6 +78,37 @@ export default function RecipeListScreen(): React.JSX.Element {
 
   useEffect(() => { void load(null); }, [load]);
 
+  /**
+   * Onboarding progress, refreshed whenever this tab regains focus.
+   *
+   * On focus rather than on mount: every step is completed on some *other*
+   * screen, so a checklist that only loaded once would still be showing "plan
+   * a few meals" as outstanding after the user came back from doing exactly
+   * that.
+   *
+   * Failures are swallowed. The checklist is an aid; a recipe list that
+   * refuses to render because a progress call failed would be a worse trade.
+   */
+  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function loadOnboarding(): Promise<void> {
+        try {
+          const api = await getApiClient();
+          const res = await api.users.onboarding();
+          if (cancelled || "error" in res) return;
+          setOnboarding(res.data);
+        } catch {
+          // Deliberately ignored — see above.
+        }
+      }
+      void loadOnboarding();
+      return () => { cancelled = true; };
+    }, []),
+  );
+
   function onRefresh(): void {
     setRefreshing(true);
     setHasMore(true);
@@ -131,16 +163,37 @@ export default function RecipeListScreen(): React.JSX.Element {
             </View>
           ) : null
         }
+        // Above the list rather than inside it, so it scrolls away once the
+        // user has recipes instead of sitting between them and their food.
+        // Gone entirely once the loop is finished — this is a way in, not a
+        // permanent fixture.
+        ListHeaderComponent={
+          onboarding && !onboarding.complete && recipes.length > 0 ? (
+            <View style={styles.checklistWrap}>
+              <OnboardingChecklist state={onboarding} />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No recipes yet.</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => router.push("/(app)/recipes/new")}
-            >
-              <Text style={styles.addButtonText}>Add your first recipe</Text>
-            </TouchableOpacity>
-          </View>
+          onboarding ? (
+            // A brand-new account gets the checklist as the empty state, with
+            // a greeting on top. No modal and nothing to dismiss: it stops
+            // appearing when they have a recipe, which is the same fact the
+            // server derives `fresh` from.
+            <View style={styles.emptyChecklist}>
+              <OnboardingChecklist state={onboarding} welcome={onboarding.fresh} />
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No recipes yet.</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push("/(app)/recipes/new")}
+              >
+                <Text style={styles.addButtonText}>Add your first recipe</Text>
+              </TouchableOpacity>
+            </View>
+          )
         }
         renderItem={({ item }) => {
           const totalMins = (item.prepTimeMinutes ?? 0) + (item.cookTimeMinutes ?? 0);
@@ -201,8 +254,10 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: "row", gap: 8 },
   title: { fontSize: 22, fontWeight: "700", color: "#111827" },
   list: { padding: 16, gap: 12 },
-  emptyContainer: { flex: 1 },
+  emptyContainer: { flexGrow: 1 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  emptyChecklist: { padding: 16 },
+  checklistWrap: { marginBottom: 4 },
   emptyText: { fontSize: 14, color: "#6b7280" },
   error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, marginBottom: 8 },
   card: {
