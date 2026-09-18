@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -25,6 +26,19 @@ export default function RecipeListScreen(): React.JSX.Element {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Paging. This list previously called api.recipes.list() with no arguments,
+  // took the first page, and stopped — so anyone past twenty recipes simply
+  // could not reach the rest of their own library by scrolling.
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // A ref rather than state: FlatList fires onEndReached several times per
+  // threshold crossing, and state would not have settled between them, so two
+  // requests would go out for the same page. Same reason the community screen
+  // keeps one.
+  const inFlightRef = useRef(false);
+
   // URL import
   const [importVisible, setImportVisible] = useState(false);
   const [importUrl, setImportUrl] = useState("");
@@ -32,27 +46,57 @@ export default function RecipeListScreen(): React.JSX.Element {
   const [importError, setImportError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
 
-  const load = useCallback(async (isRefresh = false): Promise<void> => {
-    if (!isRefresh) setLoading(true);
-    setError(null);
-    try {
-      const api = await getApiClient();
-      const res = await api.recipes.list();
-      if ("error" in res) throw new Error(res.error.message);
-      setRecipes(res.data.recipes);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load recipes");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  /**
+   * Fetches a page. A null cursor means the first one, and replaces what is on
+   * screen; anything else appends.
+   */
+  const load = useCallback(
+    async (pageCursor: string | null, isRefresh = false): Promise<void> => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
 
-  useEffect(() => { void load(); }, [load]);
+      const isFirstPage = pageCursor === null;
+      if (isFirstPage && !isRefresh) setLoading(true);
+      if (!isFirstPage) setLoadingMore(true);
+      setError(null);
+
+      try {
+        const api = await getApiClient();
+        const res = await api.recipes.list({ cursor: pageCursor ?? undefined });
+        if ("error" in res) throw new Error(res.error.message);
+
+        setRecipes((prev) =>
+          isFirstPage ? res.data.recipes : [...prev, ...res.data.recipes],
+        );
+        setCursor(res.data.nextCursor);
+        setHasMore(res.data.nextCursor !== null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load recipes");
+        // Stop paging on failure. Otherwise every further scroll retries the
+        // same broken request and the error flickers on and off as the user
+        // moves — one message that stays put is easier to act on.
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+        inFlightRef.current = false;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => { void load(null); }, [load]);
 
   function onRefresh(): void {
     setRefreshing(true);
-    void load(true);
+    setHasMore(true);
+    void load(null, true);
+  }
+
+  function handleEndReached(): void {
+    if (!hasMore || inFlightRef.current || loading) return;
+    void load(cursor);
   }
 
   async function handleImport(): Promise<void> {
@@ -115,6 +159,18 @@ export default function RecipeListScreen(): React.JSX.Element {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />
         }
+        onEndReached={handleEndReached}
+        // Half a screen from the bottom. Firing at the very end means the
+        // spinner appears after the scroll has already stopped, which reads as
+        // the list having ended.
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoading}>
+              <ActivityIndicator color="#f97316" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No recipes yet.</Text>
@@ -133,19 +189,38 @@ export default function RecipeListScreen(): React.JSX.Element {
               style={styles.card}
               onPress={() => router.push(`/(app)/recipes/${item.id}`)}
             >
-              <View style={styles.cardRow}>
-                <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                {item.difficulty && (
-                  <Text style={styles.badge}>{item.difficulty}</Text>
+              {/* Thumbnail and text sit side by side. The placeholder keeps its
+                  space when a recipe has no image, so the titles stay on one
+                  vertical line down the list — a column where some rows indent
+                  and others don't reads as broken rather than as varied. */}
+              <View style={styles.cardBody}>
+                {item.imageUrl ? (
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.thumb}
+                    resizeMode="cover"
+                    accessibilityIgnoresInvertColors
+                  />
+                ) : (
+                  <View style={[styles.thumb, styles.thumbEmpty]} />
                 )}
-              </View>
-              {item.description && (
-                <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
-              )}
-              <View style={styles.cardMeta}>
-                <Text style={styles.metaText}>{item.servings} servings</Text>
-                {totalMins > 0 && <Text style={styles.metaText}>{totalMins} min</Text>}
-                {item.cuisine && <Text style={styles.metaText}>{item.cuisine}</Text>}
+
+                <View style={styles.cardText}>
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                    {item.difficulty && (
+                      <Text style={styles.badge}>{item.difficulty}</Text>
+                    )}
+                  </View>
+                  {item.description && (
+                    <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                  )}
+                  <View style={styles.cardMeta}>
+                    <Text style={styles.metaText}>{item.servings} servings</Text>
+                    {totalMins > 0 && <Text style={styles.metaText}>{totalMins} min</Text>}
+                    {item.cuisine && <Text style={styles.metaText}>{item.cuisine}</Text>}
+                  </View>
+                </View>
               </View>
             </TouchableOpacity>
           );
@@ -218,6 +293,14 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: "#6b7280" },
   error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, marginBottom: 8 },
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "#e5e7eb" },
+  cardBody: { flexDirection: "row", gap: 12 },
+  // Fixed size so every row lines up whether or not it has a picture.
+  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
+  // The empty state is a plain tile rather than an icon or the word "no image":
+  // on a list this is scenery, and labelling the absence draws the eye to it.
+  thumbEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  cardText: { flex: 1, minWidth: 0 },
+  footerLoading: { paddingVertical: 20, alignItems: "center" },
   cardRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   cardTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: "#111827" },
   badge: { backgroundColor: "#fff7ed", color: "#f97316", fontSize: 11, fontWeight: "600", borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2, textTransform: "capitalize" },
