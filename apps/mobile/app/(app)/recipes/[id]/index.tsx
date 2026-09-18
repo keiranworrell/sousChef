@@ -11,10 +11,12 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
+import CollectionPicker from "../../../../components/CollectionPicker";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function RecipeDetailScreen(): React.JSX.Element {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -95,6 +97,12 @@ export default function RecipeDetailScreen(): React.JSX.Element {
         >
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => setPickerOpen(true)}
+        >
+          <Text style={styles.editButtonText}>Collections</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
@@ -150,6 +158,12 @@ export default function RecipeDetailScreen(): React.JSX.Element {
           ))}
         </View>
       )}
+
+      <CollectionPicker
+        visible={pickerOpen}
+        recipeId={id}
+        onClose={() => setPickerOpen(false)}
+      />
     </ScrollView>
   );
 }
