@@ -24,7 +24,11 @@
         {
           "image": "./assets/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#f97316"
+          "backgroundColor": "#f97316",
+          "dark": {
+            "image": "./assets/splash.png",
+            "backgroundColor": "#1f2937"
+          }
         }
       ],
       "expo-build-properties"
