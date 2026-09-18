@@ -15,12 +15,13 @@ type MenuEntry = {
 /**
  * Everything that isn't one of the four tabs.
  *
- * The web app's overflow menu has seven destinations; entries appear here as
- * the screens get built, rather than being listed and disabled. A menu of
- * things you cannot tap tells the user what the app cannot do every time they
- * open it, which is a strange thing to volunteer.
+ * Entries appear here as the screens get built, rather than being listed and
+ * disabled. A menu of things you cannot tap tells the user what the app cannot
+ * do every time they open it, which is a strange thing to volunteer.
  *
- * Still missing: cook history, rediscover, feed.
+ * Ordered roughly by how often you would reach for them, not by theme: the
+ * things with something new in them sit at the top, and the account lives at
+ * the bottom where it is easy to find precisely because it never moves.
  */
 const ENTRIES: MenuEntry[] = [
   {
@@ -30,10 +31,28 @@ const ENTRIES: MenuEntry[] = [
     href: "/(app)/notifications",
   },
   {
+    label: "Feed",
+    description: "What the cooks you follow are making",
+    icon: "newspaper-outline",
+    href: "/(app)/feed",
+  },
+  {
     label: "Collections",
     description: "Group recipes, and see ones shared with you",
     icon: "albums-outline",
     href: "/(app)/collections",
+  },
+  {
+    label: "Rediscover",
+    description: "Things worth cooking again, and ones you never tried",
+    icon: "sparkles-outline",
+    href: "/(app)/rediscover",
+  },
+  {
+    label: "Cook history",
+    description: "Everything you've cooked and rated",
+    icon: "time-outline",
+    href: "/(app)/cook-history",
   },
   {
     label: "Household",
@@ -46,6 +65,12 @@ const ENTRIES: MenuEntry[] = [
     description: "Long-running batches and their logs",
     icon: "flask-outline",
     href: "/(app)/fermentation",
+  },
+  {
+    label: "Profile",
+    description: "How you appear to other cooks",
+    icon: "person-outline",
+    href: "/(app)/profile",
   },
   {
     label: "Settings",

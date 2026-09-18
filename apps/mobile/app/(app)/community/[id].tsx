@@ -8,20 +8,26 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { RecipeWithDetails } from "@souschef/shared";
+import type { CommunityRecipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Avatar from "../../../components/Avatar";
+import SourceAttribution from "../../../components/SourceAttribution";
 
 export default function CommunityRecipeScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
+  // CommunityRecipe, not RecipeWithDetails — see the note on the browse
+  // screen. The creator and like count were being returned and thrown away.
+  const [recipe, setRecipe] = useState<CommunityRecipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forking, setForking] = useState(false);
+  const [liking, setLiking] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -50,6 +56,37 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
       Alert.alert("Fork failed", err instanceof Error ? err.message : "Something went wrong");
       setForking(false);
     }
+  }
+
+  /** Optimistic, and put back on failure. Same reasoning as the browse list. */
+  async function handleLike(): Promise<void> {
+    if (!recipe) return;
+    const wasLiked = recipe.isLiked;
+    setLiking(true);
+    applyLike(!wasLiked);
+    try {
+      const api = await getApiClient();
+      const res = wasLiked
+        ? await api.community.unlike(recipe.id)
+        : await api.community.like(recipe.id);
+      if ("error" in res) throw new Error(res.error.message);
+    } catch {
+      applyLike(wasLiked);
+    } finally {
+      setLiking(false);
+    }
+  }
+
+  function applyLike(liked: boolean): void {
+    setRecipe((prev) =>
+      prev
+        ? {
+            ...prev,
+            isLiked: liked,
+            likeCount: liked ? prev.likeCount + 1 : Math.max(0, prev.likeCount - 1),
+          }
+        : prev,
+    );
   }
 
   if (loading) {
@@ -91,6 +128,45 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
       {recipe.description ? (
         <Text style={styles.description}>{recipe.description}</Text>
       ) : null}
+
+      {/* Where it came from, if it was imported. Shown on someone else's
+          recipe for the same reason it is shown on your own: the original
+          site is owed the credit whoever is reading. */}
+      <SourceAttribution
+        sourceUrl={recipe.sourceUrl}
+        sourceModified={recipe.sourceModified}
+      />
+
+      {/* Who made it, and the like. Directly under the title, because "whose
+          recipe is this" is the first question on a screen full of strangers'
+          cooking. */}
+      <View style={styles.byline}>
+        <TouchableOpacity
+          style={styles.creatorRow}
+          onPress={() => router.push(`/(app)/users/${recipe.creatorId}`)}
+        >
+          <Avatar displayName={recipe.creatorName} avatarUrl={null} size={28} />
+          <Text style={styles.creatorName}>{recipe.creatorName}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.likeBtn}
+          onPress={() => { void handleLike(); }}
+          disabled={liking}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel={recipe.isLiked ? "Unlike this recipe" : "Like this recipe"}
+          accessibilityState={{ selected: recipe.isLiked }}
+        >
+          <Ionicons
+            name={recipe.isLiked ? "heart" : "heart-outline"}
+            size={19}
+            color={recipe.isLiked ? "#f43f5e" : "#9ca3af"}
+          />
+          <Text style={[styles.likeCount, recipe.isLiked && styles.likeCountOn]}>
+            {recipe.likeCount}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Meta */}
       <View style={styles.metaRow}>
@@ -177,7 +253,19 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   backLink: { fontSize: 14, color: "#f97316" },
   title: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 8 },
-  description: { fontSize: 14, color: "#6b7280", marginBottom: 16, lineHeight: 21 },
+  description: { fontSize: 14, color: "#6b7280", marginBottom: 10, lineHeight: 21 },
+  byline: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 16,
+  },
+  creatorRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
+  creatorName: { fontSize: 14, fontWeight: "600", color: "#f97316", flexShrink: 1 },
+  likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  likeCount: { fontSize: 14, color: "#9ca3af", fontVariant: ["tabular-nums"] },
+  likeCountOn: { color: "#f43f5e", fontWeight: "600" },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
   metaText: { fontSize: 13, color: "#9ca3af" },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 20 },

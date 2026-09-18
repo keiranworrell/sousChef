@@ -92,10 +92,15 @@ export default function AppLayout(): React.JSX.Element {
           the route registered so it can still be pushed to. */}
       <Tabs.Screen name="collections" options={{ href: null }} />
       <Tabs.Screen name="cook" options={{ href: null }} />
+      <Tabs.Screen name="cook-history" options={{ href: null }} />
+      <Tabs.Screen name="feed" options={{ href: null }} />
       <Tabs.Screen name="fermentation" options={{ href: null }} />
       <Tabs.Screen name="household" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="rediscover" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="users" options={{ href: null }} />
       {/* Hide the index redirect from the tab bar */}
       <Tabs.Screen
         name="index"
