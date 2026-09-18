@@ -44,6 +44,10 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
   const [results, setResults] = useState<PublicUserListItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [household, setHousehold] = useState<Household | null>(null);
+  // Distinct from `household === null`, which is also true while the request is
+  // in flight. Without it the "you have no household" hint flashes up on every
+  // open, including for people who do have one.
+  const [householdChecked, setHouseholdChecked] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +74,8 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
         if ("data" in res) setHousehold(res.data);
       } catch {
         // Not being in a household is normal, not an error worth showing.
+      } finally {
+        setHouseholdChecked(true);
       }
     }
     void loadHousehold();
@@ -199,6 +205,16 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
             ? <ActivityIndicator color="#f97316" size="small" />
             : <Text style={styles.link}>Share</Text>}
         </TouchableOpacity>
+      )}
+
+      {/* Until this release the phone could share *with* a household but had no
+          screen to make one, so there was nothing useful to say here. There is
+          now. */}
+      {householdChecked && !household && (
+        <Text style={styles.hint}>
+          Sharing with a whole household is one tap instead of several. You can
+          set one up under Menu → Household.
+        </Text>
       )}
 
       <TextInput
