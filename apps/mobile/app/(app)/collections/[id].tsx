@@ -17,8 +17,12 @@ import { getApiClient } from "../../../lib/api";
 import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
 import { permissionsFor } from "../../../lib/collection-access";
 import SharePanel from "../../../components/SharePanel";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function CollectionDetailScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -119,7 +123,7 @@ export default function CollectionDetailScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -164,7 +168,7 @@ export default function CollectionDetailScreen(): React.JSX.Element {
             onPress={() => { void handleRename(); }}
             disabled={saving || !name.trim()}
           >
-            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save</Text>}
+            {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryText}>Save</Text>}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { setName(collection.name); setRenaming(false); }}>
             <Text style={styles.link}>Cancel</Text>
@@ -239,7 +243,7 @@ export default function CollectionDetailScreen(): React.JSX.Element {
                   accessibilityLabel={`Remove ${item.title} from this collection`}
                 >
                   {removingId === item.recipeId
-                    ? <ActivityIndicator color="#9ca3af" size="small" />
+                    ? <ActivityIndicator color={palette.textFaint} size="small" />
                     : <Text style={styles.removeText}>✕</Text>}
                 </TouchableOpacity>
               )}
@@ -259,51 +263,51 @@ export default function CollectionDetailScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { alignItems: "center", justifyContent: "center", gap: 10 },
   content: { padding: 16, gap: 12 },
-  link: { fontSize: 14, color: "#f97316", fontWeight: "500" },
+  link: { fontSize: 14, color: t.accent, fontWeight: "500" },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  title: { flex: 1, fontSize: 22, fontWeight: "700", color: "#111827" },
-  meta: { fontSize: 12, color: "#9ca3af" },
+  title: { flex: 1, fontSize: 22, fontWeight: "700", color: t.text },
+  meta: { fontSize: 12, color: t.textFaint },
   renameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   grow: { flex: 1 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   items: { gap: 10, marginTop: 4 },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 10,
   },
   cardMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
-  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  thumbEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  thumbEmpty: { borderWidth: 1, borderColor: t.border },
   cardText: { flex: 1, minWidth: 0 },
-  cardTitle: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  cardMeta: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  cardTitle: { fontSize: 15, fontWeight: "600", color: t.text },
+  cardMeta: { marginTop: 2, fontSize: 12, color: t.textFaint },
   remove: { paddingHorizontal: 8, paddingVertical: 8 },
-  removeText: { fontSize: 15, color: "#d1d5db" },
+  removeText: { fontSize: 15, color: t.textFaint },
   empty: { paddingVertical: 36, alignItems: "center", gap: 6 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center" },
-  primarySmall: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center" },
+  primarySmall: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   deleteButton: { marginTop: 8, alignItems: "center", paddingVertical: 12 },
-  deleteText: { color: "#dc2626", fontWeight: "600", fontSize: 14 },
-  error: { color: "#dc2626", fontSize: 13 },
+  deleteText: { color: t.danger, fontWeight: "600", fontSize: 14 },
+  error: { color: t.danger, fontSize: 13 },
   disabled: { opacity: 0.5 },
 });

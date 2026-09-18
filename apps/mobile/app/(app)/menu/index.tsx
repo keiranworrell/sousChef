@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiClient } from "../../../lib/api";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 type MenuEntry = {
   label: string;
@@ -81,6 +83,8 @@ const ENTRIES: MenuEntry[] = [
 ];
 
 export default function MenuScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [unread, setUnread] = useState(0);
@@ -135,7 +139,7 @@ export default function MenuScreen(): React.JSX.Element {
               }
             >
               <View style={styles.iconWrap}>
-                <Ionicons name={entry.icon} size={20} color="#f97316" />
+                <Ionicons name={entry.icon} size={20} color={palette.accent} />
               </View>
               <View style={styles.rowText}>
                 <Text style={styles.rowLabel}>{entry.label}</Text>
@@ -149,7 +153,7 @@ export default function MenuScreen(): React.JSX.Element {
                   <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
                 </View>
               )}
-              <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+              <Ionicons name="chevron-forward" size={18} color={palette.borderStrong} />
             </TouchableOpacity>
           );
         })}
@@ -158,19 +162,19 @@ export default function MenuScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
@@ -178,21 +182,21 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     alignItems: "center",
     justifyContent: "center",
   },
   rowText: { flex: 1, minWidth: 0 },
-  rowLabel: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  rowDescription: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  rowLabel: { fontSize: 15, fontWeight: "600", color: t.text },
+  rowDescription: { marginTop: 2, fontSize: 12, color: t.textFaint },
   badge: {
     minWidth: 22,
     height: 22,
     borderRadius: 11,
     paddingHorizontal: 6,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  badgeText: { color: t.onAccent, fontSize: 11, fontWeight: "700" },
 });

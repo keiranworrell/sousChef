@@ -5,12 +5,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { Amplify } from "aws-amplify";
 import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { amplifyConfig } from "../lib/amplify-config";
+import ThemeProvider, { useTheme, useThemedStyles } from "../components/ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 /**
  * Amplify is configured at module scope, so a throw here would kill the bundle
@@ -61,7 +64,9 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
   }
 }
 
-export default function RootLayout(): React.JSX.Element {
+function RootLayoutInner(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const segments = useSegments();
   const [authChecked, setAuthChecked] = useState(false);
@@ -159,51 +164,71 @@ export default function RootLayout(): React.JSX.Element {
   // critical path of every single launch.
   if (startupError) {
     return (
-      <SafeAreaProvider>
-        <View style={styles.booting}>
-          <Text style={styles.bootingTitle}>sousChef couldn&apos;t start</Text>
-          <Text style={styles.bootingError}>{startupError}</Text>
-        </View>
-      </SafeAreaProvider>
+      <View style={styles.booting}>
+        <Text style={styles.bootingTitle}>sousChef couldn&apos;t start</Text>
+        <Text style={styles.bootingError}>{startupError}</Text>
+      </View>
     );
   }
 
   if (!authChecked) {
     return (
-      <SafeAreaProvider>
-        <View style={styles.booting}>
-          <ActivityIndicator color="#f97316" />
-          <Text style={styles.bootingText}>Getting things ready…</Text>
-        </View>
-      </SafeAreaProvider>
+      <View style={styles.booting}>
+        <ActivityIndicator color={palette.accent} />
+        <Text style={styles.bootingText}>Getting things ready…</Text>
+      </View>
     );
   }
 
-  // SafeAreaProvider has to wrap everything, and on Android 16 it stops being
-  // optional: edge-to-edge is enforced from API 36, so every screen draws under
-  // the status and navigation bars whether it expects to or not. React
-  // Navigation reads its insets from this provider — without it the tab bar
-  // sits under the gesture bar and headers under the clock.
+  return <Slot />;
+}
+
+/**
+ * The providers, above everything including the boot screens.
+ *
+ * SafeAreaProvider has to wrap everything, and on Android 16 it stops being
+ * optional: edge-to-edge is enforced from API 36, so every screen draws under
+ * the status and navigation bars whether it expects to or not. React
+ * Navigation reads its insets from this provider — without it the tab bar sits
+ * under the gesture bar and headers under the clock.
+ *
+ * ThemeProvider goes outside it because the boot and startup-error screens are
+ * screens too. They are the first thing anyone sees on a cold start, and a
+ * white flash before a dark app is exactly the moment dark mode is supposed to
+ * prevent.
+ *
+ * StatusBar follows the theme rather than being fixed: dark content on a dark
+ * status bar is invisible, and this is the bar every screen draws under.
+ */
+export default function RootLayout(): React.JSX.Element {
   return (
-    <SafeAreaProvider>
-      <Slot />
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <ThemedStatusBar />
+        <RootLayoutInner />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
 
-const styles = StyleSheet.create({
+function ThemedStatusBar(): React.JSX.Element {
+  const { theme } = useTheme();
+  return <StatusBar style={theme === "dark" ? "light" : "dark"} />;
+}
+
+const makeStyles = (t: Palette) => StyleSheet.create({
   booting: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#f9fafb",
+    backgroundColor: t.bg,
   },
-  bootingText: { fontSize: 13, color: "#9ca3af" },
-  bootingTitle: { fontSize: 16, fontWeight: "600", color: "#111827" },
+  bootingText: { fontSize: 13, color: t.textFaint },
+  bootingTitle: { fontSize: 16, fontWeight: "600", color: t.text },
   bootingError: {
     fontSize: 12,
-    color: "#dc2626",
+    color: t.danger,
     textAlign: "center",
     paddingHorizontal: 32,
   },

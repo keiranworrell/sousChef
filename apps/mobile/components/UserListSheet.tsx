@@ -14,6 +14,8 @@ import { getApiClient } from "../lib/api";
 import { canFollow, toggleFollowIn } from "../lib/follow-state";
 import Avatar from "./Avatar";
 import FollowButton from "./FollowButton";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 const PAGE = 20;
 
@@ -38,6 +40,8 @@ export default function UserListSheet({
   ownUserId,
   onClose,
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
 
   const [items, setItems] = useState<PublicUserListItem[]>([]);
@@ -122,7 +126,7 @@ export default function UserListSheet({
           {error && <Text style={styles.error}>{error}</Text>}
 
           {loading ? (
-            <ActivityIndicator color="#f97316" style={styles.loading} />
+            <ActivityIndicator color={palette.accent} style={styles.loading} />
           ) : (
             <FlatList
               data={items}
@@ -135,7 +139,7 @@ export default function UserListSheet({
                 void fetchPage(items.length);
               }}
               ListFooterComponent={
-                loadingMore ? <ActivityIndicator color="#f97316" style={styles.footer} /> : null
+                loadingMore ? <ActivityIndicator color={palette.accent} style={styles.footer} /> : null
               }
               ListEmptyComponent={
                 <Text style={styles.empty}>
@@ -173,10 +177,10 @@ export default function UserListSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingTop: 18,
@@ -190,16 +194,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 10,
   },
-  title: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  close: { fontSize: 14, fontWeight: "600", color: "#f97316" },
+  title: { fontSize: 17, fontWeight: "700", color: t.text },
+  close: { fontSize: 14, fontWeight: "600", color: t.accent },
   loading: { paddingVertical: 32 },
   footer: { paddingVertical: 16 },
   list: { paddingHorizontal: 20 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
   rowMain: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12 },
   rowText: { flex: 1, minWidth: 0 },
-  name: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  meta: { marginTop: 1, fontSize: 12, color: "#9ca3af" },
-  empty: { paddingVertical: 32, textAlign: "center", fontSize: 13, color: "#9ca3af" },
-  error: { paddingHorizontal: 20, paddingBottom: 6, fontSize: 13, color: "#dc2626" },
+  name: { fontSize: 15, fontWeight: "600", color: t.text },
+  meta: { marginTop: 1, fontSize: 12, color: t.textFaint },
+  empty: { paddingVertical: 32, textAlign: "center", fontSize: 13, color: t.textFaint },
+  error: { paddingHorizontal: 20, paddingBottom: 6, fontSize: 13, color: t.danger },
 });

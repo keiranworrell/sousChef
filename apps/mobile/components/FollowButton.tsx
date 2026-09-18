@@ -1,5 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 type Props = {
   isFollowing: boolean;
@@ -22,6 +24,8 @@ export default function FollowButton({
   onPress,
   size = "regular",
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const small = size === "small";
 
   return (
@@ -39,7 +43,7 @@ export default function FollowButton({
       accessibilityLabel={isFollowing ? "Following. Tap to unfollow." : "Follow"}
     >
       {busy ? (
-        <ActivityIndicator size="small" color={isFollowing ? "#6b7280" : "#fff"} />
+        <ActivityIndicator size="small" color={isFollowing ? palette.textMuted : palette.onAccent} />
       ) : (
         <Text
           style={[
@@ -54,7 +58,7 @@ export default function FollowButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   base: {
     borderRadius: 8,
     paddingHorizontal: 18,
@@ -64,11 +68,11 @@ const styles = StyleSheet.create({
     minWidth: 96,
   },
   small: { paddingHorizontal: 14, paddingVertical: 7, minWidth: 84 },
-  follow: { backgroundColor: "#f97316" },
-  following: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#d1d5db" },
+  follow: { backgroundColor: t.accent },
+  following: { backgroundColor: t.surface, borderWidth: 1, borderColor: t.borderStrong },
   text: { fontSize: 14, fontWeight: "600" },
   textSmall: { fontSize: 12, fontWeight: "600" },
-  textFollow: { color: "#fff" },
-  textFollowing: { color: "#6b7280" },
+  textFollow: { color: t.onAccent },
+  textFollowing: { color: t.textMuted },
   busy: { opacity: 0.7 },
 });

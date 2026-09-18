@@ -16,8 +16,12 @@ import type { ShoppingList } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function ShoppingScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [lists, setLists] = useState<ShoppingList[]>([]);
@@ -84,7 +88,7 @@ export default function ShoppingScreen(): React.JSX.Element {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (error) {
@@ -121,7 +125,7 @@ export default function ShoppingScreen(): React.JSX.Element {
                 disabled={createSaving}
               >
                 {createSaving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={palette.onAccent} />
                 ) : (
                   <Text style={styles.primaryButtonText}>Create list</Text>
                 )}
@@ -172,9 +176,9 @@ export default function ShoppingScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -183,52 +187,52 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 12,
   },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  addButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text },
+  addButton: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  addButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   createForm: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 16,
   },
-  fieldLabel: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
     marginBottom: 8,
   },
   formButtons: { flexDirection: "row", gap: 8 },
-  primaryButton: { flex: 1, backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  primaryButton: { flex: 1, backgroundColor: t.accent, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
   disabled: { opacity: 0.5 },
-  primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-  secondaryButton: { flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  secondaryButtonText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  primaryButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
+  secondaryButton: { flex: 1, borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  secondaryButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  emptyText: { fontSize: 15, color: "#9ca3af", textAlign: "center" },
+  emptyText: { fontSize: 15, color: t.textFaint, textAlign: "center" },
   listRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 8,
   },
-  listName: { flex: 1, fontSize: 15, fontWeight: "600", color: "#111827" },
-  deleteBtn: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  deleteBtnText: { fontSize: 12, fontWeight: "500", color: "#dc2626" },
-  errorText: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
+  listName: { flex: 1, fontSize: 15, fontWeight: "600", color: t.text },
+  deleteBtn: { borderWidth: 1, borderColor: t.dangerBorder, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  deleteBtnText: { fontSize: 12, fontWeight: "500", color: t.danger },
+  errorText: { color: t.danger, fontSize: 13, marginBottom: 8 },
 });

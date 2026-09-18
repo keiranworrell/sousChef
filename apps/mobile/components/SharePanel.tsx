@@ -15,6 +15,8 @@ import type {
   PublicUserListItem,
 } from "@souschef/shared";
 import { getApiClient } from "../lib/api";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 const ROLE_LABEL: Record<CollectionShareRole, string> = {
   viewer: "Can view",
@@ -35,6 +37,8 @@ type Props = {
  * one actually permits rather than naming it and leaving the reader to guess.
  */
 export default function SharePanel({ collectionId, isPublic = false }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [shares, setShares] = useState<CollectionShare[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +206,7 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
             <Text style={styles.targetMeta}>Your household</Text>
           </View>
           {busyId === household.id
-            ? <ActivityIndicator color="#f97316" size="small" />
+            ? <ActivityIndicator color={palette.accent} size="small" />
             : <Text style={styles.link}>Share</Text>}
         </TouchableOpacity>
       )}
@@ -220,13 +224,13 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
       <TextInput
         style={styles.input}
         placeholder="Search for someone by name"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={palette.textFaint}
         value={query}
         onChangeText={setQuery}
         autoCapitalize="none"
       />
 
-      {searching && <ActivityIndicator color="#f97316" size="small" style={styles.searching} />}
+      {searching && <ActivityIndicator color={palette.accent} size="small" style={styles.searching} />}
 
       {results
         .filter((person) => !alreadyShared.has(person.id))
@@ -241,13 +245,13 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
               <Text style={styles.targetName}>{person.displayName}</Text>
             </View>
             {busyId === person.id
-              ? <ActivityIndicator color="#f97316" size="small" />
+              ? <ActivityIndicator color={palette.accent} size="small" />
               : <Text style={styles.link}>Share</Text>}
           </TouchableOpacity>
         ))}
 
       {loading ? (
-        <ActivityIndicator color="#f97316" size="small" style={styles.searching} />
+        <ActivityIndicator color={palette.accent} size="small" style={styles.searching} />
       ) : shares.length === 0 ? (
         <Text style={styles.hint}>Not shared with anyone yet.</Text>
       ) : (
@@ -265,7 +269,7 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
               </View>
               <TouchableOpacity onPress={() => confirmRevoke(s)} disabled={busyId === s.id}>
                 {busyId === s.id
-                  ? <ActivityIndicator color="#9ca3af" size="small" />
+                  ? <ActivityIndicator color={palette.textFaint} size="small" />
                   : <Text style={styles.revoke}>Remove</Text>}
               </TouchableOpacity>
             </View>
@@ -276,20 +280,20 @@ export default function SharePanel({ collectionId, isPublic = false }: Props): R
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Palette) => StyleSheet.create({
   panel: {
     marginTop: 16,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 14,
     gap: 10,
   },
   heading: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -297,23 +301,23 @@ const styles = StyleSheet.create({
   role: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 9,
     alignItems: "center",
   },
-  roleActive: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  roleText: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  roleTextActive: { color: "#fff" },
-  hint: { fontSize: 12, color: "#9ca3af", lineHeight: 18 },
+  roleActive: { backgroundColor: t.accent, borderColor: t.accent },
+  roleText: { fontSize: 13, fontWeight: "600", color: t.textSecondary },
+  roleTextActive: { color: t.onAccent },
+  hint: { fontSize: 12, color: t.textFaint, lineHeight: 18 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     fontSize: 14,
-    color: "#111827",
+    color: t.text,
   },
   searching: { alignSelf: "flex-start" },
   targetRow: {
@@ -323,13 +327,13 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
+    borderTopColor: t.border,
   },
   targetText: { flex: 1, minWidth: 0 },
-  targetName: { fontSize: 14, fontWeight: "500", color: "#111827" },
-  targetMeta: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  targetName: { fontSize: 14, fontWeight: "500", color: t.text },
+  targetMeta: { marginTop: 2, fontSize: 12, color: t.textFaint },
   shares: { marginTop: 4 },
-  link: { fontSize: 13, fontWeight: "600", color: "#f97316" },
-  revoke: { fontSize: 13, fontWeight: "600", color: "#dc2626" },
-  error: { color: "#dc2626", fontSize: 13 },
+  link: { fontSize: 13, fontWeight: "600", color: t.accent },
+  revoke: { fontSize: 13, fontWeight: "600", color: t.danger },
+  error: { color: t.danger, fontSize: 13 },
 });

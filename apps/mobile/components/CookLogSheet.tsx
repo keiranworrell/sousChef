@@ -16,6 +16,8 @@ import { diffCookLogEdit, draftFromEntry, toDateInputValue } from "@souschef/sha
 import { getApiClient } from "../lib/api";
 import { labelForDay, recentDays } from "../lib/recent-days";
 import StarRating from "./StarRating";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 /** How far back the day strip goes. See the note in lib/recent-days.ts. */
 const STRIP_DAYS = 14;
@@ -43,6 +45,8 @@ export default function CookLogSheet({
   onClose,
   onSaved,
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [today] = useState(() => new Date());
   const [rating, setRating] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
@@ -164,7 +168,7 @@ export default function CookLogSheet({
               value={notes}
               onChangeText={setNotes}
               placeholder="What would you change next time?"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               multiline
               maxLength={2000}
             />
@@ -178,7 +182,7 @@ export default function CookLogSheet({
               onPress={() => { void handleSave(); }}
               disabled={saving}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save</Text>}
+              {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryText}>Save</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.secondary} onPress={onClose} disabled={saving}>
               <Text style={styles.secondaryText}>Cancel</Text>
@@ -208,61 +212,61 @@ function narrow(entry: CookLogEntry): CookLogEntry {
   };
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
     gap: 16,
   },
-  title: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  subtitle: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  title: { fontSize: 17, fontWeight: "700", color: t.text },
+  subtitle: { marginTop: 2, fontSize: 12, color: t.textFaint },
   field: { gap: 8 },
   label: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  hint: { fontSize: 12, color: "#9ca3af" },
+  hint: { fontSize: 12, color: t.textFaint },
   strip: { gap: 8, paddingRight: 8 },
   chip: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
-  chipActive: { backgroundColor: "#fff7ed", borderColor: "#f97316" },
-  chipText: { fontSize: 13, color: "#6b7280", fontWeight: "500" },
-  chipTextActive: { color: "#ea580c", fontWeight: "700" },
+  chipActive: { backgroundColor: t.accentSurface, borderColor: t.accent },
+  chipText: { fontSize: 13, color: t.textMuted, fontWeight: "500" },
+  chipTextActive: { color: t.accentStrong, fontWeight: "700" },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
+    color: t.text,
     minHeight: 80,
     textAlignVertical: "top",
   },
   actions: { flexDirection: "row", gap: 10 },
-  primary: { flex: 1, backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  primary: { flex: 1, backgroundColor: t.accent, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   secondary: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
-  secondaryText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  secondaryText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   disabled: { opacity: 0.5 },
-  error: { color: "#dc2626", fontSize: 13 },
+  error: { color: t.danger, fontSize: 13 },
 });

@@ -14,8 +14,12 @@ import type { OnboardingState, Recipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OnboardingChecklist from "../../../components/OnboardingChecklist";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function RecipeListScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -123,7 +127,7 @@ export default function RecipeListScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -149,7 +153,7 @@ export default function RecipeListScreen(): React.JSX.Element {
         keyExtractor={(item) => item.id}
         contentContainerStyle={recipes.length === 0 ? styles.emptyContainer : styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
         }
         onEndReached={handleEndReached}
         // Half a screen from the bottom. Firing at the very end means the
@@ -159,7 +163,7 @@ export default function RecipeListScreen(): React.JSX.Element {
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.footerLoading}>
-              <ActivityIndicator color="#f97316" />
+              <ActivityIndicator color={palette.accent} />
             </View>
           ) : null
         }
@@ -247,49 +251,49 @@ export default function RecipeListScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   headerActions: { flexDirection: "row", gap: 8 },
-  title: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 22, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 12 },
   emptyContainer: { flexGrow: 1 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   emptyChecklist: { padding: 16 },
   checklistWrap: { marginBottom: 4 },
-  emptyText: { fontSize: 14, color: "#6b7280" },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: t.textMuted },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, marginBottom: 8 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     // So the photo's corners follow the card's rather than squaring them off.
     overflow: "hidden",
   },
   // 16:9 rather than a fixed height, so it holds its shape on any screen width.
-  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: "#f3f4f6" },
+  cardImage: { width: "100%", aspectRatio: 16 / 9, backgroundColor: t.surfaceSunken },
   cardText: { padding: 14, gap: 4 },
   footerLoading: { paddingVertical: 20, alignItems: "center" },
   cardRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
-  cardTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: "#111827" },
-  badge: { backgroundColor: "#fff7ed", color: "#f97316", fontSize: 11, fontWeight: "600", borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2, textTransform: "capitalize" },
-  cardDesc: { marginTop: 4, fontSize: 13, color: "#6b7280" },
+  cardTitle: { flex: 1, fontSize: 15, fontWeight: "600", color: t.text },
+  badge: { backgroundColor: t.accentSurface, color: t.accent, fontSize: 11, fontWeight: "600", borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2, textTransform: "capitalize" },
+  cardDesc: { marginTop: 4, fontSize: 13, color: t.textMuted },
   cardMeta: { flexDirection: "row", gap: 12, marginTop: 8 },
-  metaText: { fontSize: 12, color: "#9ca3af" },
-  addButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  metaText: { fontSize: 12, color: t.textFaint },
+  addButton: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  addButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 13 },
   disabled: { opacity: 0.5 },
-  importButton: { backgroundColor: "#fff7ed", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: "#fed7aa" },
-  importButtonText: { color: "#f97316", fontWeight: "600", fontSize: 13 },
+  importButton: { backgroundColor: t.accentSurface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: t.accentBorder },
+  importButtonText: { color: t.accent, fontWeight: "600", fontSize: 13 },
   // modal
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
-  modalSheet: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
-  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827", marginBottom: 16 },
-  modalInput: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: "#111827", marginBottom: 8 },
-  importError: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
+  modalSheet: { backgroundColor: t.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: t.text, marginBottom: 16 },
+  modalInput: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: t.text, marginBottom: 8 },
+  importError: { color: t.danger, fontSize: 13, marginBottom: 8 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 8 },
-  cancelButton: { flex: 1, borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
-  cancelButtonText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  cancelButton: { flex: 1, borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  cancelButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
 });

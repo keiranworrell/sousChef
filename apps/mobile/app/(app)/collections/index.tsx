@@ -18,8 +18,12 @@ import type { CollectionSummary } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiClient } from "../../../lib/api";
 import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function CollectionsScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -86,7 +90,7 @@ export default function CollectionsScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -118,7 +122,7 @@ export default function CollectionsScreen(): React.JSX.Element {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); void load(); }}
-            tintColor="#f97316"
+            tintColor={palette.accent}
           />
         }
         ListEmptyComponent={
@@ -178,7 +182,7 @@ export default function CollectionsScreen(): React.JSX.Element {
             <TextInput
               style={styles.input}
               placeholder="Weeknight dinners"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               value={newName}
               onChangeText={setNewName}
               autoFocus
@@ -191,7 +195,7 @@ export default function CollectionsScreen(): React.JSX.Element {
                 onPress={() => { void handleCreate(); }}
                 disabled={saving || !newName.trim()}
               >
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Create</Text>}
+                {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryText}>Create</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondary} onPress={() => setCreating(false)} disabled={saving}>
                 <Text style={styles.secondaryText}>Cancel</Text>
@@ -204,8 +208,8 @@ export default function CollectionsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
@@ -215,15 +219,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
   },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
-  addButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
+  addButton: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  addButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 13 },
   list: { padding: 16, gap: 20 },
   section: { gap: 10 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -231,44 +235,44 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 10,
   },
-  cover: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  coverEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  cover: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  coverEmpty: { borderWidth: 1, borderColor: t.border },
   cardText: { flex: 1, minWidth: 0 },
-  cardTitle: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  cardMeta: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  cardTitle: { fontSize: 15, fontWeight: "600", color: t.text },
+  cardMeta: { marginTop: 2, fontSize: 12, color: t.textFaint },
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 19 },
-  error: { marginHorizontal: 16, color: "#dc2626", fontSize: 13 },
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
-  modalSheet: { backgroundColor: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, gap: 12 },
-  modalTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center", lineHeight: 19 },
+  error: { marginHorizontal: 16, color: t.danger, fontSize: 13 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
+  modalSheet: { backgroundColor: t.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, gap: 12 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: t.text },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
+    color: t.text,
   },
   modalActions: { flexDirection: "row", gap: 10 },
-  primary: { flex: 1, backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  primary: { flex: 1, backgroundColor: t.accent, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   secondary: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
-  secondaryText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  secondaryText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   disabled: { opacity: 0.5 },
 });

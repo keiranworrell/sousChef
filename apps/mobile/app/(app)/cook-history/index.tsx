@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CookHistoryEntry } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import StarRating from "../../../components/StarRating";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 const PAGE = 20;
 
@@ -32,6 +34,8 @@ function formatDate(iso: string): string {
  * question and the one that is interesting after a few months.
  */
 export default function CookHistoryScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -76,7 +80,7 @@ export default function CookHistoryScreen(): React.JSX.Element {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : (
         <FlatList
@@ -87,7 +91,7 @@ export default function CookHistoryScreen(): React.JSX.Element {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); void fetchPage(0); }}
-              tintColor="#f97316"
+              tintColor={palette.accent}
             />
           }
           onEndReachedThreshold={0.5}
@@ -97,7 +101,7 @@ export default function CookHistoryScreen(): React.JSX.Element {
             void fetchPage(entries.length);
           }}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator color="#f97316" style={styles.footer} /> : null
+            loadingMore ? <ActivityIndicator color={palette.accent} style={styles.footer} /> : null
           }
           ListEmptyComponent={
             !error ? (
@@ -142,33 +146,33 @@ export default function CookHistoryScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
-  subtitle: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
+  subtitle: { marginTop: 2, fontSize: 12, color: t.textFaint },
   list: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 10,
   },
-  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  thumbEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  thumbEmpty: { borderWidth: 1, borderColor: t.border },
   rowText: { flex: 1, minWidth: 0, gap: 3 },
-  recipeTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
+  recipeTitle: { fontSize: 14, fontWeight: "600", color: t.text },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  date: { fontSize: 12, color: "#9ca3af", fontVariant: ["tabular-nums"] },
-  notes: { fontSize: 12, color: "#6b7280", lineHeight: 17 },
+  date: { fontSize: 12, color: t.textFaint, fontVariant: ["tabular-nums"] },
+  notes: { fontSize: 12, color: t.textMuted, lineHeight: 17 },
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 19 },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center", lineHeight: 19 },
   footer: { paddingVertical: 16 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
 });

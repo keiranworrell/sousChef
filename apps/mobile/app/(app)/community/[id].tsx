@@ -15,8 +15,12 @@ import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "../../../components/Avatar";
 import SourceAttribution from "../../../components/SourceAttribution";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function CommunityRecipeScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -90,7 +94,7 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (error || !recipe) {
@@ -119,7 +123,7 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
           disabled={forking}
         >
           {forking
-            ? <ActivityIndicator color="#fff" size="small" />
+            ? <ActivityIndicator color={palette.onAccent} size="small" />
             : <Text style={styles.forkButtonText}>Fork recipe</Text>}
         </TouchableOpacity>
       </View>
@@ -160,7 +164,7 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
           <Ionicons
             name={recipe.isLiked ? "heart" : "heart-outline"}
             size={19}
-            color={recipe.isLiked ? "#f43f5e" : "#9ca3af"}
+            color={recipe.isLiked ? palette.like : palette.textFaint}
           />
           <Text style={[styles.likeCount, recipe.isLiked && styles.likeCountOn]}>
             {recipe.likeCount}
@@ -238,7 +242,7 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
           disabled={forking}
         >
           {forking
-            ? <ActivityIndicator color="#fff" size="small" />
+            ? <ActivityIndicator color={palette.onAccent} size="small" />
             : <Text style={styles.forkButtonText}>Fork recipe</Text>}
         </TouchableOpacity>
       </View>
@@ -246,14 +250,14 @@ export default function CommunityRecipeScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   content: { padding: 16, paddingBottom: 48 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  backLink: { fontSize: 14, color: "#f97316" },
-  title: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 8 },
-  description: { fontSize: 14, color: "#6b7280", marginBottom: 10, lineHeight: 21 },
+  backLink: { fontSize: 14, color: t.accent },
+  title: { fontSize: 26, fontWeight: "700", color: t.text, marginBottom: 8 },
+  description: { fontSize: 14, color: t.textMuted, marginBottom: 10, lineHeight: 21 },
   byline: {
     flexDirection: "row",
     alignItems: "center",
@@ -262,45 +266,45 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
-  creatorName: { fontSize: 14, fontWeight: "600", color: "#f97316", flexShrink: 1 },
+  creatorName: { fontSize: 14, fontWeight: "600", color: t.accent, flexShrink: 1 },
   likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  likeCount: { fontSize: 14, color: "#9ca3af", fontVariant: ["tabular-nums"] },
-  likeCountOn: { color: "#f43f5e", fontWeight: "600" },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
-  metaText: { fontSize: 13, color: "#9ca3af" },
+  likeCount: { fontSize: 14, color: t.textFaint, fontVariant: ["tabular-nums"] },
+  likeCountOn: { color: t.like, fontWeight: "600" },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: t.border },
+  metaText: { fontSize: 13, color: t.textFaint },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 20 },
   tag: {
     fontSize: 12,
-    color: "#6b7280",
-    backgroundColor: "#f3f4f6",
+    color: t.textMuted,
+    backgroundColor: t.surfaceSunken,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 99,
   },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: "600", color: "#111827", marginBottom: 10 },
+  sectionTitle: { fontSize: 17, fontWeight: "600", color: t.text, marginBottom: 10 },
   ingredientRow: { flexDirection: "row", gap: 6, marginBottom: 6, flexWrap: "wrap" },
-  ingredientQty: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  ingredientName: { fontSize: 14, color: "#374151" },
-  ingredientNotes: { fontSize: 13, color: "#9ca3af" },
+  ingredientQty: { fontSize: 14, fontWeight: "600", color: t.text },
+  ingredientName: { fontSize: 14, color: t.textSecondary },
+  ingredientNotes: { fontSize: 13, color: t.textFaint },
   stepRow: { flexDirection: "row", gap: 12, marginBottom: 14 },
   stepNumber: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "#ffedd5",
+    backgroundColor: t.accentSurface,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  stepNumberText: { fontSize: 11, fontWeight: "700", color: "#ea580c" },
+  stepNumberText: { fontSize: 11, fontWeight: "700", color: t.accentStrong },
   stepContent: { flex: 1 },
-  stepInstruction: { fontSize: 14, color: "#374151", lineHeight: 21 },
-  stepTimer: { fontSize: 12, color: "#9ca3af", marginTop: 3 },
-  bottomCta: { borderTopWidth: 1, borderTopColor: "#e5e7eb", paddingTop: 20, gap: 12, alignItems: "flex-start" },
-  bottomCtaText: { fontSize: 14, color: "#6b7280" },
-  forkButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
-  forkButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  stepInstruction: { fontSize: 14, color: t.textSecondary, lineHeight: 21 },
+  stepTimer: { fontSize: 12, color: t.textFaint, marginTop: 3 },
+  bottomCta: { borderTopWidth: 1, borderTopColor: t.border, paddingTop: 20, gap: 12, alignItems: "flex-start" },
+  bottomCtaText: { fontSize: 14, color: t.textMuted },
+  forkButton: { backgroundColor: t.accent, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18, alignItems: "center" },
+  forkButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   disabled: { opacity: 0.5 },
-  errorText: { color: "#dc2626", fontSize: 14 },
+  errorText: { color: t.danger, fontSize: 14 },
 });

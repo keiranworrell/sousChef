@@ -18,11 +18,15 @@ import CookLogSheet from "../../../../components/CookLogSheet";
 import SourceAttribution from "../../../../components/SourceAttribution";
 import SubstitutionSheet from "../../../../components/SubstitutionSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, useThemedStyles } from "../../../../components/ThemeProvider";
+import type { Palette } from "../../../../lib/theme";
 
 /** Matches the web page's cap. Beyond this the arithmetic stops meaning much. */
 const MAX_SERVINGS = 200;
 
 export default function RecipeDetailScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [pickerOpen, setPickerOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const { id, log } = useLocalSearchParams<{ id: string; log?: string }>();
@@ -137,7 +141,7 @@ export default function RecipeDetailScreen(): React.JSX.Element {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#f97316" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
@@ -354,6 +358,7 @@ export default function RecipeDetailScreen(): React.JSX.Element {
 }
 
 function MetaItem({ label, value }: { label: string; value: string }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.metaItem}>
       <Text style={styles.metaLabel}>{label}</Text>
@@ -362,26 +367,26 @@ function MetaItem({ label, value }: { label: string; value: string }): React.JSX
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   content: { padding: 16, paddingBottom: 40 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  error: { color: "#dc2626", fontSize: 13 },
-  title: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 6 },
-  description: { fontSize: 14, color: "#6b7280", marginBottom: 8, lineHeight: 20 },
+  error: { color: t.danger, fontSize: 13 },
+  title: { fontSize: 26, fontWeight: "700", color: t.text, marginBottom: 6 },
+  description: { fontSize: 14, color: t.textMuted, marginBottom: 8, lineHeight: 20 },
   actions: { flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap" },
-  cookButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  cookButtonText: { fontSize: 13, fontWeight: "600", color: "#fff" },
-  editButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  editButtonText: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  deleteButton: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  deleteButtonText: { fontSize: 13, fontWeight: "600", color: "#dc2626" },
-  meta: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
+  cookButton: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  cookButtonText: { fontSize: 13, fontWeight: "600", color: t.onAccent },
+  editButton: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  editButtonText: { fontSize: 13, fontWeight: "600", color: t.textSecondary },
+  deleteButton: { borderWidth: 1, borderColor: t.dangerBorder, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  deleteButtonText: { fontSize: 13, fontWeight: "600", color: t.danger },
+  meta: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: t.border },
   metaItem: { alignItems: "center" },
-  metaLabel: { fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5 },
-  metaValue: { fontSize: 13, fontWeight: "600", color: "#111827", marginTop: 2, textTransform: "capitalize" },
+  metaLabel: { fontSize: 10, color: t.textFaint, textTransform: "uppercase", letterSpacing: 0.5 },
+  metaValue: { fontSize: 13, fontWeight: "600", color: t.text, marginTop: 2, textTransform: "capitalize" },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: "600", color: "#111827", marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: "600", color: t.text, marginBottom: 12 },
   ingredientsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 },
   stepper: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
   stepperBtn: {
@@ -389,44 +394,44 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
   },
-  stepperBtnText: { fontSize: 17, lineHeight: 20, color: "#6b7280", fontWeight: "600" },
-  stepperDisabled: { color: "#e5e7eb" },
-  stepperValue: { fontSize: 13, fontWeight: "600", color: "#374151", fontVariant: ["tabular-nums"] },
-  stepperValueScaled: { color: "#ea580c" },
+  stepperBtnText: { fontSize: 17, lineHeight: 20, color: t.textMuted, fontWeight: "600" },
+  stepperDisabled: { color: t.border },
+  stepperValue: { fontSize: 13, fontWeight: "600", color: t.textSecondary, fontVariant: ["tabular-nums"] },
+  stepperValueScaled: { color: t.accentStrong },
   scaledBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
   },
-  scaledText: { flex: 1, fontSize: 12, color: "#9a3412", lineHeight: 17 },
-  resetText: { fontSize: 12, fontWeight: "700", color: "#ea580c" },
+  scaledText: { flex: 1, fontSize: 12, color: t.accentText, lineHeight: 17 },
+  resetText: { fontSize: 12, fontWeight: "700", color: t.accentStrong },
   ingredientRow: { flexDirection: "row", gap: 6, alignItems: "baseline", paddingVertical: 4 },
-  ingredientQty: { fontSize: 13, fontWeight: "600", color: "#111827", minWidth: 60 },
-  ingredientQtyScaled: { color: "#ea580c" },
-  ingredientName: { fontSize: 13, color: "#374151", flex: 1 },
+  ingredientQty: { fontSize: 13, fontWeight: "600", color: t.text, minWidth: 60 },
+  ingredientQtyScaled: { color: t.accentStrong },
+  ingredientName: { fontSize: 13, color: t.textSecondary, flex: 1 },
   ingredientNameWrap: { flex: 1 },
   ingredientSwappable: {
     textDecorationLine: "underline",
     textDecorationStyle: "dotted",
-    textDecorationColor: "#d1d5db",
+    textDecorationColor: t.border,
   },
-  subsHint: { fontSize: 12, color: "#9ca3af", marginBottom: 8, marginTop: -4 },
-  ingredientNotes: { fontSize: 12, color: "#9ca3af" },
+  subsHint: { fontSize: 12, color: t.textFaint, marginBottom: 8, marginTop: -4 },
+  ingredientNotes: { fontSize: 12, color: t.textFaint },
   stepRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
-  stepNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#fff7ed", alignItems: "center", justifyContent: "center", marginTop: 1 },
-  stepNumberText: { fontSize: 12, fontWeight: "700", color: "#f97316" },
+  stepNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: t.accentSurface, alignItems: "center", justifyContent: "center", marginTop: 1 },
+  stepNumberText: { fontSize: 12, fontWeight: "700", color: t.accent },
   stepContent: { flex: 1 },
-  stepInstruction: { fontSize: 13, color: "#374151", lineHeight: 20 },
-  stepTimer: { fontSize: 11, color: "#9ca3af", marginTop: 4 },
+  stepInstruction: { fontSize: 13, color: t.textSecondary, lineHeight: 20 },
+  stepTimer: { fontSize: 11, color: t.textFaint, marginTop: 4 },
 });

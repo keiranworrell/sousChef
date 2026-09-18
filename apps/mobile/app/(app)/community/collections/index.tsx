@@ -13,6 +13,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PublicCollectionSummary } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
+import { useTheme, useThemedStyles } from "../../../../components/ThemeProvider";
+import type { Palette } from "../../../../lib/theme";
 
 const PAGE = 20;
 
@@ -23,6 +25,8 @@ const PAGE = 20;
  * link would open one, but nothing in the app led anywhere near them.
  */
 export default function PublicCollectionsScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -67,7 +71,7 @@ export default function PublicCollectionsScreen(): React.JSX.Element {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : (
         <FlatList
@@ -78,7 +82,7 @@ export default function PublicCollectionsScreen(): React.JSX.Element {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); void fetchPage(0); }}
-              tintColor="#f97316"
+              tintColor={palette.accent}
             />
           }
           onEndReachedThreshold={0.5}
@@ -88,7 +92,7 @@ export default function PublicCollectionsScreen(): React.JSX.Element {
             void fetchPage(collections.length);
           }}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator color="#f97316" style={styles.footer} /> : null
+            loadingMore ? <ActivityIndicator color={palette.accent} style={styles.footer} /> : null
           }
           ListEmptyComponent={
             !error ? (
@@ -125,30 +129,30 @@ export default function PublicCollectionsScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 4 },
   back: { alignSelf: "flex-start", paddingVertical: 4 },
-  backText: { fontSize: 14, fontWeight: "600", color: "#f97316" },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  backText: { fontSize: 14, fontWeight: "600", color: t.accent },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 10 },
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 10,
   },
-  cover: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
-  coverEmpty: { borderWidth: 1, borderColor: "#f3f4f6" },
+  cover: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.surfaceSunken },
+  coverEmpty: { borderWidth: 1, borderColor: t.border },
   cardText: { flex: 1, minWidth: 0, gap: 3 },
-  cardTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  cardMeta: { fontSize: 12, color: "#9ca3af" },
-  empty: { paddingVertical: 40, textAlign: "center", fontSize: 13, color: "#9ca3af" },
+  cardTitle: { fontSize: 14, fontWeight: "600", color: t.text },
+  cardMeta: { fontSize: 12, color: t.textFaint },
+  empty: { paddingVertical: 40, textAlign: "center", fontSize: 13, color: t.textFaint },
   footer: { paddingVertical: 16 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
 });

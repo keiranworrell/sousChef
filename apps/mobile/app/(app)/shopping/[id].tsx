@@ -23,11 +23,15 @@ import {
   toggleMergeSelection,
   type MergeSelection,
 } from "../../../lib/merge-selection";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
 const emptyForm: AddForm = { name: "", quantity: "", unit: "", category: "" };
 
 export default function ShoppingListScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -218,7 +222,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (error || !list) {
@@ -292,7 +296,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
             onPress={() => { void handleAddItem(); }}
             disabled={addSaving}
           >
-            {addSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Add item</Text>}
+            {addSaving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryButtonText}>Add item</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -312,7 +316,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
             style={styles.moreBtn}
           >
             {(completing || deletingList) ? (
-              <ActivityIndicator size="small" color="#f97316" />
+              <ActivityIndicator size="small" color={palette.accent} />
             ) : (
               <Text style={styles.moreBtnText}>⋯</Text>
             )}
@@ -380,7 +384,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
                   disabled={!canMerge(selection) || merging}
                 >
                   {merging ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={palette.onAccent} size="small" />
                   ) : (
                     <Text style={styles.mergeBtnText}>
                       {selection.ids.length >= 2
@@ -468,6 +472,7 @@ function ItemRow({
   selected: boolean;
   onSelect: () => void;
 }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   /**
    * In merge mode the whole row selects, and the tick and delete controls are
    * gone. Leaving them live would put "remove this line" a thumb's width from
@@ -539,6 +544,7 @@ function Field({
   children: React.ReactNode;
   style?: object;
 }): React.JSX.Element {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[{ marginBottom: 14 }, style]}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -547,33 +553,33 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   formContent: { padding: 16, paddingBottom: 40 },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
   headerTop: { flexDirection: "row" as const, alignItems: "center", justifyContent: "space-between" as const, marginBottom: 8 },
-  backLink: { fontSize: 14, color: "#f97316" },
+  backLink: { fontSize: 14, color: t.accent },
   moreBtn: { padding: 4 },
-  moreBtnText: { fontSize: 22, color: "#6b7280", fontWeight: "700" as const },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 4 },
-  subtitle: { fontSize: 13, color: "#9ca3af" },
+  moreBtnText: { fontSize: 22, color: t.textMuted, fontWeight: "700" as const },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text, marginBottom: 4 },
+  subtitle: { fontSize: 13, color: t.textFaint },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
   empty: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: "#9ca3af" },
+  emptyText: { fontSize: 14, color: t.textFaint },
   addButton: {
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
     marginBottom: 12,
     marginTop: 8,
   },
-  addButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+  addButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 15 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginTop: 16,
@@ -582,10 +588,10 @@ const styles = StyleSheet.create({
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 6,
@@ -597,99 +603,99 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  checkboxChecked: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  checkmark: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  checkboxChecked: { backgroundColor: t.accent, borderColor: t.accent },
+  checkmark: { color: t.onAccent, fontSize: 13, fontWeight: "700" },
   itemInfo: { flex: 1 },
-  itemName: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  itemNameChecked: { textDecorationLine: "line-through", color: "#9ca3af" },
-  itemMeta: { fontSize: 12, color: "#9ca3af", marginTop: 1 },
+  itemName: { fontSize: 14, fontWeight: "600", color: t.text },
+  itemNameChecked: { textDecorationLine: "line-through", color: t.textFaint },
+  itemMeta: { fontSize: 12, color: t.textFaint, marginTop: 1 },
   removeBtn: { padding: 4 },
-  removeBtnText: { fontSize: 14, color: "#d1d5db" },
+  removeBtnText: { fontSize: 14, color: t.textFaint },
   row: { flexDirection: "row", gap: 8 },
-  fieldLabel: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
-  primaryButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
+  primaryButton: { backgroundColor: t.accent, borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
   disabled: { opacity: 0.5 },
   headerActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  mergeLink: { fontSize: 13, fontWeight: "600", color: "#6b7280", paddingHorizontal: 4, paddingVertical: 10 },
-  itemRowSelected: { borderColor: "#f97316", backgroundColor: "#fff7ed" },
+  mergeLink: { fontSize: 13, fontWeight: "600", color: t.textMuted, paddingHorizontal: 4, paddingVertical: 10 },
+  itemRowSelected: { borderColor: t.accent, backgroundColor: t.accentSurface },
   mergeBar: {
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderWidth: 1,
-    borderColor: "#fed7aa",
+    borderColor: t.accentBorder,
     borderRadius: 12,
     padding: 14,
     gap: 8,
     marginBottom: 12,
   },
-  mergeTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  mergeBlurb: { fontSize: 12, color: "#9a3412", lineHeight: 17 },
+  mergeTitle: { fontSize: 14, fontWeight: "700", color: t.text },
+  mergeBlurb: { fontSize: 12, color: t.accentText, lineHeight: 17 },
   mergeLabel: {
     marginTop: 4,
     fontSize: 11,
     fontWeight: "700",
-    color: "#9a3412",
+    color: t.accentText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   nameChip: {
     borderWidth: 1,
-    borderColor: "#fed7aa",
-    backgroundColor: "#fff",
+    borderColor: t.accentBorder,
+    backgroundColor: t.surface,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  nameChipOn: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  nameChipText: { fontSize: 12, color: "#9a3412" },
-  nameChipTextOn: { color: "#fff", fontWeight: "700" },
+  nameChipOn: { backgroundColor: t.accent, borderColor: t.accent },
+  nameChipText: { fontSize: 12, color: t.accentText },
+  nameChipTextOn: { color: t.onAccent, fontWeight: "700" },
   mergeInput: {
     borderWidth: 1,
-    borderColor: "#fed7aa",
-    backgroundColor: "#fff",
+    borderColor: t.accentBorder,
+    backgroundColor: t.surface,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     fontSize: 14,
-    color: "#111827",
+    color: t.text,
   },
   mergeActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   mergeBtn: {
     flex: 1,
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingVertical: 11,
     alignItems: "center",
     justifyContent: "center",
   },
-  mergeBtnText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  mergeBtnText: { color: t.onAccent, fontWeight: "600", fontSize: 13 },
   mergeCancel: {
     borderWidth: 1,
-    borderColor: "#fed7aa",
-    backgroundColor: "#fff",
+    borderColor: t.accentBorder,
+    backgroundColor: t.surface,
     borderRadius: 8,
     paddingVertical: 11,
     paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  mergeCancelText: { color: "#9a3412", fontWeight: "600", fontSize: 13 },
-  mergeHint: { fontSize: 12, color: "#9a3412" },
-  mergeErrorText: { fontSize: 12, color: "#dc2626" },
-  primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  errorText: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
+  mergeCancelText: { color: t.accentText, fontWeight: "600", fontSize: 13 },
+  mergeHint: { fontSize: 12, color: t.accentText },
+  mergeErrorText: { fontSize: 12, color: t.danger },
+  primaryButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 15 },
+  errorText: { color: t.danger, fontSize: 13, marginBottom: 8 },
 });

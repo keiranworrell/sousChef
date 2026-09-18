@@ -17,16 +17,20 @@ import type { FermentationBatch, FermentationStatus } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function StatusBadge({ status }: { status: FermentationStatus }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const config: Record<FermentationStatus, { label: string; bg: string; color: string }> = {
-    active: { label: "Active", bg: "#fff7ed", color: "#ea580c" },
-    complete: { label: "Complete", bg: "#f0fdf4", color: "#16a34a" },
-    abandoned: { label: "Abandoned", bg: "#f9fafb", color: "#9ca3af" },
+    active: { label: "Active", bg: palette.accentSurface, color: palette.accentStrong },
+    complete: { label: "Complete", bg: palette.successSurface, color: palette.success },
+    abandoned: { label: "Abandoned", bg: palette.surfaceSunken, color: palette.textFaint },
   };
   const { label, bg, color } = config[status];
   return (
@@ -35,6 +39,8 @@ function StatusBadge({ status }: { status: FermentationStatus }): React.JSX.Elem
 }
 
 export default function FermentationScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [batches, setBatches] = useState<FermentationBatch[]>([]);
@@ -160,7 +166,7 @@ export default function FermentationScreen(): React.JSX.Element {
             disabled={createSaving}
           >
             {createSaving
-              ? <ActivityIndicator color="#fff" />
+              ? <ActivityIndicator color={palette.onAccent} />
               : <Text style={styles.primaryButtonText}>Start batch</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -169,7 +175,7 @@ export default function FermentationScreen(): React.JSX.Element {
   }
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (error) {
@@ -231,9 +237,9 @@ export default function FermentationScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
   formContent: { padding: 16, paddingBottom: 40 },
   header: {
     flexDirection: "row",
@@ -243,19 +249,19 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 12,
   },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 20 },
-  addButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  addButtonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text, marginBottom: 20 },
+  addButton: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  addButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  emptyText: { fontSize: 15, color: "#9ca3af", textAlign: "center" },
+  emptyText: { fontSize: 15, color: t.textFaint, textAlign: "center" },
   batchRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 8,
@@ -263,26 +269,26 @@ const styles = StyleSheet.create({
   },
   batchInfo: { flex: 1, gap: 4 },
   batchTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  batchName: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  batchMeta: { fontSize: 12, color: "#9ca3af" },
+  batchName: { fontSize: 15, fontWeight: "600", color: t.text },
+  batchMeta: { fontSize: 12, color: t.textFaint },
   badge: { fontSize: 11, fontWeight: "600", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99 },
-  deleteBtn: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  deleteBtnText: { fontSize: 12, fontWeight: "500", color: "#dc2626" },
-  backLink: { fontSize: 14, color: "#f97316", marginBottom: 8 },
+  deleteBtn: { borderWidth: 1, borderColor: t.dangerBorder, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  deleteBtnText: { fontSize: 12, fontWeight: "500", color: t.danger },
+  backLink: { fontSize: 14, color: t.accent, marginBottom: 8 },
   field: { marginBottom: 14 },
-  fieldLabel: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
+  fieldLabel: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
-  primaryButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
+  primaryButton: { backgroundColor: t.accent, borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 8 },
   disabled: { opacity: 0.5 },
-  primaryButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  errorText: { color: "#dc2626", fontSize: 13, marginBottom: 8 },
+  primaryButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 15 },
+  errorText: { color: t.danger, fontSize: 13, marginBottom: 8 },
 });

@@ -11,8 +11,12 @@ import {
 } from "react-native";
 import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTheme, useThemedStyles } from "../../components/ThemeProvider";
+import type { Palette } from "../../lib/theme";
 
 export default function ConfirmScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState("");
@@ -73,7 +77,7 @@ export default function ConfirmScreen(): React.JSX.Element {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={palette.onAccent} />
           ) : (
             <Text style={styles.buttonText}>Verify email</Text>
           )}
@@ -87,18 +91,18 @@ export default function ConfirmScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb", justifyContent: "center", padding: 24 },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 24, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827", marginBottom: 8 },
-  subtitle: { fontSize: 13, color: "#6b7280", marginBottom: 20 },
-  email: { fontWeight: "600", color: "#111827" },
-  label: { fontSize: 13, fontWeight: "500", color: "#374151", marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginBottom: 14, color: "#111827" },
-  error: { color: "#dc2626", fontSize: 13, marginBottom: 12 },
-  success: { color: "#16a34a", fontSize: 13, marginBottom: 12 },
-  button: { backgroundColor: "#f97316", borderRadius: 6, paddingVertical: 12, alignItems: "center", marginBottom: 16 },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg, justifyContent: "center", padding: 24 },
+  card: { backgroundColor: t.surface, borderRadius: 12, padding: 24, shadowColor: t.shadow, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  title: { fontSize: 24, fontWeight: "700", color: t.text, marginBottom: 8 },
+  subtitle: { fontSize: 13, color: t.textMuted, marginBottom: 20 },
+  email: { fontWeight: "600", color: t.text },
+  label: { fontSize: 13, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
+  input: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginBottom: 14, color: t.text },
+  error: { color: t.danger, fontSize: 13, marginBottom: 12 },
+  success: { color: t.success, fontSize: 13, marginBottom: 12 },
+  button: { backgroundColor: t.accent, borderRadius: 6, paddingVertical: 12, alignItems: "center", marginBottom: 16 },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-  link: { textAlign: "center", color: "#f97316", fontSize: 13 },
+  buttonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
+  link: { textAlign: "center", color: t.accent, fontSize: 13 },
 });

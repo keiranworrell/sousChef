@@ -11,6 +11,8 @@ import {
 import { useRouter } from "expo-router";
 import { getApiClient } from "../lib/api";
 import { aiCreditStatus, cookPlanNotice, type AiCreditStatus } from "../lib/ai-credits";
+import { useTheme, useThemedStyles } from "./ThemeProvider";
+import type { Palette } from "../lib/theme";
 
 /** The server plans at most this many at once. */
 const MAX_RECIPES = 5;
@@ -47,6 +49,8 @@ export default function MultiCookLauncher({
   candidates,
   onClose,
 }: Props): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -177,7 +181,7 @@ export default function MultiCookLauncher({
                 disabled={!canPlan}
               >
                 {planning ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={palette.onAccent} />
                 ) : (
                   <Text style={styles.primaryText}>
                     {!enoughPicked ? "Pick at least two" : `Plan ${selected.size} recipes`}
@@ -197,19 +201,19 @@ export default function MultiCookLauncher({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
     gap: 12,
     maxHeight: "80%",
   },
-  title: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  subtitle: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
-  blurb: { fontSize: 13, color: "#6b7280", lineHeight: 19 },
+  title: { fontSize: 17, fontWeight: "700", color: t.text },
+  subtitle: { marginTop: 2, fontSize: 12, color: t.textFaint },
+  blurb: { fontSize: 13, color: t.textMuted, lineHeight: 19 },
   list: { maxHeight: 280 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11 },
   rowBlocked: { opacity: 0.4 },
@@ -218,27 +222,27 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  boxChecked: { backgroundColor: "#f97316", borderColor: "#f97316" },
-  tick: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  rowTitle: { flex: 1, minWidth: 0, fontSize: 14, color: "#111827" },
-  hint: { fontSize: 12, color: "#9ca3af", lineHeight: 17 },
-  hintBlocking: { color: "#9a3412" },
-  error: { fontSize: 13, color: "#dc2626" },
+  boxChecked: { backgroundColor: t.accent, borderColor: t.accent },
+  tick: { color: t.onAccent, fontSize: 13, fontWeight: "700" },
+  rowTitle: { flex: 1, minWidth: 0, fontSize: 14, color: t.text },
+  hint: { fontSize: 12, color: t.textFaint, lineHeight: 17 },
+  hintBlocking: { color: t.accentText },
+  error: { fontSize: 13, color: t.danger },
   actions: { flexDirection: "row", gap: 10 },
-  primary: { flex: 1, backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  primary: { flex: 1, backgroundColor: t.accent, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   secondary: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
-  secondaryText: { color: "#374151", fontWeight: "600", fontSize: 14 },
+  secondaryText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   disabled: { opacity: 0.5 },
 });

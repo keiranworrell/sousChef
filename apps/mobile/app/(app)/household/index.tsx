@@ -15,8 +15,12 @@ import type { Household, PublicUserListItem } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { isOwner as isOwnerOf, leaveConsequence } from "../../../lib/household-actions";
 import Avatar from "../../../components/Avatar";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 export default function HouseholdScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
 
   // undefined means "not loaded yet"; null means "loaded, and they aren't in
@@ -54,7 +58,7 @@ export default function HouseholdScreen(): React.JSX.Element {
 
       {household === undefined && !error ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : household === null ? (
         <CreateHousehold onCreated={setHousehold} />
@@ -77,6 +81,8 @@ function CreateHousehold({
 }: {
   onCreated: (household: Household) => void;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +117,7 @@ function CreateHousehold({
         value={name}
         onChangeText={setName}
         placeholder="e.g. Flat 3"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={palette.textFaint}
         maxLength={60}
       />
       {error && <Text style={styles.error}>{error}</Text>}
@@ -121,7 +127,7 @@ function CreateHousehold({
         onPress={() => { void handleCreate(); }}
         disabled={saving || !name.trim()}
       >
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Create household</Text>}
+        {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={styles.primaryText}>Create household</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -140,6 +146,8 @@ function HouseholdView({
   onChanged: (household: Household) => void;
   onGone: () => void;
 }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const owner = isOwnerOf(household, currentUserId);
 
   const [renaming, setRenaming] = useState(false);
@@ -248,7 +256,7 @@ function HouseholdView({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Rename household"
             >
-              <Ionicons name="pencil-outline" size={16} color="#9ca3af" />
+              <Ionicons name="pencil-outline" size={16} color={palette.textFaint} />
             </TouchableOpacity>
           )}
         </View>
@@ -302,6 +310,8 @@ function HouseholdView({
 // ── Invite ────────────────────────────────────────────────────────────────────
 
 function InviteSearch({ household }: { household: Household }): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const memberIds = new Set(household.members.map((m) => m.userId));
 
   const [query, setQuery] = useState("");
@@ -357,7 +367,7 @@ function InviteSearch({ household }: { household: Household }): React.JSX.Elemen
         value={query}
         onChangeText={setQuery}
         placeholder="Search by name…"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={palette.textFaint}
         autoCapitalize="none"
         autoCorrect={false}
       />
@@ -406,20 +416,20 @@ function InviteSearch({ household }: { household: Household }): React.JSX.Elemen
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   body: { padding: 16, paddingBottom: 48, gap: 10 },
 
   createBody: { padding: 16, paddingTop: 24, gap: 12 },
-  createTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  createBlurb: { fontSize: 13, color: "#6b7280", lineHeight: 20, marginBottom: 4 },
+  createTitle: { fontSize: 18, fontWeight: "700", color: t.text },
+  createBlurb: { fontSize: 13, color: t.textMuted, lineHeight: 20, marginBottom: 4 },
 
   nameRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  householdName: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  memberCount: { fontSize: 13, color: "#9ca3af", marginBottom: 8 },
+  householdName: { fontSize: 20, fontWeight: "700", color: t.text },
+  memberCount: { fontSize: 13, color: t.textFaint, marginBottom: 8 },
   renameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   renameInput: { flex: 1 },
 
@@ -427,64 +437,64 @@ const styles = StyleSheet.create({
     marginTop: 14,
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
-  card: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#e5e7eb", borderRadius: 12 },
+  card: { backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, borderRadius: 12 },
   memberRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
-  divided: { borderTopWidth: 1, borderTopColor: "#f3f4f6" },
-  memberName: { flex: 1, minWidth: 0, fontSize: 14, color: "#111827", fontWeight: "500" },
+  divided: { borderTopWidth: 1, borderTopColor: t.border },
+  memberName: { flex: 1, minWidth: 0, fontSize: 14, color: t.text, fontWeight: "500" },
   ownerBadge: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: t.textFaint,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  rowNote: { fontSize: 12, color: "#9ca3af" },
-  rowSent: { fontSize: 12, fontWeight: "600", color: "#f97316" },
-  searchHint: { fontSize: 12, color: "#9ca3af", paddingVertical: 6 },
-  inviteFootnote: { fontSize: 12, color: "#9ca3af", marginTop: 8, lineHeight: 17 },
+  rowNote: { fontSize: 12, color: t.textFaint },
+  rowSent: { fontSize: 12, fontWeight: "600", color: t.accent },
+  searchHint: { fontSize: 12, color: t.textFaint, paddingVertical: 6 },
+  inviteFootnote: { fontSize: 12, color: t.textFaint, marginTop: 8, lineHeight: 17 },
 
   manageRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: 4 },
 
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
-  primary: { backgroundColor: "#f97316", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  primaryText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  primary: { backgroundColor: t.accent, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  primaryText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
   secondary: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
   },
-  secondaryText: { color: "#374151", fontWeight: "600", fontSize: 13 },
+  secondaryText: { color: t.textSecondary, fontWeight: "600", fontSize: 13 },
   danger: {
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: t.dangerBorder,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
   },
-  dangerText: { color: "#dc2626", fontWeight: "600", fontSize: 13 },
-  small: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  smallText: { color: "#fff", fontWeight: "600", fontSize: 12 },
-  smallGhost: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  smallGhostText: { color: "#374151", fontWeight: "600", fontSize: 12 },
+  dangerText: { color: t.danger, fontWeight: "600", fontSize: 13 },
+  small: { backgroundColor: t.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  smallText: { color: t.onAccent, fontWeight: "600", fontSize: 12 },
+  smallGhost: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  smallGhostText: { color: t.textSecondary, fontWeight: "600", fontSize: 12 },
   disabled: { opacity: 0.5 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingVertical: 4 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingVertical: 4 },
 });

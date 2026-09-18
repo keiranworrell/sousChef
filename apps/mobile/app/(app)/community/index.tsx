@@ -14,6 +14,8 @@ import { useRouter } from "expo-router";
 import type { CommunityRecipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -22,6 +24,8 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 };
 
 export default function CommunityScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -184,7 +188,7 @@ export default function CommunityScreen(): React.JSX.Element {
           placeholder="Search recipes…"
           value={q}
           onChangeText={setQ}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={palette.textFaint}
         />
       </View>
       <View style={styles.filterRow}>
@@ -193,20 +197,20 @@ export default function CommunityScreen(): React.JSX.Element {
           placeholder="Cuisine"
           value={cuisine}
           onChangeText={setCuisine}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={palette.textFaint}
         />
         <TextInput
           style={[styles.input, styles.filterInput]}
           placeholder="Tag"
           value={tag}
           onChangeText={setTag}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={palette.textFaint}
         />
       </View>
 
       {loading && (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       )}
       {error && (
@@ -263,7 +267,7 @@ export default function CommunityScreen(): React.JSX.Element {
                     disabled={forkingId === item.id}
                   >
                     {forkingId === item.id
-                      ? <ActivityIndicator color="#f97316" size="small" />
+                      ? <ActivityIndicator color={palette.accent} size="small" />
                       : <Text style={styles.forkButtonText}>Fork</Text>}
                   </TouchableOpacity>
                 </View>
@@ -292,7 +296,7 @@ export default function CommunityScreen(): React.JSX.Element {
                     <Ionicons
                       name={item.isLiked ? "heart" : "heart-outline"}
                       size={17}
-                      color={item.isLiked ? "#f43f5e" : "#9ca3af"}
+                      color={item.isLiked ? palette.like : palette.textFaint}
                     />
                     <Text style={[styles.likeCount, item.isLiked && styles.likeCountOn]}>
                       {item.likeCount}
@@ -309,7 +313,7 @@ export default function CommunityScreen(): React.JSX.Element {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerStatus}>
-                <ActivityIndicator color="#f97316" size="small" />
+                <ActivityIndicator color={palette.accent} size="small" />
               </View>
             ) : !hasMore && recipes.length > 0 ? (
               <View style={styles.footerStatus}>
@@ -323,8 +327,8 @@ export default function CommunityScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   header: {
     flexDirection: "row",
@@ -334,28 +338,28 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
   },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  collectionsLink: { fontSize: 13, fontWeight: "600", color: "#f97316" },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text },
+  collectionsLink: { fontSize: 13, fontWeight: "600", color: t.accent },
   searchRow: { paddingHorizontal: 16, paddingBottom: 6 },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   searchInput: { width: "100%" },
   filterInput: { flex: 1 },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     padding: 14,
     marginBottom: 10,
   },
@@ -367,22 +371,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
+    borderTopColor: t.border,
   },
-  creator: { fontSize: 12, fontWeight: "600", color: "#f97316" },
+  creator: { fontSize: 12, fontWeight: "600", color: t.accent },
   likeBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
-  likeCount: { fontSize: 12, color: "#9ca3af", fontVariant: ["tabular-nums"] },
-  likeCountOn: { color: "#f43f5e", fontWeight: "600" },
+  likeCount: { fontSize: 12, color: t.textFaint, fontVariant: ["tabular-nums"] },
+  likeCountOn: { color: t.like, fontWeight: "600" },
   cardInfo: { flex: 1, gap: 4 },
-  cardTitle: { fontSize: 15, fontWeight: "600", color: "#111827", lineHeight: 20 },
-  cardDesc: { fontSize: 13, color: "#6b7280", lineHeight: 18 },
+  cardTitle: { fontSize: 15, fontWeight: "600", color: t.text, lineHeight: 20 },
+  cardDesc: { fontSize: 13, color: t.textMuted, lineHeight: 18 },
   cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
-  metaText: { fontSize: 12, color: "#9ca3af" },
+  metaText: { fontSize: 12, color: t.textFaint },
   difficultyBadge: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#ea580c",
-    backgroundColor: "#fff7ed",
+    color: t.accentStrong,
+    backgroundColor: t.accentSurface,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 99,
@@ -390,25 +394,25 @@ const styles = StyleSheet.create({
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 4 },
   tag: {
     fontSize: 11,
-    color: "#6b7280",
-    backgroundColor: "#f3f4f6",
+    color: t.textMuted,
+    backgroundColor: t.surfaceSunken,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 99,
   },
   forkButton: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     minWidth: 52,
     alignItems: "center",
   },
-  forkButtonText: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  forkButtonText: { fontSize: 13, fontWeight: "600", color: t.textSecondary },
   disabled: { opacity: 0.4 },
-  emptyText: { fontSize: 15, color: "#9ca3af", textAlign: "center" },
-  errorText: { color: "#dc2626", fontSize: 13 },
+  emptyText: { fontSize: 15, color: t.textFaint, textAlign: "center" },
+  errorText: { color: t.danger, fontSize: 13 },
   footerStatus: { paddingVertical: 20, alignItems: "center" },
-  footerStatusText: { fontSize: 13, color: "#9ca3af" },
+  footerStatusText: { fontSize: 13, color: t.textFaint },
 });

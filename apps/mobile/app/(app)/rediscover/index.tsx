@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RediscoverMode, RediscoverRecipe } from "@souschef/shared";
 import { timeAgo } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 const MODES: { id: RediscoverMode; label: string; blurb: string }[] = [
   {
@@ -37,6 +39,8 @@ const MODES: { id: RediscoverMode; label: string; blurb: string }[] = [
  * which is worth knowing because it means it costs nothing and always works.
  */
 export default function RediscoverScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -96,7 +100,7 @@ export default function RediscoverScreen(): React.JSX.Element {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       ) : (
         <FlatList
@@ -107,7 +111,7 @@ export default function RediscoverScreen(): React.JSX.Element {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); void load(mode); }}
-              tintColor="#f97316"
+              tintColor={palette.accent}
             />
           }
           ListEmptyComponent={
@@ -159,41 +163,41 @@ export default function RediscoverScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
+  title: { fontSize: 24, fontWeight: "700", color: t.text },
   tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 8 },
   tab: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
+    borderColor: t.border,
+    backgroundColor: t.surface,
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  tabActive: { backgroundColor: "#fff7ed", borderColor: "#f97316" },
-  tabText: { fontSize: 13, fontWeight: "600", color: "#6b7280" },
-  tabTextActive: { color: "#ea580c" },
-  blurb: { paddingHorizontal: 16, paddingBottom: 8, fontSize: 12, color: "#9ca3af", lineHeight: 17 },
+  tabActive: { backgroundColor: t.accentSurface, borderColor: t.accent },
+  tabText: { fontSize: 13, fontWeight: "600", color: t.textMuted },
+  tabTextActive: { color: t.accentStrong },
+  blurb: { paddingHorizontal: 16, paddingBottom: 8, fontSize: 12, color: t.textFaint, lineHeight: 17 },
   list: { padding: 16, paddingTop: 4, gap: 10 },
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     borderRadius: 12,
     padding: 10,
   },
-  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: "#f3f4f6" },
+  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: t.surfaceSunken },
   cardText: { flex: 1, minWidth: 0, gap: 3 },
-  cardTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  cardMeta: { fontSize: 12, color: "#9ca3af" },
+  cardTitle: { fontSize: 14, fontWeight: "600", color: t.text },
+  cardMeta: { fontSize: 12, color: t.textFaint },
   empty: { paddingVertical: 48, paddingHorizontal: 24, alignItems: "center", gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#374151", textAlign: "center" },
-  emptyHint: { fontSize: 13, color: "#9ca3af", textAlign: "center", lineHeight: 19 },
-  error: { color: "#dc2626", fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
+  emptyText: { fontSize: 15, fontWeight: "600", color: t.textSecondary, textAlign: "center" },
+  emptyHint: { fontSize: 13, color: t.textFaint, textAlign: "center", lineHeight: 19 },
+  error: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
 });

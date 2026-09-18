@@ -22,6 +22,8 @@ import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MultiCookLauncher, { type CookCandidate } from "../../../components/MultiCookLauncher";
+import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import type { Palette } from "../../../lib/theme";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -69,6 +71,8 @@ function formatWeekLabel(monday: Date): string {
 type PickerTarget = { dayOfWeek: DayOfWeek };
 
 export default function MealPlanScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
@@ -252,7 +256,7 @@ export default function MealPlanScreen(): React.JSX.Element {
             disabled={generating}
           >
             {generating ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={palette.onAccent} />
             ) : (
               <Text style={styles.generateBtnText}>Generate</Text>
             )}
@@ -390,7 +394,7 @@ export default function MealPlanScreen(): React.JSX.Element {
 
       {loading && (
         <View style={styles.center}>
-          <ActivityIndicator color="#f97316" />
+          <ActivityIndicator color={palette.accent} />
         </View>
       )}
       {error && (
@@ -476,8 +480,8 @@ export default function MealPlanScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   weekNav: {
     flexDirection: "row",
@@ -485,24 +489,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: t.border,
   },
   navBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  navBtnText: { fontSize: 13, fontWeight: "600", color: "#f97316" },
+  navBtnText: { fontSize: 13, fontWeight: "600", color: t.accent },
   weekLabelWrap: { alignItems: "center" },
-  weekLabel: { fontSize: 13, fontWeight: "600", color: "#111827" },
-  todayLink: { fontSize: 11, color: "#f97316", marginTop: 2 },
+  weekLabel: { fontSize: 13, fontWeight: "600", color: t.text },
+  todayLink: { fontSize: 11, color: t.accent, marginTop: 2 },
   grid: { padding: 12, gap: 12 },
   dayActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   cookTogetherRow: { paddingHorizontal: 12, paddingVertical: 10 },
-  cookTogetherText: { fontSize: 13, fontWeight: "600", color: "#f97316" },
+  cookTogetherText: { fontSize: 13, fontWeight: "600", color: t.accent },
   daySection: {
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: t.border,
     overflow: "hidden",
   },
   dayHeader: {
@@ -511,20 +515,20 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#f9fafb",
+    backgroundColor: t.bg,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: t.border,
   },
-  dayLabel: { fontSize: 12, fontWeight: "700", color: "#9ca3af", textTransform: "uppercase" },
-  dayDate: { fontSize: 15, fontWeight: "700", color: "#374151" },
-  dayLabelToday: { color: "#f97316" },
+  dayLabel: { fontSize: 12, fontWeight: "700", color: t.textFaint, textTransform: "uppercase" },
+  dayDate: { fontSize: 15, fontWeight: "700", color: t.textSecondary },
+  dayLabelToday: { color: t.accent },
   mealSlot: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: t.border,
     gap: 10,
     minHeight: 44,
   },
@@ -532,55 +536,55 @@ const styles = StyleSheet.create({
     width: 70,
     fontSize: 11,
     fontWeight: "600",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "capitalize",
   },
   entryCard: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff7ed",
+    backgroundColor: t.accentSurface,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 6,
   },
-  entryTitle: { flex: 1, fontSize: 13, fontWeight: "500", color: "#111827" },
-  entryServings: { fontSize: 12, fontWeight: "400", color: "#f97316" },
+  entryTitle: { flex: 1, fontSize: 13, fontWeight: "500", color: t.text },
+  entryServings: { fontSize: 12, fontWeight: "400", color: t.accent },
   removeBtn: { padding: 2 },
-  removeBtnText: { fontSize: 13, color: "#d1d5db" },
+  removeBtnText: { fontSize: 13, color: t.textFaint },
   addRow: { paddingHorizontal: 12, paddingVertical: 10 },
-  addSlotText: { fontSize: 13, color: "#9ca3af" },
+  addSlotText: { fontSize: 13, color: t.textFaint },
   chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
   },
   chip: {
     borderRadius: 999,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: t.surfaceSunken,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  chipActive: { backgroundColor: "#f97316" },
-  chipText: { fontSize: 12, color: "#4b5563", textTransform: "capitalize" },
-  chipTextActive: { color: "#fff" },
+  chipActive: { backgroundColor: t.accent },
+  chipText: { fontSize: 12, color: t.textMuted, textTransform: "capitalize" },
+  chipTextActive: { color: t.onAccent },
   servingsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: t.border,
   },
-  servingsLabel: { fontSize: 13, color: "#4b5563" },
+  servingsLabel: { fontSize: 13, color: t.textMuted },
   servingsInput: { width: 96 },
-  servingsHint: { flex: 1, fontSize: 11, color: "#9ca3af" },
+  servingsHint: { flex: 1, fontSize: 11, color: t.textFaint },
   // Picker
   pickerHeader: {
     flexDirection: "row",
@@ -589,56 +593,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: t.border,
   },
-  pickerTitle: { fontSize: 17, fontWeight: "700", color: "#111827" },
-  pickerSubtitle: { fontSize: 12, color: "#9ca3af", marginTop: 2, textTransform: "capitalize" },
-  cancelText: { fontSize: 14, fontWeight: "600", color: "#f97316" },
-  searchRow: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: "#fff" },
+  pickerTitle: { fontSize: 17, fontWeight: "700", color: t.text },
+  pickerSubtitle: { fontSize: 12, color: t.textFaint, marginTop: 2, textTransform: "capitalize" },
+  cancelText: { fontSize: 14, fontWeight: "600", color: t.accent },
+  searchRow: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: t.surface },
   searchInput: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#f9fafb",
+    color: t.text,
+    backgroundColor: t.bg,
   },
   pickerList: { paddingBottom: 40 },
   recipeRow: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: t.border,
   },
-  recipeTitle: { fontSize: 15, fontWeight: "600", color: "#111827" },
-  recipeMeta: { fontSize: 12, color: "#9ca3af", marginTop: 2 },
-  emptyText: { fontSize: 14, color: "#9ca3af" },
-  errorText: { fontSize: 14, color: "#dc2626" },
+  recipeTitle: { fontSize: 15, fontWeight: "600", color: t.text },
+  recipeMeta: { fontSize: 12, color: t.textFaint, marginTop: 2 },
+  emptyText: { fontSize: 14, color: t.textFaint },
+  errorText: { fontSize: 14, color: t.danger },
   disabled: { opacity: 0.5 },
   // Generate shopping list
   generateBar: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#fff",
+    backgroundColor: t.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: t.border,
   },
   generateBtn: {
-    backgroundColor: "#f97316",
+    backgroundColor: t.accent,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center" as const,
   },
-  generateBtnText: { color: "#fff", fontWeight: "600" as const, fontSize: 14 },
+  generateBtnText: { color: t.onAccent, fontWeight: "600" as const, fontSize: 14 },
   genField: { gap: 6 },
   genRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
   },
-  genLabel: { fontSize: 13, fontWeight: "500" as const, color: "#374151" },
+  genLabel: { fontSize: 13, fontWeight: "500" as const, color: t.textSecondary },
 });

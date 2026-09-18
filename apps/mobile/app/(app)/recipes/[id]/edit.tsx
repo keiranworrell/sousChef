@@ -17,8 +17,12 @@ import { getApiClient } from "../../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TAB_BAR_ALLOWANCE } from "../../../../lib/tab-bar";
 import type { IngredientField, StepField } from "../../../../lib/recipe-draft";
+import { useTheme, useThemedStyles } from "../../../../components/ThemeProvider";
+import type { Palette } from "../../../../lib/theme";
 
 export default function EditRecipeScreen(): React.JSX.Element {
+  const { palette } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -130,7 +134,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
   }
 
   if (loadingRecipe) {
-    return <View style={styles.center}><ActivityIndicator color="#f97316" /></View>;
+    return <View style={styles.center}><ActivityIndicator color={palette.accent} /></View>;
   }
 
   if (loadError) {
@@ -224,8 +228,8 @@ export default function EditRecipeScreen(): React.JSX.Element {
           <Switch
             value={isPublic}
             onValueChange={setIsPublic}
-            trackColor={{ false: "#d1d5db", true: "#fdba74" }}
-            thumbColor={isPublic ? "#f97316" : "#fff"}
+            trackColor={{ false: palette.borderStrong, true: palette.accentStrong }}
+            thumbColor={isPublic ? palette.accent : palette.onAccent}
           />
         </View>
 
@@ -235,7 +239,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
             <TextInput
               style={[styles.input, styles.grow]}
               placeholder="Ingredient"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               value={ing.name}
               onChangeText={(v) =>
                 setIngredients((prev) => prev.map((x, idx) => (idx === i ? { ...x, name: v } : x)))
@@ -244,7 +248,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
             <TextInput
               style={[styles.input, styles.narrow]}
               placeholder="Qty"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               keyboardType="decimal-pad"
               value={ing.quantity}
               onChangeText={(v) =>
@@ -254,7 +258,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
             <TextInput
               style={[styles.input, styles.narrow]}
               placeholder="Unit"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               value={ing.unit}
               onChangeText={(v) =>
                 setIngredients((prev) => prev.map((x, idx) => (idx === i ? { ...x, unit: v } : x)))
@@ -282,7 +286,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
               <TextInput
                 style={[styles.input, styles.multiline, styles.grow]}
                 placeholder="What happens at this step?"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={palette.textFaint}
                 multiline
                 value={st.instruction}
                 onChangeText={(v) =>
@@ -299,7 +303,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
             <TextInput
               style={[styles.input, styles.timer]}
               placeholder="Timer (seconds, optional)"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={palette.textFaint}
               keyboardType="number-pad"
               value={st.timerSeconds}
               onChangeText={(v) =>
@@ -323,7 +327,7 @@ export default function EditRecipeScreen(): React.JSX.Element {
             disabled={saving}
           >
             {saving
-              ? <ActivityIndicator color="#fff" />
+              ? <ActivityIndicator color={palette.onAccent} />
               : <Text style={styles.saveButtonText}>Save changes</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
@@ -335,13 +339,13 @@ export default function EditRecipeScreen(): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+const makeStyles = (t: Palette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.bg },
   content: { padding: 16 },
   groupHeading: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: t.textFaint,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginTop: 18,
@@ -350,38 +354,38 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   narrow: { width: 64 },
   timer: { marginTop: 8, marginLeft: 26 },
-  stepNumber: { width: 18, paddingTop: 10, fontSize: 13, fontWeight: "600", color: "#9ca3af" },
-  removeText: { paddingTop: 8, paddingHorizontal: 4, fontSize: 16, color: "#d1d5db" },
-  addText: { fontSize: 13, fontWeight: "600", color: "#f97316", paddingVertical: 6 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
-  backLink: { fontSize: 14, color: "#f97316", marginBottom: 8 },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 20 },
+  stepNumber: { width: 18, paddingTop: 10, fontSize: 13, fontWeight: "600", color: t.textFaint },
+  removeText: { paddingTop: 8, paddingHorizontal: 4, fontSize: 16, color: t.textFaint },
+  addText: { fontSize: 13, fontWeight: "600", color: t.accent, paddingVertical: 6 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg },
+  backLink: { fontSize: 14, color: t.accent, marginBottom: 8 },
+  pageTitle: { fontSize: 22, fontWeight: "700", color: t.text, marginBottom: 20 },
   field: { marginBottom: 14 },
-  label: { fontSize: 12, fontWeight: "500", color: "#374151", marginBottom: 4 },
+  label: { fontSize: 12, fontWeight: "500", color: t.textSecondary, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: t.borderStrong,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
+    color: t.text,
+    backgroundColor: t.surface,
   },
   multiline: { minHeight: 72, textAlignVertical: "top" },
   row: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
-  segmented: { flexDirection: "row", borderRadius: 8, borderWidth: 1, borderColor: "#d1d5db", overflow: "hidden" },
-  segment: { flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: "#fff" },
-  segmentActive: { backgroundColor: "#f97316" },
-  segmentText: { fontSize: 12, fontWeight: "500", color: "#374151" },
-  segmentTextActive: { color: "#fff" },
+  segmented: { flexDirection: "row", borderRadius: 8, borderWidth: 1, borderColor: t.borderStrong, overflow: "hidden" },
+  segment: { flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: t.surface },
+  segmentActive: { backgroundColor: t.accent },
+  segmentText: { fontSize: 12, fontWeight: "500", color: t.textSecondary },
+  segmentTextActive: { color: t.onAccent },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  switchHint: { fontSize: 11, color: "#9ca3af", marginTop: 1 },
-  errorText: { color: "#dc2626", fontSize: 13, marginBottom: 12 },
+  switchHint: { fontSize: 11, color: t.textFaint, marginTop: 1 },
+  errorText: { color: t.danger, fontSize: 13, marginBottom: 12 },
   footer: { gap: 10 },
-  saveButton: { backgroundColor: "#f97316", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
+  saveButton: { backgroundColor: t.accent, borderRadius: 10, paddingVertical: 13, alignItems: "center" },
   disabled: { opacity: 0.5 },
-  saveButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-  cancelButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 10, paddingVertical: 13, alignItems: "center" },
-  cancelButtonText: { color: "#374151", fontWeight: "600", fontSize: 15 },
+  saveButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 15 },
+  cancelButton: { borderWidth: 1, borderColor: t.borderStrong, borderRadius: 10, paddingVertical: 13, alignItems: "center" },
+  cancelButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 15 },
 });
