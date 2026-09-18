@@ -17,6 +17,7 @@ import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImportTabs, { type ImportMode } from "../../../components/ImportTabs";
 import { draftToFormFields } from "../../../lib/recipe-draft";
+import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
 
 type IngredientField = { name: string; quantity: string; unit: string };
 type StepField = { instruction: string; timerSeconds: string };
@@ -127,7 +128,13 @@ export default function NewRecipeScreen(): React.JSX.Element {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={[styles.container, { paddingTop: insets.top }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + TAB_BAR_ALLOWANCE },
+        ]}
+      >
         <Text style={styles.pageTitle}>New recipe</Text>
 
         <ImportTabs

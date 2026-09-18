@@ -15,6 +15,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import type { RecipeWithDetails, UpdateRecipeInput } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TAB_BAR_ALLOWANCE } from "../../../../lib/tab-bar";
+import type { IngredientField, StepField } from "../../../../lib/recipe-draft";
 
 export default function EditRecipeScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
@@ -33,6 +35,11 @@ export default function EditRecipeScreen(): React.JSX.Element {
   const [difficulty, setDifficulty] = useState<"" | "easy" | "medium" | "hard">("");
   const [cuisine, setCuisine] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  // Editing these was impossible until now — not because the endpoint refused,
+  // but because UpdateRecipeInput omitted them. The backend has always deleted
+  // and reinserted both whenever they are present.
+  const [ingredients, setIngredients] = useState<IngredientField[]>([]);
+  const [steps, setSteps] = useState<StepField[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -52,6 +59,23 @@ export default function EditRecipeScreen(): React.JSX.Element {
         setDifficulty(r.difficulty ?? "");
         setCuisine(r.cuisine ?? "");
         setIsPublic(r.isPublic);
+        setIngredients(
+          r.ingredients.length > 0
+            ? r.ingredients.map((i) => ({
+                name: i.name,
+                quantity: i.quantity != null ? String(i.quantity) : "",
+                unit: i.unit ?? "",
+              }))
+            : [{ name: "", quantity: "", unit: "" }],
+        );
+        setSteps(
+          r.steps.length > 0
+            ? r.steps.map((st) => ({
+                instruction: st.instruction,
+                timerSeconds: st.timerSeconds != null ? String(st.timerSeconds) : "",
+              }))
+            : [{ instruction: "", timerSeconds: "" }],
+        );
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Failed to load recipe");
       } finally {
@@ -76,6 +100,24 @@ export default function EditRecipeScreen(): React.JSX.Element {
         difficulty: difficulty || null,
         cuisine: cuisine.trim() || null,
         isPublic,
+        // Supplying these replaces the whole set rather than patching rows, so
+        // empty ones are filtered out here — an untouched blank row at the
+        // bottom of the form should not become a nameless ingredient.
+        ingredients: ingredients
+          .filter((i) => i.name.trim())
+          .map((i, idx) => ({
+            name: i.name.trim(),
+            quantity: i.quantity ? parseFloat(i.quantity) : null,
+            unit: i.unit.trim() || null,
+            orderIndex: idx,
+          })),
+        steps: steps
+          .filter((st) => st.instruction.trim())
+          .map((st, idx) => ({
+            stepNumber: idx + 1,
+            instruction: st.instruction.trim(),
+            timerSeconds: st.timerSeconds ? parseInt(st.timerSeconds, 10) : null,
+          })),
       };
       const res = await api.recipes.update(id, payload);
       if ("error" in res) throw new Error(res.error.message);
@@ -107,7 +149,13 @@ export default function EditRecipeScreen(): React.JSX.Element {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={[styles.container, { paddingTop: insets.top }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + TAB_BAR_ALLOWANCE },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backLink}>← Back to recipe</Text>
         </TouchableOpacity>
@@ -181,6 +229,91 @@ export default function EditRecipeScreen(): React.JSX.Element {
           />
         </View>
 
+        <Text style={styles.groupHeading}>Ingredients</Text>
+        {ingredients.map((ing, i) => (
+          <View key={i} style={[styles.row, styles.field]}>
+            <TextInput
+              style={[styles.input, styles.grow]}
+              placeholder="Ingredient"
+              placeholderTextColor="#9ca3af"
+              value={ing.name}
+              onChangeText={(v) =>
+                setIngredients((prev) => prev.map((x, idx) => (idx === i ? { ...x, name: v } : x)))
+              }
+            />
+            <TextInput
+              style={[styles.input, styles.narrow]}
+              placeholder="Qty"
+              placeholderTextColor="#9ca3af"
+              keyboardType="decimal-pad"
+              value={ing.quantity}
+              onChangeText={(v) =>
+                setIngredients((prev) => prev.map((x, idx) => (idx === i ? { ...x, quantity: v } : x)))
+              }
+            />
+            <TextInput
+              style={[styles.input, styles.narrow]}
+              placeholder="Unit"
+              placeholderTextColor="#9ca3af"
+              value={ing.unit}
+              onChangeText={(v) =>
+                setIngredients((prev) => prev.map((x, idx) => (idx === i ? { ...x, unit: v } : x)))
+              }
+            />
+            <TouchableOpacity
+              onPress={() => setIngredients((prev) => prev.filter((_, idx) => idx !== i))}
+              accessibilityLabel={`Remove ingredient ${i + 1}`}
+            >
+              <Text style={styles.removeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+        <TouchableOpacity
+          onPress={() => setIngredients((prev) => [...prev, { name: "", quantity: "", unit: "" }])}
+        >
+          <Text style={styles.addText}>+ Add ingredient</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.groupHeading}>Steps</Text>
+        {steps.map((st, i) => (
+          <View key={i} style={styles.field}>
+            <View style={styles.row}>
+              <Text style={styles.stepNumber}>{i + 1}</Text>
+              <TextInput
+                style={[styles.input, styles.multiline, styles.grow]}
+                placeholder="What happens at this step?"
+                placeholderTextColor="#9ca3af"
+                multiline
+                value={st.instruction}
+                onChangeText={(v) =>
+                  setSteps((prev) => prev.map((x, idx) => (idx === i ? { ...x, instruction: v } : x)))
+                }
+              />
+              <TouchableOpacity
+                onPress={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
+                accessibilityLabel={`Remove step ${i + 1}`}
+              >
+                <Text style={styles.removeText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={[styles.input, styles.timer]}
+              placeholder="Timer (seconds, optional)"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+              value={st.timerSeconds}
+              onChangeText={(v) =>
+                setSteps((prev) => prev.map((x, idx) => (idx === i ? { ...x, timerSeconds: v } : x)))
+              }
+            />
+          </View>
+        ))}
+        <TouchableOpacity
+          onPress={() => setSteps((prev) => [...prev, { instruction: "", timerSeconds: "" }])}
+        >
+          <Text style={styles.addText}>+ Add step</Text>
+        </TouchableOpacity>
+
         {saveError && <Text style={styles.errorText}>{saveError}</Text>}
 
         <View style={styles.footer}>
@@ -204,7 +337,22 @@ export default function EditRecipeScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
-  content: { padding: 16, paddingBottom: 40 },
+  content: { padding: 16 },
+  groupHeading: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9ca3af",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  grow: { flex: 1 },
+  narrow: { width: 64 },
+  timer: { marginTop: 8, marginLeft: 26 },
+  stepNumber: { width: 18, paddingTop: 10, fontSize: 13, fontWeight: "600", color: "#9ca3af" },
+  removeText: { paddingTop: 8, paddingHorizontal: 4, fontSize: 16, color: "#d1d5db" },
+  addText: { fontSize: 13, fontWeight: "600", color: "#f97316", paddingVertical: 6 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#f9fafb" },
   backLink: { fontSize: 14, color: "#f97316", marginBottom: 8 },
   pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827", marginBottom: 20 },

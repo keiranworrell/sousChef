@@ -8,10 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  TextInput,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import type { Recipe } from "@souschef/shared";
@@ -38,13 +34,6 @@ export default function RecipeListScreen(): React.JSX.Element {
   // requests would go out for the same page. Same reason the community screen
   // keeps one.
   const inFlightRef = useRef(false);
-
-  // URL import
-  const [importVisible, setImportVisible] = useState(false);
-  const [importUrl, setImportUrl] = useState("");
-  const [importLoading, setImportLoading] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const inputRef = useRef<TextInput>(null);
 
   /**
    * Fetches a page. A null cursor means the first one, and replaces what is on
@@ -99,25 +88,6 @@ export default function RecipeListScreen(): React.JSX.Element {
     void load(cursor);
   }
 
-  async function handleImport(): Promise<void> {
-    const url = importUrl.trim();
-    if (!url) return;
-    setImportError(null);
-    setImportLoading(true);
-    try {
-      const api = await getApiClient();
-      const res = await api.recipes.import({ url });
-      if ("error" in res) throw new Error(res.error.message);
-      setImportVisible(false);
-      setImportUrl("");
-      router.push(`/(app)/recipes/${res.data.id}`);
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Import failed");
-    } finally {
-      setImportLoading(false);
-    }
-  }
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -131,16 +101,6 @@ export default function RecipeListScreen(): React.JSX.Element {
       <View style={styles.header}>
         <Text style={styles.title}>My recipes</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.importButton}
-            onPress={() => {
-              setImportError(null);
-              setImportUrl("");
-              setImportVisible(true);
-            }}
-          >
-            <Text style={styles.importButtonText}>Import URL</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push("/(app)/recipes/new")}
@@ -230,56 +190,6 @@ export default function RecipeListScreen(): React.JSX.Element {
         }}
       />
 
-      {/* URL import modal */}
-      <Modal
-        visible={importVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setImportVisible(false)}
-        onShow={() => { inputRef.current?.focus(); }}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Import recipe from URL</Text>
-            <TextInput
-              ref={inputRef}
-              style={styles.modalInput}
-              placeholder="https://www.example.com/recipe/..."
-              value={importUrl}
-              onChangeText={setImportUrl}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              editable={!importLoading}
-            />
-            {importError && (
-              <Text style={styles.importError}>{importError}</Text>
-            )}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setImportVisible(false)}
-                disabled={importLoading}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.addButton, (!importUrl.trim() || importLoading) && styles.disabled]}
-                onPress={() => { void handleImport(); }}
-                disabled={!importUrl.trim() || importLoading}
-              >
-                {importLoading
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={styles.addButtonText}>Import</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
