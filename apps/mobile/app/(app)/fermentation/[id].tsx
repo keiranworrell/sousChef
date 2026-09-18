@@ -17,6 +17,7 @@ import type {
   FermentationStatus,
 } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
@@ -49,6 +50,7 @@ const emptyLogForm: LogFormState = {
 };
 
 export default function BatchDetailScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -165,7 +167,7 @@ export default function BatchDetailScreen(): React.JSX.Element {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
         {/* Header */}
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backLink}>← Fermentation</Text>

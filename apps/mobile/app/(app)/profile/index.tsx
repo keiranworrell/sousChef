@@ -7,8 +7,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { signOut } from "aws-amplify/auth";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfileScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
   async function handleSignOut(): Promise<void> {
@@ -24,7 +26,7 @@ export default function ProfileScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Text style={styles.title}>Profile</Text>
 
       <TouchableOpacity

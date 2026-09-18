@@ -16,11 +16,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import type { ShoppingListItem, ShoppingListWithItems } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AddForm = { name: string; quantity: string; unit: string; category: string };
 const emptyForm: AddForm = { name: "", quantity: "", unit: "", category: "" };
 
 export default function ShoppingListScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
@@ -199,7 +201,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView style={styles.container} contentContainerStyle={styles.formContent}>
+        <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.formContent}>
           <TouchableOpacity onPress={() => { setAdding(false); setAddForm(emptyForm); setAddError(null); }}>
             <Text style={styles.backLink}>← Cancel</Text>
           </TouchableOpacity>
@@ -257,7 +259,7 @@ export default function ShoppingListScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()}>

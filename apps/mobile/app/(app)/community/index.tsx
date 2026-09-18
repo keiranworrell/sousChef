@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { signOut } from "aws-amplify/auth";
 import type { RecipeWithDetails } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   easy: "Easy",
@@ -21,6 +22,7 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 };
 
 export default function CommunityScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const [recipes, setRecipes] = useState<RecipeWithDetails[]>([]);
@@ -133,7 +135,7 @@ export default function CommunityScreen(): React.JSX.Element {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Community</Text>

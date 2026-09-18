@@ -20,6 +20,7 @@ import type {
 } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -67,6 +68,7 @@ function formatWeekLabel(monday: Date): string {
 type PickerTarget = { dayOfWeek: DayOfWeek };
 
 export default function MealPlanScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
   const [plan, setPlan] = useState<MealPlanWithEntries | null>(null);
@@ -201,7 +203,7 @@ export default function MealPlanScreen(): React.JSX.Element {
   // Generate shopping list view
   if (showGenerate) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.pickerHeader}>
           <Text style={styles.pickerTitle}>Generate shopping list</Text>
           <TouchableOpacity onPress={() => setShowGenerate(false)}>
@@ -241,7 +243,7 @@ export default function MealPlanScreen(): React.JSX.Element {
       r.title.toLowerCase().includes(pickerSearch.toLowerCase()),
     );
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.pickerHeader}>
           <View>
             <Text style={styles.pickerTitle}>Choose a recipe</Text>
@@ -329,7 +331,7 @@ export default function MealPlanScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Week navigation */}
       <View style={styles.weekNav}>
         <TouchableOpacity

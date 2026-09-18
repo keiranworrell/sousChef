@@ -14,6 +14,38 @@ import { amplifyConfig } from "../lib/amplify-config";
 Amplify.configure(amplifyConfig);
 cognitoUserPoolsTokenProvider.setKeyValueStorage(AsyncStorage);
 
+/**
+ * How long to wait for the launch auth check before giving up on it.
+ *
+ * Long enough that a slow-but-working network still gets a real answer and the
+ * user is not bounced to sign-in while already signed in; short enough that a
+ * broken one does not look like a crash. Cold-start token refresh on a poor
+ * connection is usually a second or two.
+ */
+const AUTH_CHECK_TIMEOUT_MS = 6000;
+
+/**
+ * Resolves null if `promise` has not settled within `ms`.
+ *
+ * Null rather than a rejection so the caller can tell "we could not find out"
+ * from "there is no session" if it ever needs to. Today both mean the same
+ * thing — show sign-in — but they are different facts and collapsing them here
+ * would throw one away.
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default function RootLayout(): React.JSX.Element {
   const router = useRouter();
   const segments = useSegments();
@@ -54,8 +86,19 @@ export default function RootLayout(): React.JSX.Element {
 
     async function checkAuth(): Promise<void> {
       try {
-        const session = await fetchAuthSession();
-        if (!supersededByEvent.current) setIsAuthenticated(!!session.tokens);
+        // Bounded, because nothing renders until this settles and Expo Router
+        // holds the splash screen until the first route renders. So a
+        // fetchAuthSession that hangs rather than failing — an expired refresh
+        // token, a captive portal, a phone on one bar — is not a slow start but
+        // a permanently stuck splash with no way out except reinstalling.
+        // That is exactly what happened: worked one day, stuck on the splash
+        // the next.
+        //
+        // Timing out into "signed out" is the recoverable answer. It shows the
+        // sign-in screen, which is wrong only until they sign in; the
+        // alternative is a screen with nothing on it and nothing to do.
+        const session = await withTimeout(fetchAuthSession(), AUTH_CHECK_TIMEOUT_MS);
+        if (!supersededByEvent.current) setIsAuthenticated(!!session?.tokens);
       } catch {
         if (!supersededByEvent.current) setIsAuthenticated(false);
       } finally {

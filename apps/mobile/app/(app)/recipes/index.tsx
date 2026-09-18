@@ -15,8 +15,10 @@ import {
 import { useRouter } from "expo-router";
 import type { Recipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function RecipeListScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function RecipeListScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>My recipes</Text>
         <View style={styles.headerActions}>
