@@ -91,6 +91,7 @@ export default function AppLayout(): React.JSX.Element {
       {/* Reachable from the Menu tab, not from the bar itself. href: null keeps
           the route registered so it can still be pushed to. */}
       <Tabs.Screen name="collections" options={{ href: null }} />
+      <Tabs.Screen name="cook" options={{ href: null }} />
       <Tabs.Screen name="fermentation" options={{ href: null }} />
       <Tabs.Screen name="household" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
