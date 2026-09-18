@@ -14,6 +14,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { User } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 
+/**
+ * Trailing space for the tab bar, which overlays the bottom of this screen.
+ *
+ * Settings is a tab route (hidden from the bar with href: null), so the bar is
+ * drawn over it. expo-router 57 moved off @react-navigation/bottom-tabs to
+ * standard-navigation and no longer exposes a hook for the bar's height, so
+ * this is an allowance rather than a measurement. It only has to be generous:
+ * it is trailing padding on a scroll view, so too much costs nothing and too
+ * little clips the last control — which is what it was doing to "Sign out".
+ */
+const TAB_BAR_ALLOWANCE = 76;
+
 export default function SettingsScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
 
@@ -107,7 +119,10 @@ export default function SettingsScreen(): React.JSX.Element {
   return (
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + TAB_BAR_ALLOWANCE },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Settings</Text>
@@ -241,7 +256,7 @@ function Row({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
   center: { alignItems: "center", justifyContent: "center" },
-  content: { padding: 16, paddingBottom: 48, gap: 20 },
+  content: { padding: 16, gap: 20 },
   title: { fontSize: 24, fontWeight: "700", color: "#111827", marginTop: 4 },
   section: { gap: 8 },
   sectionTitle: {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import type { CreateRecipeInput } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ImportTabs, { type ImportMode } from "../../../components/ImportTabs";
+import { draftToFormFields } from "../../../lib/recipe-draft";
 
 type IngredientField = { name: string; quantity: string; unit: string };
 type StepField = { instruction: string; timerSeconds: string };
@@ -37,6 +39,47 @@ export default function NewRecipeScreen(): React.JSX.Element {
   const [steps, setSteps] = useState<StepField[]>([{ instruction: "", timerSeconds: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [mode, setMode] = useState<ImportMode>("manual");
+  // Undefined until loaded, null on premium. Only used to show the free-tier
+  // count, so a failure to fetch it simply shows nothing rather than blocking
+  // the screen — the server enforces the quota regardless of what we display.
+  const [aiImportsRemaining, setAiImportsRemaining] = useState<number | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    async function loadQuota(): Promise<void> {
+      try {
+        const api = await getApiClient();
+        const res = await api.users.me();
+        if ("data" in res) setAiImportsRemaining(res.data.aiImportsRemaining);
+      } catch {
+        // Non-critical.
+      }
+    }
+    void loadQuota();
+  }, []);
+
+  /**
+   * A photo or paste import hands back a parsed recipe rather than saving one.
+   * It fills the form in and switches to it, so the user reviews an extraction
+   * before it becomes a recipe they rely on.
+   */
+  function applyDraft(draft: CreateRecipeInput): void {
+    const fields = draftToFormFields(draft);
+    setTitle(fields.title);
+    setDescription(fields.description);
+    setServings(fields.servings);
+    setPrepTime(fields.prepTime);
+    setCookTime(fields.cookTime);
+    setDifficulty(fields.difficulty);
+    setCuisine(fields.cuisine);
+    setIngredients(fields.ingredients);
+    setSteps(fields.steps);
+    setError(null);
+    setMode("manual");
+  }
 
   async function handleSubmit(): Promise<void> {
     if (!title.trim()) { setError("Title is required"); return; }
@@ -87,6 +130,20 @@ export default function NewRecipeScreen(): React.JSX.Element {
       <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>New recipe</Text>
 
+        <ImportTabs
+          mode={mode}
+          onModeChange={setMode}
+          onDraft={applyDraft}
+          onImported={(recipeId) => router.replace(`/(app)/recipes/${recipeId}`)}
+          aiImportsRemaining={aiImportsRemaining}
+        />
+
+        {/* The form is always the destination: the import tabs fill it in, and
+            this is where anything gets saved from. Hidden while an import tab
+            is open so the screen is not a wall of empty fields under a picker
+            the user has not finished with. */}
+        {mode === "manual" && (
+          <>
         <Section title="Basic info">
           <Field label="Title">
             <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. Sourdough loaf" />
@@ -206,6 +263,8 @@ export default function NewRecipeScreen(): React.JSX.Element {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
