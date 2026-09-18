@@ -11,6 +11,7 @@ on:
         options:
           - preview
           - production
+          - development
 
 jobs:
   build:
