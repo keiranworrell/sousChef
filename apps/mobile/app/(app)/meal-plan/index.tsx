@@ -21,6 +21,7 @@ import type {
 import { getApiClient } from "../../../lib/api";
 import { unwrap } from "@souschef/shared";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MultiCookLauncher, { type CookCandidate } from "../../../components/MultiCookLauncher";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -84,6 +85,9 @@ export default function MealPlanScreen(): React.JSX.Element {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [recipesLoaded, setRecipesLoaded] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
+  // Which day's recipes are being planned together, if any.
+  const [cookTogetherDay, setCookTogetherDay] = useState<DayOfWeek | null>(null);
+
   // Optional label for the entry about to be added; most entries won't have one.
   const [pickerMealType, setPickerMealType] = useState<MealType | null>(null);
   // How many people the next entry is cooked for. Null = as written. Kept
@@ -199,6 +203,27 @@ export default function MealPlanScreen(): React.JSX.Element {
         return a.id.localeCompare(b.id);
       });
   }
+
+  /**
+   * The recipes on the chosen day, as planner candidates.
+   *
+   * De-duplicated by recipe id. A day can legitimately hold the same recipe
+   * twice — a batch of flatbreads at lunch and again at dinner — and the server
+   * rejects a plan containing a repeat with "Each recipe can only appear once".
+   * Two identical rows with one tickbox between them would be a confusing way
+   * to hit that.
+   */
+  const cookCandidates: CookCandidate[] =
+    cookTogetherDay === null
+      ? []
+      : [
+          ...new Map(
+            getEntriesForDay(cookTogetherDay).map((e) => [
+              e.recipeId,
+              { recipeId: e.recipeId, title: e.recipe.title },
+            ]),
+          ).values(),
+        ];
 
   // Generate shopping list view
   if (showGenerate) {
@@ -416,17 +441,37 @@ export default function MealPlanScreen(): React.JSX.Element {
                     </View>
                   </View>
                 ))}
-                <TouchableOpacity
-                  style={styles.addRow}
-                  onPress={() => { void openPicker({ dayOfWeek: day }); }}
-                >
-                  <Text style={styles.addSlotText}>+ Add a recipe</Text>
-                </TouchableOpacity>
+                <View style={styles.dayActions}>
+                  <TouchableOpacity
+                    style={styles.addRow}
+                    onPress={() => { void openPicker({ dayOfWeek: day }); }}
+                  >
+                    <Text style={styles.addSlotText}>+ Add a recipe</Text>
+                  </TouchableOpacity>
+                  {/* Only offered where it can work. Two recipes is the
+                      server's minimum for a plan, and a button that always
+                      refuses is worse than one that isn't there. */}
+                  {getEntriesForDay(day).length >= 2 && (
+                    <TouchableOpacity
+                      style={styles.cookTogetherRow}
+                      onPress={() => setCookTogetherDay(day)}
+                    >
+                      <Text style={styles.cookTogetherText}>Cook together</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             );
           })}
         </ScrollView>
       )}
+
+      <MultiCookLauncher
+        visible={cookTogetherDay !== null}
+        dayLabel={cookTogetherDay !== null ? DAYS[cookTogetherDay]! : ""}
+        candidates={cookCandidates}
+        onClose={() => setCookTogetherDay(null)}
+      />
     </View>
   );
 }
@@ -450,6 +495,9 @@ const styles = StyleSheet.create({
   weekLabel: { fontSize: 13, fontWeight: "600", color: "#111827" },
   todayLink: { fontSize: 11, color: "#f97316", marginTop: 2 },
   grid: { padding: 12, gap: 12 },
+  dayActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  cookTogetherRow: { paddingHorizontal: 12, paddingVertical: 10 },
+  cookTogetherText: { fontSize: 13, fontWeight: "600", color: "#f97316" },
   daySection: {
     backgroundColor: "#fff",
     borderRadius: 12,

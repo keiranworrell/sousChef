@@ -52,8 +52,13 @@ export default function MultiCookLauncher({
   const [planning, setPlanning] = useState(false);
 
   const atCap = selected.size >= MAX_RECIPES;
-  const canPlan = selected.size >= 2 && !planning;
+  // Out of credits means the request is refused, not degraded: the quota check
+  // in cook-sessions.ts runs before the planner and throws, and the sequential
+  // fallback underneath it only catches a planner that failed. This used to
+  // offer the button anyway, above copy promising a fallback that could not
+  // arrive — so the click spent a round trip to produce an error toast.
   const noCreditsLeft = aiImportsRemaining === 0;
+  const canPlan = selected.size >= 2 && !planning && !noCreditsLeft;
 
   function toggle(recipeId: string): void {
     setSelected((prev) => {
@@ -142,9 +147,9 @@ export default function MultiCookLauncher({
               )}
 
               {typeof aiImportsRemaining === "number" && (
-                <p className="mt-3 text-xs text-gray-400">
+                <p className={`mt-3 text-xs ${noCreditsLeft ? "text-orange-700" : "text-gray-400"}`}>
                   {noCreditsLeft
-                    ? `You've used all ${FREE_TIER_AI_IMPORTS} of your free AI credits. We'll still lay the recipes out one after another.`
+                    ? `You've used all ${FREE_TIER_AI_IMPORTS} free AI credits on this account, so a plan can't be generated. You can still cook these one at a time from each recipe.`
                     : `Uses one of your ${aiImportsRemaining} remaining AI credits.`}
                 </p>
               )}
