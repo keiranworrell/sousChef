@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getApiClient } from "../../../lib/api";
 
 type MenuEntry = {
   label: string;
@@ -14,19 +15,31 @@ type MenuEntry = {
 /**
  * Everything that isn't one of the four tabs.
  *
- * The web app's overflow menu has seven destinations; mobile has screens for
- * three of them. The other five — collections, cook history, rediscover,
- * household, feed — are listed nowhere here rather than listed and disabled.
- * A menu of things you cannot tap tells the user what the app cannot do every
- * time they open it, which is a strange thing to volunteer. This list grows as
- * the screens get built.
+ * The web app's overflow menu has seven destinations; entries appear here as
+ * the screens get built, rather than being listed and disabled. A menu of
+ * things you cannot tap tells the user what the app cannot do every time they
+ * open it, which is a strange thing to volunteer.
+ *
+ * Still missing: cook history, rediscover, feed.
  */
 const ENTRIES: MenuEntry[] = [
+  {
+    label: "Notifications",
+    description: "Invites and collections shared with you",
+    icon: "notifications-outline",
+    href: "/(app)/notifications",
+  },
   {
     label: "Collections",
     description: "Group recipes, and see ones shared with you",
     icon: "albums-outline",
     href: "/(app)/collections",
+  },
+  {
+    label: "Household",
+    description: "The people you share lists and plans with",
+    icon: "home-outline",
+    href: "/(app)/household",
   },
   {
     label: "Fermentation",
@@ -45,6 +58,36 @@ const ENTRIES: MenuEntry[] = [
 export default function MenuScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [unread, setUnread] = useState(0);
+
+  /**
+   * The unread count, refreshed whenever the menu comes back into focus.
+   *
+   * There is no count endpoint, so this reads the list and counts locally.
+   * That is fine at the sizes involved and avoids inventing a second source of
+   * truth, but it is worth knowing it is a full fetch rather than a cheap one.
+   *
+   * A failure is swallowed on purpose: the badge is a nicety, and a menu that
+   * shows an error banner because a count did not load is worse than a menu
+   * with no badge.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function count(): Promise<void> {
+        try {
+          const api = await getApiClient();
+          const res = await api.notifications.list();
+          if (cancelled || "error" in res) return;
+          setUnread(res.data.notifications.filter((n) => n.seenAt === null).length);
+        } catch {
+          // Deliberately ignored — see above.
+        }
+      }
+      void count();
+      return () => { cancelled = true; };
+    }, []),
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -53,22 +96,38 @@ export default function MenuScreen(): React.JSX.Element {
       </View>
 
       <ScrollView contentContainerStyle={styles.list}>
-        {ENTRIES.map((entry) => (
-          <TouchableOpacity
-            key={entry.href}
-            style={styles.row}
-            onPress={() => router.push(entry.href as never)}
-          >
-            <View style={styles.iconWrap}>
-              <Ionicons name={entry.icon} size={20} color="#f97316" />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>{entry.label}</Text>
-              <Text style={styles.rowDescription}>{entry.description}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
-          </TouchableOpacity>
-        ))}
+        {ENTRIES.map((entry) => {
+          const badge = entry.href === "/(app)/notifications" && unread > 0 ? unread : 0;
+          return (
+            <TouchableOpacity
+              key={entry.href}
+              style={styles.row}
+              onPress={() => router.push(entry.href as never)}
+              accessibilityLabel={
+                badge > 0
+                  ? `${entry.label}, ${badge} unread`
+                  : entry.label
+              }
+            >
+              <View style={styles.iconWrap}>
+                <Ionicons name={entry.icon} size={20} color="#f97316" />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>{entry.label}</Text>
+                <Text style={styles.rowDescription}>{entry.description}</Text>
+              </View>
+              {badge > 0 && (
+                <View style={styles.badge}>
+                  {/* Capped, because the pill stops being round after two
+                      digits and the exact number stops mattering long before
+                      then. */}
+                  <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -101,4 +160,14 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: { fontSize: 15, fontWeight: "600", color: "#111827" },
   rowDescription: { marginTop: 2, fontSize: 12, color: "#9ca3af" },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: "#f97316",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
 });
