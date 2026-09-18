@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,20 +9,35 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { RecipeWithDetails } from "@souschef/shared";
+import type { CookLogEntry, RecipeWithDetails } from "@souschef/shared";
+import { scaleQuantity, unwrap } from "@souschef/shared";
 import { getApiClient } from "../../../../lib/api";
 import CollectionPicker from "../../../../components/CollectionPicker";
-import { unwrap } from "@souschef/shared";
+import CookLogPanel from "../../../../components/CookLogPanel";
+import CookLogSheet from "../../../../components/CookLogSheet";
+import SourceAttribution from "../../../../components/SourceAttribution";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+/** Matches the web page's cap. Beyond this the arithmetic stops meaning much. */
+const MAX_SERVINGS = 200;
 
 export default function RecipeDetailScreen(): React.JSX.Element {
   const [pickerOpen, setPickerOpen] = useState(false);
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, log } = useLocalSearchParams<{ id: string; log?: string }>();
   const router = useRouter();
   const [recipe, setRecipe] = useState<RecipeWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /** null means "as written" — distinct from having chosen the original number. */
+  const [adjustedServings, setAdjustedServings] = useState<number | null>(null);
+
+  const [cookLog, setCookLog] = useState<CookLogEntry[]>([]);
+  const [cookLogLoading, setCookLogLoading] = useState(true);
+  const [cookLogError, setCookLogError] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<CookLogEntry | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -39,6 +54,45 @@ export default function RecipeDetailScreen(): React.JSX.Element {
     }
     void load();
   }, [id]);
+
+  // Separate from the recipe, and allowed to fail on its own. The cook log is
+  // an extra on this screen; a recipe that loads without it is still usable,
+  // and one request failing should not blank the other.
+  useEffect(() => {
+    async function loadLog(): Promise<void> {
+      try {
+        const api = await getApiClient();
+        const res = await api.recipes.cookLog(id);
+        if ("error" in res) throw new Error(res.error.message);
+        setCookLog(res.data.entries);
+      } catch (err) {
+        setCookLogError(err instanceof Error ? err.message : "Couldn't load your cook log");
+      } finally {
+        setCookLogLoading(false);
+      }
+    }
+    void loadLog();
+  }, [id]);
+
+  // Cooking mode sends the user back here with ?log=1 after they finish.
+  useEffect(() => {
+    if (log === "1") {
+      setEditingEntry(null);
+      setSheetOpen(true);
+      // Clear the param, or a later back-navigation to this screen reopens the
+      // sheet for a cook that was already logged.
+      router.setParams({ log: undefined });
+    }
+  }, [log, router]);
+
+  const handleSaved = useCallback((entry: CookLogEntry): void => {
+    setCookLog((prev) => {
+      const without = prev.filter((e) => e.id !== entry.id);
+      return [entry, ...without].sort((a, b) => b.cookedAt.localeCompare(a.cookedAt));
+    });
+    setSheetOpen(false);
+    setEditingEntry(null);
+  }, []);
 
   function handleDelete(): void {
     Alert.alert("Delete recipe", "This can't be undone.", [
@@ -72,6 +126,10 @@ export default function RecipeDetailScreen(): React.JSX.Element {
   }
 
   const totalMins = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
+  const servings = adjustedServings ?? recipe.servings;
+  const isScaled = servings !== recipe.servings;
+  const scaleFactor = servings / recipe.servings;
+  const hasIngredients = recipe.ingredients.length > 0;
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
@@ -80,6 +138,10 @@ export default function RecipeDetailScreen(): React.JSX.Element {
       {recipe.description && (
         <Text style={styles.description}>{recipe.description}</Text>
       )}
+      <SourceAttribution
+        sourceUrl={recipe.sourceUrl}
+        sourceModified={recipe.sourceModified}
+      />
 
       {/* Actions */}
       <View style={styles.actions}>
@@ -91,6 +153,12 @@ export default function RecipeDetailScreen(): React.JSX.Element {
             <Text style={styles.cookButtonText}>Start cooking</Text>
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => { setEditingEntry(null); setSheetOpen(true); }}
+        >
+          <Text style={styles.editButtonText}>Log cook</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => router.push(`/(app)/recipes/${id}/edit`)}
@@ -110,7 +178,11 @@ export default function RecipeDetailScreen(): React.JSX.Element {
 
       {/* Meta */}
       <View style={styles.meta}>
-        <MetaItem label="Servings" value={String(recipe.servings)} />
+        {/* Servings only lives here when there is nothing to scale. Otherwise
+            it is the stepper below, next to the quantities it changes — a
+            number in this row and a separate control elsewhere would be two
+            places showing the same fact. */}
+        {!hasIngredients && <MetaItem label="Servings" value={String(recipe.servings)} />}
         {totalMins > 0 && <MetaItem label="Total" value={`${totalMins} min`} />}
         {recipe.prepTimeMinutes && <MetaItem label="Prep" value={`${recipe.prepTimeMinutes} min`} />}
         {recipe.cookTimeMinutes && <MetaItem label="Cook" value={`${recipe.cookTimeMinutes} min`} />}
@@ -120,20 +192,60 @@ export default function RecipeDetailScreen(): React.JSX.Element {
       </View>
 
       {/* Ingredients */}
-      {recipe.ingredients.length > 0 && (
+      {hasIngredients && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ingredients</Text>
-          {recipe.ingredients.map((ing) => (
-            <View key={ing.id} style={styles.ingredientRow}>
-              {ing.quantity != null && (
-                <Text style={styles.ingredientQty}>
-                  {ing.quantity}{ing.unit ? ` ${ing.unit}` : ""}
-                </Text>
-              )}
-              <Text style={styles.ingredientName}>{ing.name}</Text>
-              {ing.notes && <Text style={styles.ingredientNotes}>({ing.notes})</Text>}
+          <View style={styles.ingredientsHeader}>
+            <Text style={styles.sectionTitle}>Ingredients</Text>
+            <View style={styles.stepper}>
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                onPress={() => setAdjustedServings(Math.max(1, servings - 1))}
+                disabled={servings <= 1}
+                accessibilityLabel="Decrease servings"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.stepperBtnText, servings <= 1 && styles.stepperDisabled]}>−</Text>
+              </TouchableOpacity>
+              <Text style={[styles.stepperValue, isScaled && styles.stepperValueScaled]}>
+                {servings} {servings === 1 ? "serving" : "servings"}
+              </Text>
+              <TouchableOpacity
+                style={styles.stepperBtn}
+                onPress={() => setAdjustedServings(Math.min(MAX_SERVINGS, servings + 1))}
+                disabled={servings >= MAX_SERVINGS}
+                accessibilityLabel="Increase servings"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.stepperBtnText, servings >= MAX_SERVINGS && styles.stepperDisabled]}>+</Text>
+              </TouchableOpacity>
             </View>
-          ))}
+          </View>
+
+          {isScaled && (
+            <View style={styles.scaledBanner}>
+              <Text style={styles.scaledText}>
+                Scaled from {recipe.servings}. The recipe itself is unchanged.
+              </Text>
+              <TouchableOpacity onPress={() => setAdjustedServings(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.resetText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {recipe.ingredients.map((ing) => {
+            const quantity = scaleQuantity(ing.quantity, ing.name, scaleFactor);
+            return (
+              <View key={ing.id} style={styles.ingredientRow}>
+                {quantity !== null && (
+                  <Text style={[styles.ingredientQty, isScaled && styles.ingredientQtyScaled]}>
+                    {quantity}{ing.unit ? ` ${ing.unit}` : ""}
+                  </Text>
+                )}
+                <Text style={styles.ingredientName}>{ing.name}</Text>
+                {ing.notes && <Text style={styles.ingredientNotes}>({ing.notes})</Text>}
+              </View>
+            );
+          })}
         </View>
       )}
 
@@ -159,6 +271,23 @@ export default function RecipeDetailScreen(): React.JSX.Element {
         </View>
       )}
 
+      <CookLogPanel
+        recipeId={id}
+        entries={cookLog}
+        loading={cookLogLoading}
+        error={cookLogError}
+        onEdit={(entry) => { setEditingEntry(entry); setSheetOpen(true); }}
+        onRemoved={(entryId) => setCookLog((prev) => prev.filter((e) => e.id !== entryId))}
+      />
+
+      <CookLogSheet
+        visible={sheetOpen}
+        recipeId={id}
+        entry={editingEntry}
+        onClose={() => { setSheetOpen(false); setEditingEntry(null); }}
+        onSaved={handleSaved}
+      />
+
       <CollectionPicker
         visible={pickerOpen}
         recipeId={id}
@@ -183,7 +312,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   error: { color: "#dc2626", fontSize: 13 },
   title: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 6 },
-  description: { fontSize: 14, color: "#6b7280", marginBottom: 16, lineHeight: 20 },
+  description: { fontSize: 14, color: "#6b7280", marginBottom: 8, lineHeight: 20 },
   actions: { flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap" },
   cookButton: { backgroundColor: "#f97316", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
   cookButtonText: { fontSize: 13, fontWeight: "600", color: "#fff" },
@@ -197,8 +326,38 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 13, fontWeight: "600", color: "#111827", marginTop: 2, textTransform: "capitalize" },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 17, fontWeight: "600", color: "#111827", marginBottom: 12 },
+  ingredientsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  stepperBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  stepperBtnText: { fontSize: 17, lineHeight: 20, color: "#6b7280", fontWeight: "600" },
+  stepperDisabled: { color: "#e5e7eb" },
+  stepperValue: { fontSize: 13, fontWeight: "600", color: "#374151", fontVariant: ["tabular-nums"] },
+  stepperValueScaled: { color: "#ea580c" },
+  scaledBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    backgroundColor: "#fff7ed",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  scaledText: { flex: 1, fontSize: 12, color: "#9a3412", lineHeight: 17 },
+  resetText: { fontSize: 12, fontWeight: "700", color: "#ea580c" },
   ingredientRow: { flexDirection: "row", gap: 6, alignItems: "baseline", paddingVertical: 4 },
   ingredientQty: { fontSize: 13, fontWeight: "600", color: "#111827", minWidth: 60 },
+  ingredientQtyScaled: { color: "#ea580c" },
   ingredientName: { fontSize: 13, color: "#374151", flex: 1 },
   ingredientNotes: { fontSize: 12, color: "#9ca3af" },
   stepRow: { flexDirection: "row", gap: 12, marginBottom: 12 },

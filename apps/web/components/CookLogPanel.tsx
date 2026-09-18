@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import type { CookLogEntry } from "@souschef/shared";
+import type { CookLogEntry, CookLogDraft } from "@souschef/shared";
+import { diffCookLogEdit, draftFromEntry } from "@souschef/shared";
 import { getApiClient } from "@/lib/api";
-import { diffCookLogEdit, draftFromEntry, type CookLogDraft } from "@/lib/cook-log-edit";
 
 type Props = {
   recipeId: string;
