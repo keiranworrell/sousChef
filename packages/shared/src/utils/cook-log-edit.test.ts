@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CookLogEntry } from "@souschef/shared";
+import type { CookLogEntry } from "../types";
 import { diffCookLogEdit, draftFromEntry } from "./cook-log-edit";
 
 /**

@@ -1,11 +1,16 @@
-import type { CookLogEntry, UpdateCookLogInput } from "@souschef/shared";
+import type { CookLogEntry, UpdateCookLogInput } from "../types";
 
 /**
- * The editing logic behind CookLogPanel, kept out of the component.
+ * The editing logic behind the cook log panels, kept out of the components.
  *
  * None of this needs React, a DOM or an API client, and leaving it in the
  * component meant testing it dragged all three in — which is how it got as far
  * as CI before failing to resolve.
+ *
+ * It lives in shared rather than in apps/web because mobile now renders the
+ * same panel. The absent-versus-null rule below is a property of the endpoint,
+ * not of either client, so a second copy would be a second chance to get it
+ * wrong on one platform only.
  */
 
 export type CookLogDraft = {

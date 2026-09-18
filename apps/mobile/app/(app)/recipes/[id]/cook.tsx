@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 // Not react-native's SafeAreaView, which this file used to import: that one is
 // iOS-only and a plain View on Android, so cooking mode has never had safe-area
@@ -155,6 +156,26 @@ export default function CookScreen(): React.JSX.Element {
     );
   }
 
+  /**
+   * The end of cooking is the one moment the user definitely just cooked the
+   * thing, and the only moment they will remember what they'd change. Asking
+   * here is why the cook log gets used at all; asking later is why it doesn't.
+   *
+   * "Not now" is a real answer and is listed first, because someone cooking for
+   * guests wants the screen gone, not a form.
+   */
+  function finish(): void {
+    Alert.alert("Nice one.", "Want to log this cook while it's fresh?", [
+      { text: "Not now", style: "cancel", onPress: () => router.back() },
+      {
+        text: "Log it",
+        // replace, not push: cooking mode should not sit in the back stack
+        // behind the recipe you just came out of it into.
+        onPress: () => router.replace(`/(app)/recipes/${id}?log=1`),
+      },
+    ]);
+  }
+
   const steps = [...recipe.steps].sort((a, b) => a.stepNumber - b.stepNumber);
   const step = steps[stepIndex]!;
   const isFirst = stepIndex === 0;
@@ -205,7 +226,7 @@ export default function CookScreen(): React.JSX.Element {
         {isLast ? (
           <TouchableOpacity
             style={[styles.navBtn, styles.nextBtn]}
-            onPress={() => router.back()}
+            onPress={finish}
           >
             <Text style={styles.nextBtnText}>Finish 🎉</Text>
           </TouchableOpacity>

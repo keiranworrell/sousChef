@@ -1,4 +1,5 @@
 import React from "react";
+import { hostnameOf } from "@souschef/shared";
 
 type Props = {
   sourceUrl: string | null;
@@ -26,7 +27,7 @@ export default function SourceAttribution({
 }: Props): React.JSX.Element | null {
   if (!sourceUrl) return null;
 
-  const hostname = safeHostname(sourceUrl);
+  const hostname = hostnameOf(sourceUrl);
   if (!hostname) return null;
 
   return (
@@ -42,20 +43,4 @@ export default function SourceAttribution({
       <span aria-hidden>↗</span>
     </a>
   );
-}
-
-/**
- * Hostname without the www prefix, or null if the URL won't parse.
- *
- * sourceUrl reaches us from imported pages and from the database, so it isn't
- * guaranteed well-formed. `new URL()` throws on bad input, and this renders
- * inside a page — an exception here would blank the whole recipe rather than
- * just omit a credit line.
- */
-function safeHostname(url: string): string | null {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return null;
-  }
 }
