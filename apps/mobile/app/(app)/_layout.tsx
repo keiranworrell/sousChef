@@ -71,15 +71,6 @@ export default function AppLayout(): React.JSX.Element {
         }}
       />
       <Tabs.Screen
-        name="fermentation"
-        options={{
-          title: "Ferment",
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="flask-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="community"
         options={{
           title: "Community",
@@ -88,11 +79,22 @@ export default function AppLayout(): React.JSX.Element {
           ),
         }}
       />
-      {/* Profile tab hidden — sign-out moved to Community screen header */}
       <Tabs.Screen
-        name="profile"
-        options={{ href: null }}
+        name="menu"
+        options={{
+          title: "Menu",
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="ellipsis-horizontal" color={color} size={size} />
+          ),
+        }}
       />
+      {/* Reachable from the Menu tab, not from the bar itself. href: null keeps
+          the route registered so it can still be pushed to. */}
+      <Tabs.Screen name="fermentation" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      {/* The old profile screen was a Sign out button that nothing linked to.
+          Settings replaces it. */}
+      <Tabs.Screen name="profile" options={{ href: null }} />
       {/* Hide the index redirect from the tab bar */}
       <Tabs.Screen
         name="index"

@@ -10,7 +10,6 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { signOut } from "aws-amplify/auth";
 import type { RecipeWithDetails } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -119,29 +118,12 @@ export default function CommunityScreen(): React.JSX.Element {
     }
   }
 
-  function handleSignOut(): void {
-    Alert.alert("Sign out", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: async () => {
-          // The root layout routes on the `signedOut` event — see profile.
-          await signOut();
-        },
-      },
-    ]);
-  }
-
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Community</Text>
-        <TouchableOpacity onPress={handleSignOut}>
-          <Text style={styles.signOutLink}>Sign out</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Search / filters */}
@@ -270,7 +252,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  signOutLink: { fontSize: 14, color: "#9ca3af" },
   searchRow: { paddingHorizontal: 16, paddingBottom: 6 },
   filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
   input: {
