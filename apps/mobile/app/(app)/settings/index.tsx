@@ -11,8 +11,11 @@ import {
 } from "react-native";
 import { signOut, updatePassword } from "aws-amplify/auth";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import type { User } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
+import { exportFileName } from "../../../lib/data-export";
 import { TAB_BAR_ALLOWANCE } from "../../../lib/tab-bar";
 
 
@@ -29,6 +32,10 @@ export default function SettingsScreen(): React.JSX.Element {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwDone, setPwDone] = useState(false);
+
+  // Export
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Delete account
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -50,6 +57,53 @@ export default function SettingsScreen(): React.JSX.Element {
     }
     void load();
   }, []);
+
+  /**
+   * A copy of the user's data, handed to the system share sheet.
+   *
+   * There is no "downloads folder" to put it in, so the phone equivalent of
+   * web's download is: write the JSON to the cache, then let the user send it
+   * wherever they keep things — Drive, email, Files. The obligation under
+   * Article 20 is that they can get it and take it elsewhere, which this does.
+   *
+   * Written to cache rather than documents deliberately. This is a copy for
+   * export, not app data: once it has been shared the system is welcome to
+   * reclaim it, and leaving personal data sitting in app storage indefinitely
+   * is the opposite of what an export is for.
+   */
+  async function handleExport(): Promise<void> {
+    setExporting(true);
+    setExportError(null);
+    let file: File | null = null;
+    try {
+      const api = await getApiClient();
+      const res = await api.users.exportData();
+      if ("error" in res) throw new Error(res.error.message);
+
+      // Checked before writing anything: a device with no share target would
+      // otherwise get a file written and nothing to do with it.
+      if (!(await Sharing.isAvailableAsync())) {
+        throw new Error("This device has no way to share a file.");
+      }
+
+      file = new File(Paths.cache, exportFileName());
+      if (file.exists) file.delete();
+      file.create();
+      // Indented, like web's download. This is meant to be readable by the
+      // person who asked for it, not only by a parser.
+      file.write(JSON.stringify(res.data, null, 2));
+
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/json",
+        dialogTitle: "Your sousChef data",
+        UTI: "public.json",
+      });
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Couldn't export your data");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleChangePassword(): Promise<void> {
     if (!oldPassword || !newPassword) return;
@@ -178,8 +232,21 @@ export default function SettingsScreen(): React.JSX.Element {
         <Text style={styles.sectionTitle}>Your data</Text>
         <View style={styles.card}>
           <Text style={styles.note}>
-            Downloading a copy of your data is on the website for now.
+            A copy of everything sousChef holds about you — recipes, plans,
+            lists, cook log — as a JSON file you can keep or move elsewhere.
           </Text>
+          {exportError && <Text style={styles.error}>{exportError}</Text>}
+          <TouchableOpacity
+            style={[styles.secondaryBtn, exporting && styles.buttonDisabled]}
+            onPress={() => { void handleExport(); }}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator color="#ea580c" size="small" />
+            ) : (
+              <Text style={styles.secondaryBtnText}>Download your data</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -300,6 +367,15 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  secondaryBtn: {
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    backgroundColor: "#fff7ed",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  secondaryBtnText: { color: "#ea580c", fontWeight: "600", fontSize: 14 },
   note: { fontSize: 13, color: "#6b7280", lineHeight: 19 },
   error: { color: "#dc2626", fontSize: 13 },
   success: { color: "#15803d", fontSize: 13 },
