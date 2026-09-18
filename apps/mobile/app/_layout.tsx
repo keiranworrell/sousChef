@@ -13,41 +13,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { amplifyConfig } from "../lib/amplify-config";
 
 /**
- * Boot markers, deliberately console.log so they reach `adb logcat` in a
- * release build.
+ * Amplify is configured at module scope, so a throw here would kill the bundle
+ * before React runs and the screen would say nothing at all.
  *
- * The evidence so far: on a cold start with a stored session, logcat shows
- * `Running "main"` and then nothing at all. The bundle begins executing and
- * stops before the root layout renders — the "[Layout children]" warning that
- * appears on a working launch is absent on a failing one.
- *
- * A try/catch cannot help with that, because nothing is throwing. Something
- * here is blocking, and a blocked JS thread means no render, no setTimeout and
- * no error screen. These markers turn "somewhere in module scope" into a line
- * number: whichever is the last to appear is the call that did not return.
- *
- * Remove once the cause is found. They are diagnostics, not logging.
+ * This was not the cause of the cold-start bug — the boot markers showed both
+ * calls completing — but the failure mode it guards against is real and
+ * completely invisible from the outside, which is what made that bug take four
+ * attempts. Kept for that reason.
  */
-function boot(marker: string): void {
-  console.log(`[boot] ${marker}`);
-}
-
-boot("module scope entered");
-
 let startupError: string | null = null;
 try {
-  boot("before Amplify.configure");
   Amplify.configure(amplifyConfig);
-  boot("after Amplify.configure");
-
   cognitoUserPoolsTokenProvider.setKeyValueStorage(AsyncStorage);
-  boot("after setKeyValueStorage");
 } catch (err) {
   startupError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-  boot(`threw: ${startupError}`);
 }
-
-boot("module scope complete");
 
 /**
  * How long to wait for the launch auth check before giving up on it.
@@ -82,7 +62,6 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null
 }
 
 export default function RootLayout(): React.JSX.Element {
-  boot("RootLayout rendering");
   const router = useRouter();
   const segments = useSegments();
   const [authChecked, setAuthChecked] = useState(false);
@@ -133,9 +112,7 @@ export default function RootLayout(): React.JSX.Element {
         // Timing out into "signed out" is the recoverable answer. It shows the
         // sign-in screen, which is wrong only until they sign in; the
         // alternative is a screen with nothing on it and nothing to do.
-        boot("before fetchAuthSession");
         const session = await withTimeout(fetchAuthSession(), AUTH_CHECK_TIMEOUT_MS);
-        boot(`after fetchAuthSession, tokens=${!!session?.tokens}`);
         if (!supersededByEvent.current) setIsAuthenticated(!!session?.tokens);
       } catch {
         if (!supersededByEvent.current) setIsAuthenticated(false);
@@ -151,25 +128,35 @@ export default function RootLayout(): React.JSX.Element {
   useEffect(() => {
     if (!authChecked) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const group = segments[0];
+    const inAuthGroup = group === "(auth)";
+    const inAppGroup = group === "(app)";
 
+    // Both conditions test where the user *should not* be, rather than pairing
+    // "signed in" with "in the auth group".
+    //
+    // The previous version asked `isAuthenticated && inAuthGroup`, which missed
+    // the one route that is in neither group: `app/index.tsx`, the initial route
+    // on a cold start. Signed in and sitting on it, neither branch matched —
+    // the user was not signed out, and was not in the auth group — so nothing
+    // navigated and the app rested on a placeholder screen showing the wordmark
+    // and nothing else, indefinitely.
+    //
+    // It only ever happened on a cold start with a stored session. Signing out
+    // was caught by the first branch; signing in happened from inside (auth),
+    // so it was caught by the second. Reopening while already signed in was the
+    // single path through the gap, which is why it looked like a hang specific
+    // to having logged in before.
     if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/sign-in");
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && !inAppGroup) {
       router.replace("/(app)");
     }
   }, [authChecked, isAuthenticated, segments, router]);
 
-  // Deliberately visible rather than an empty fragment.
-  //
-  // Rendering nothing here makes two very different failures look identical:
-  // the JS running and waiting on the auth check, and the JS never starting at
-  // all — in which case the native splash stays up and nothing React does will
-  // ever replace it. Both present as a motionless splash screen, and there is
-  // no way to tell them apart from the outside.
-  //
-  // If this text appears, the bundle is executing and the problem is the auth
-  // check. If it never appears, the problem is before any of this runs.
+  // Visible rather than an empty fragment. Rendering nothing while waiting is
+  // indistinguishable from the app being broken, and this screen is on the
+  // critical path of every single launch.
   if (startupError) {
     return (
       <SafeAreaProvider>
