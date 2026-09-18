@@ -1,10 +1,10 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getApiClient } from "../../../lib/api";
 import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
+import { useUnread } from "../../../components/UnreadProvider";
 import type { Palette } from "../../../lib/theme";
 
 type MenuEntry = {
@@ -24,14 +24,13 @@ type MenuEntry = {
  * Ordered roughly by how often you would reach for them, not by theme: the
  * things with something new in them sit at the top, and the account lives at
  * the bottom where it is easy to find precisely because it never moves.
+ *
+ * Notifications is not in this list. It is the bell in the header instead —
+ * a row that sometimes carries a badge is the one thing on this screen you
+ * look for rather than read, and putting it in the top-right corner means it
+ * is in the same place whether or not anything is waiting.
  */
 const ENTRIES: MenuEntry[] = [
-  {
-    label: "Notifications",
-    description: "Invites and collections shared with you",
-    icon: "notifications-outline",
-    href: "/(app)/notifications",
-  },
   {
     label: "Feed",
     description: "What the cooks you follow are making",
@@ -87,76 +86,54 @@ export default function MenuScreen(): React.JSX.Element {
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [unread, setUnread] = useState(0);
+  const { unread, refresh } = useUnread();
 
-  /**
-   * The unread count, refreshed whenever the menu comes back into focus.
-   *
-   * There is no count endpoint, so this reads the list and counts locally.
-   * That is fine at the sizes involved and avoids inventing a second source of
-   * truth, but it is worth knowing it is a full fetch rather than a cheap one.
-   *
-   * A failure is swallowed on purpose: the badge is a nicety, and a menu that
-   * shows an error banner because a count did not load is worse than a menu
-   * with no badge.
-   */
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      async function count(): Promise<void> {
-        try {
-          const api = await getApiClient();
-          const res = await api.notifications.list();
-          if (cancelled || "error" in res) return;
-          setUnread(res.data.notifications.filter((n) => n.seenAt === null).length);
-        } catch {
-          // Deliberately ignored — see above.
-        }
-      }
-      void count();
-      return () => { cancelled = true; };
-    }, []),
-  );
+  // Re-counted when the menu regains focus, which is how the dot clears
+  // after a trip to the notifications screen marks everything seen.
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Menu</Text>
+        <TouchableOpacity
+          style={styles.bell}
+          onPress={() => router.push("/(app)/notifications")}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={
+            unread > 0
+              ? `Notifications, ${unread} unread`
+              : "Notifications"
+          }
+        >
+          <Ionicons name="notifications-outline" size={24} color={palette.accent} />
+          {unread > 0 && (
+            // A dot, not a count. The number does not change what you do next,
+            // and a two-digit pill up here would crowd the title.
+            <View style={styles.bellDot} />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.list}>
-        {ENTRIES.map((entry) => {
-          const badge = entry.href === "/(app)/notifications" && unread > 0 ? unread : 0;
-          return (
-            <TouchableOpacity
-              key={entry.href}
-              style={styles.row}
-              onPress={() => router.push(entry.href as never)}
-              accessibilityLabel={
-                badge > 0
-                  ? `${entry.label}, ${badge} unread`
-                  : entry.label
-              }
-            >
-              <View style={styles.iconWrap}>
-                <Ionicons name={entry.icon} size={20} color={palette.accent} />
-              </View>
-              <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{entry.label}</Text>
-                <Text style={styles.rowDescription}>{entry.description}</Text>
-              </View>
-              {badge > 0 && (
-                <View style={styles.badge}>
-                  {/* Capped, because the pill stops being round after two
-                      digits and the exact number stops mattering long before
-                      then. */}
-                  <Text style={styles.badgeText}>{badge > 9 ? "9+" : badge}</Text>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={18} color={palette.borderStrong} />
-            </TouchableOpacity>
-          );
-        })}
+        {ENTRIES.map((entry) => (
+          <TouchableOpacity
+            key={entry.href}
+            style={styles.row}
+            onPress={() => router.push(entry.href as never)}
+            accessibilityLabel={entry.label}
+          >
+            <View style={styles.iconWrap}>
+              <Ionicons name={entry.icon} size={20} color={palette.accent} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>{entry.label}</Text>
+              <Text style={styles.rowDescription}>{entry.description}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={palette.borderStrong} />
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
@@ -164,8 +141,29 @@ export default function MenuScreen(): React.JSX.Element {
 
 const makeStyles = (t: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
-  header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
   title: { fontSize: 24, fontWeight: "700", color: t.text },
+  bell: { padding: 4 },
+  bellDot: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: t.danger,
+    // Ringed in the page background so the dot stays a distinct shape against
+    // the bell's own outline rather than merging into it.
+    borderWidth: 1.5,
+    borderColor: t.bg,
+  },
   list: { padding: 16, gap: 10 },
   row: {
     flexDirection: "row",
@@ -189,14 +187,4 @@ const makeStyles = (t: Palette) => StyleSheet.create({
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: { fontSize: 15, fontWeight: "600", color: t.text },
   rowDescription: { marginTop: 2, fontSize: 12, color: t.textFaint },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 6,
-    backgroundColor: t.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  badgeText: { color: t.onAccent, fontSize: 11, fontWeight: "700" },
 });

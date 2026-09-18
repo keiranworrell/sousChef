@@ -1,7 +1,9 @@
 import React from "react";
+import { View, StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../components/ThemeProvider";
+import UnreadProvider, { useUnread } from "../../components/UnreadProvider";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -18,16 +20,55 @@ function TabIcon({
   name,
   color,
   size,
+  dot = false,
 }: {
   name: IoniconsName;
   color: IoniconsColor;
   size: number;
+  /** Draws an unread marker over the icon's top-right. */
+  dot?: boolean;
 }): React.JSX.Element {
-  return <Ionicons name={name} size={size} color={color} />;
+  const { palette } = useTheme();
+
+  if (!dot) return <Ionicons name={name} size={size} color={color} />;
+
+  return (
+    <View>
+      <Ionicons name={name} size={size} color={color} />
+      {/* Drawn here rather than with React Navigation's `tabBarBadge`.
+          expo-router 57 routes through `standard-navigation` rather than
+          @react-navigation/bottom-tabs — the same difference that left us
+          without `useBottomTabBarHeight` — so badge options are not something
+          to rely on. A View we position ourselves works whatever is
+          underneath. */}
+      <View style={[styles.dot, { backgroundColor: palette.danger, borderColor: palette.surface }]} />
+    </View>
+  );
 }
 
+const styles = StyleSheet.create({
+  dot: {
+    position: "absolute",
+    top: -2,
+    right: -3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+  },
+});
+
 export default function AppLayout(): React.JSX.Element {
+  return (
+    <UnreadProvider>
+      <AppTabs />
+    </UnreadProvider>
+  );
+}
+
+function AppTabs(): React.JSX.Element {
   const { palette } = useTheme();
+  const { unread } = useUnread();
 
   return (
     <Tabs
@@ -87,7 +128,14 @@ export default function AppLayout(): React.JSX.Element {
         options={{
           title: "Menu",
           tabBarIcon: ({ color, size }) => (
-            <TabIcon name="ellipsis-horizontal" color={color} size={size} />
+            <TabIcon
+              name="ellipsis-horizontal"
+              color={color}
+              size={size}
+              // Notifications live behind this tab, so this is the only place
+              // in the tab bar that can say something is waiting.
+              dot={unread > 0}
+            />
           ),
         }}
       />
