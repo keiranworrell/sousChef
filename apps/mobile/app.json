@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f97316"
       },
-      "package": "com.keiranworrell.souschef"
+      "package": "com.keiranworrell.souschef",
+      "backgroundColor": "#f9fafb"
     },
     "plugins": [
       "expo-router",
@@ -49,6 +50,7 @@
       "eas": {
         "projectId": "eec4bb25-774c-4525-98eb-b97fa6cd50ba"
       }
-    }
+    },
+    "backgroundColor": "#f9fafb"
   }
 }
