@@ -25,6 +25,9 @@ import MultiCookLauncher, { type CookCandidate } from "../../../components/Multi
 import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
 import type { Palette } from "../../../lib/theme";
 
+/** The ceiling `ListQuerySchema` enforces on `/recipes`. Asking for more 400s. */
+const RECIPE_PAGE_LIMIT = 100;
+
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -87,7 +90,8 @@ export default function MealPlanScreen(): React.JSX.Element {
 
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
-  const [recipesLoaded, setRecipesLoaded] = useState(false);
+  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [recipesError, setRecipesError] = useState<string | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
   // Which day's recipes are being planned together, if any.
   const [cookTogetherDay, setCookTogetherDay] = useState<DayOfWeek | null>(null);
@@ -119,22 +123,57 @@ export default function MealPlanScreen(): React.JSX.Element {
     void loadPlan(weekStart);
   }, [weekStart, loadPlan]);
 
-  async function openPicker(target: PickerTarget): Promise<void> {
+  /**
+   * Recipes for the picker.
+   *
+   * Searched on the server rather than filtered locally. The old version
+   * fetched one page and filtered it in memory, which meant the search box
+   * could only find recipes that happened to be in the first batch — on a
+   * library of any size, typing a title that exists and getting nothing.
+   *
+   * `limit` is 100 because that is the endpoint's ceiling:
+   * `ListQuerySchema` in `backend/functions/recipes.ts` caps it with
+   * `.max(100)`. This asked for 200, so Zod rejected the whole request and
+   * every call 400'd — which is why the picker was empty. Web's equivalent
+   * asks for 100 and has always worked.
+   */
+  const loadPickerRecipes = useCallback(async (search: string): Promise<void> => {
+    setRecipesLoading(true);
+    setRecipesError(null);
+    try {
+      const api = await getApiClient();
+      const res = await api.recipes.list({
+        limit: RECIPE_PAGE_LIMIT,
+        q: search.trim() || undefined,
+      });
+      if ("error" in res) throw new Error(res.error.message);
+      setAllRecipes(res.data.recipes);
+    } catch (err) {
+      // Was an empty catch with a "show empty picker" comment. That is how a
+      // request failing on every single call looked exactly like an empty
+      // library, for as long as it took someone to try adding a meal.
+      setRecipesError(err instanceof Error ? err.message : "Couldn't load your recipes");
+      setAllRecipes([]);
+    } finally {
+      setRecipesLoading(false);
+    }
+  }, []);
+
+  function openPicker(target: PickerTarget): void {
     setPickerTarget(target);
     setPickerSearch("");
     setPickerMealType(null);
-    if (!recipesLoaded) {
-      try {
-        const api = await getApiClient();
-        const res = await api.recipes.list({ limit: 200 });
-        if ("error" in res) throw new Error(res.error.message);
-        setAllRecipes(res.data.recipes);
-        setRecipesLoaded(true);
-      } catch {
-        // show empty picker
-      }
-    }
+    void loadPickerRecipes("");
   }
+
+  // Debounced, because a phone keyboard would otherwise fire a request per
+  // keystroke and the later ones can land out of order and overwrite the right
+  // answer. Same 300ms as the community and household searches.
+  useEffect(() => {
+    if (pickerTarget === null) return;
+    const timer = setTimeout(() => { void loadPickerRecipes(pickerSearch); }, 300);
+    return () => clearTimeout(timer);
+  }, [pickerSearch, pickerTarget, loadPickerRecipes]);
 
   async function handleAddEntry(recipeId: string): Promise<void> {
     if (!plan || !pickerTarget) return;
@@ -150,8 +189,11 @@ export default function MealPlanScreen(): React.JSX.Element {
       if ("error" in res) throw new Error(res.error.message);
       setPlan((prev) => prev ? { ...prev, entries: [...prev.entries, res.data] } : prev);
       setPickerTarget(null);
-    } catch {
-      // ignore
+    } catch (err) {
+      // Was `catch { // ignore }`. The same silence that hid the picker's 400
+      // would have hidden a failed add — the sheet closes, nothing appears,
+      // and the user is left to wonder whether they mis-tapped.
+      setRecipesError(err instanceof Error ? err.message : "Couldn't add that to the plan");
     } finally {
       setAddingEntry(false);
     }
@@ -166,8 +208,10 @@ export default function MealPlanScreen(): React.JSX.Element {
       setPlan((prev) =>
         prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== entry.id) } : prev,
       );
-    } catch {
-      // ignore
+    } catch (err) {
+      // Also previously silent. A removal that fails leaves the row on screen,
+      // which reads as the tap not registering rather than as an error.
+      setError(err instanceof Error ? err.message : "Couldn't remove that entry");
     } finally {
       setRemovingId(null);
     }
@@ -268,9 +312,10 @@ export default function MealPlanScreen(): React.JSX.Element {
 
   // Recipe picker view
   if (pickerTarget !== null) {
-    const filtered = allRecipes.filter((r) =>
-      r.title.toLowerCase().includes(pickerSearch.toLowerCase()),
-    );
+    // No local filter any more: the server did the searching, so filtering the
+    // results again here would only hide matches it found on fields the title
+    // does not contain — an ingredient, say.
+    const filtered = allRecipes;
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.pickerHeader}>
@@ -285,12 +330,15 @@ export default function MealPlanScreen(): React.JSX.Element {
         <View style={styles.searchRow}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search recipes…"
+            placeholder="Search by title, ingredient, cuisine…"
+            placeholderTextColor={palette.textFaint}
             value={pickerSearch}
             onChangeText={setPickerSearch}
             autoFocus
           />
         </View>
+
+        {recipesError && <Text style={styles.pickerError}>{recipesError}</Text>}
         {/* Label is optional, so "None" leads and is the default. */}
         <View style={styles.chipRow}>
           <TouchableOpacity
@@ -339,9 +387,21 @@ export default function MealPlanScreen(): React.JSX.Element {
           contentContainerStyle={styles.pickerList}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>
-                {allRecipes.length === 0 ? "No recipes found." : "No matches."}
-              </Text>
+              {recipesLoading ? (
+                <ActivityIndicator color={palette.accent} />
+              ) : (
+                <Text style={styles.emptyText}>
+                  {/* Three different states that used to render as one. An
+                      empty library, a search with no hits, and a request that
+                      failed are not the same thing, and saying "No recipes
+                      found" for all three is what let the 400 hide. */}
+                  {recipesError
+                    ? "Couldn't load your recipes."
+                    : pickerSearch.trim()
+                      ? "Nothing matches that."
+                      : "No recipes yet. Add one from the Recipes tab."}
+                </Text>
+              )}
             </View>
           }
           renderItem={({ item }) => (
@@ -597,6 +657,7 @@ const makeStyles = (t: Palette) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: t.border,
   },
+  pickerError: { color: t.danger, fontSize: 13, paddingHorizontal: 16, paddingBottom: 4 },
   pickerTitle: { fontSize: 17, fontWeight: "700", color: t.text },
   pickerSubtitle: { fontSize: 12, color: t.textFaint, marginTop: 2, textTransform: "capitalize" },
   cancelText: { fontSize: 14, fontWeight: "600", color: t.accent },
