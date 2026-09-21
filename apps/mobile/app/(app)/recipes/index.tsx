@@ -9,11 +9,20 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import type { OnboardingState, Recipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OnboardingChecklist from "../../../components/OnboardingChecklist";
+import RecipeSearchDrawer from "../../../components/RecipeSearchDrawer";
+import {
+  DEFAULT_FILTERS,
+  activeFilterCount,
+  filtersKey,
+  toListParams,
+  type RecipeFilters,
+} from "../../../lib/recipe-filters";
 import { useTheme, useThemedStyles } from "../../../components/ThemeProvider";
 import type { Palette } from "../../../lib/theme";
 
@@ -23,6 +32,8 @@ export default function RecipeListScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filters, setFilters] = useState<RecipeFilters>(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +67,10 @@ export default function RecipeListScreen(): React.JSX.Element {
 
       try {
         const api = await getApiClient();
-        const res = await api.recipes.list({ cursor: pageCursor ?? undefined });
+        const res = await api.recipes.list({
+          ...toListParams(filters),
+          cursor: pageCursor ?? undefined,
+        });
         if ("error" in res) throw new Error(res.error.message);
 
         setRecipes((prev) =>
@@ -77,10 +91,38 @@ export default function RecipeListScreen(): React.JSX.Element {
         inFlightRef.current = false;
       }
     },
-    [],
+    [filters],
   );
 
-  useEffect(() => { void load(null); }, [load]);
+  /**
+   * Reloads from the first page whenever the query changes.
+   *
+   * Keyed on the filters rather than the object itself: `filters` is a new
+   * object on every keystroke, and depending on it directly would refetch
+   * even when the trimmed query is identical.
+   *
+   * Debounced, so typing does not fire a request per character. The cursor is
+   * dropped at the same time — keeping it would append page two of the
+   * previous search onto the results of the new one.
+   */
+  const filterCount = activeFilterCount(filters);
+  const queryKey = filtersKey(filters);
+
+  // `load` closes over `filters`, so it is a new function on every keystroke.
+  // Held in a ref rather than listed as a dependency: depending on it would
+  // restart the timer on every render, and suppressing that with a lint
+  // comment would only hide the same problem.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCursor(null);
+      setHasMore(true);
+      void loadRef.current(null);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [queryKey]);
 
   /**
    * Onboarding progress, refreshed whenever this tab regains focus.
@@ -138,6 +180,27 @@ export default function RecipeListScreen(): React.JSX.Element {
         <Text style={styles.title}>My recipes</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
+            style={[styles.searchButton, searchOpen && styles.searchButtonOpen]}
+            onPress={() => setSearchOpen((o) => !o)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: searchOpen }}
+            accessibilityLabel={
+              filterCount > 0
+                ? `Search and filters, ${filterCount} active`
+                : "Search and filters"
+            }
+          >
+            <Ionicons
+              name="search"
+              size={18}
+              color={searchOpen || filterCount > 0 ? palette.accentText : palette.textMuted}
+            />
+            {/* Shown when the drawer is shut, because that is the state where
+                a filtered list is otherwise indistinguishable from a short
+                one — the reason to mark it at all. */}
+            {filterCount > 0 && !searchOpen && <View style={styles.filterDot} />}
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push("/(app)/recipes/new")}
           >
@@ -145,6 +208,13 @@ export default function RecipeListScreen(): React.JSX.Element {
           </TouchableOpacity>
         </View>
       </View>
+
+      <RecipeSearchDrawer
+        open={searchOpen}
+        filters={filters}
+        onChange={setFilters}
+        onClose={() => setSearchOpen(false)}
+      />
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -179,7 +249,20 @@ export default function RecipeListScreen(): React.JSX.Element {
           ) : null
         }
         ListEmptyComponent={
-          onboarding ? (
+          // A filtered list with no hits is not an empty library, and offering
+          // "Add your first recipe" to someone who has ninety of them and
+          // mistyped a search would be absurd.
+          filterCount > 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>Nothing matches that.</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setFilters({ ...DEFAULT_FILTERS, sort: filters.sort })}
+              >
+                <Text style={styles.addButtonText}>Clear filters</Text>
+              </TouchableOpacity>
+            </View>
+          ) : onboarding ? (
             // A brand-new account gets the checklist as the empty state, with
             // a greeting on top. No modal and nothing to dismiss: it stops
             // appearing when they have a recipe, which is the same fact the
@@ -255,6 +338,28 @@ const makeStyles = (t: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  searchButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: t.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: t.surface,
+  },
+  searchButtonOpen: { backgroundColor: t.accentSurface, borderColor: t.accent },
+  filterDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: t.accent,
+    borderWidth: 1.5,
+    borderColor: t.surface,
+  },
   headerActions: { flexDirection: "row", gap: 8 },
   title: { fontSize: 22, fontWeight: "700", color: t.text },
   list: { padding: 16, gap: 12 },
