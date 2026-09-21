@@ -20,9 +20,19 @@ variable "timeout_seconds" {
 }
 
 variable "memory_mb" {
-  description = "Lambda memory allocation in MB"
+  # 1024, not 256. Lambda allocates CPU in proportion to memory — 256MB is
+  # roughly a seventh of a vCPU, which has to boot the Node runtime, load the
+  # bundle, initialise the AWS SDK and the Neon driver, and verify a JWT before
+  # any of our code runs.
+  #
+  # This costs more, not less: these handlers spend most of their time waiting
+  # on Neon, and waiting does not finish sooner with more CPU. Four times the
+  # memory against roughly half the duration is about 2.2x the GB-seconds. It
+  # is still free — Lambda's perpetual free tier is 400,000 GB-seconds a month
+  # and a million requests would use around 249,000 of them.
+  description = "Lambda memory allocation in MB. Also sets CPU share."
   type        = number
-  default     = 256
+  default     = 1024
 }
 
 variable "environment_variables" {

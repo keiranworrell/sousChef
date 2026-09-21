@@ -156,7 +156,7 @@ module "cognito_post_confirmation" {
   handler         = "cognito-post-confirmation.handler"
   zip_path        = data.archive_file.cognito_post_confirmation.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -245,7 +245,7 @@ module "recipes" {
   handler         = "recipes.handler"
   zip_path        = data.archive_file.recipes.output_path
   timeout_seconds = 60 # AI import can take up to ~30s — increased from 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.recipes_combined_policy
 
   environment_variables = {
@@ -430,7 +430,7 @@ module "shopping" {
   handler         = "shopping.handler"
   zip_path        = data.archive_file.shopping.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -541,7 +541,7 @@ module "mealplans" {
   handler         = "mealplans.handler"
   zip_path        = data.archive_file.mealplans.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -610,7 +610,7 @@ module "fermentation" {
   handler         = "fermentation.handler"
   zip_path        = data.archive_file.fermentation.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -703,7 +703,7 @@ module "community" {
   handler         = "community.handler"
   zip_path        = data.archive_file.community.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -905,7 +905,7 @@ module "images" {
   handler         = "images.handler"
   zip_path        = data.archive_file.images.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.images_combined_policy
 
   environment_variables = {
@@ -958,7 +958,7 @@ module "users" {
   handler         = "users.handler"
   zip_path        = data.archive_file.users.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.users_combined_policy
 
   environment_variables = {
@@ -1058,7 +1058,7 @@ module "households" {
   handler         = "households.handler"
   zip_path        = data.archive_file.households.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -1151,7 +1151,7 @@ module "notifications" {
   handler         = "notifications.handler"
   zip_path        = data.archive_file.notifications.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -1226,7 +1226,7 @@ module "feed" {
   handler         = "feed.handler"
   zip_path        = data.archive_file.feed.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -1277,7 +1277,7 @@ module "collections" {
   handler         = "collections.handler"
   zip_path        = data.archive_file.collections.output_path
   timeout_seconds = 30
-  memory_mb       = 256
+  memory_mb       = 1024
   policy_json     = local.db_secret_policy
 
   environment_variables = {
@@ -1410,7 +1410,7 @@ module "cook_sessions" {
   # Planning calls the model with every step of up to five recipes, so this
   # sits with the recipes Lambda's 60s rather than the 30s most handlers use.
   timeout_seconds = 60
-  memory_mb       = 256
+  memory_mb       = 1024
   # Both secrets, and nothing else — see cook_sessions_policy above.
   policy_json = local.cook_sessions_policy
 

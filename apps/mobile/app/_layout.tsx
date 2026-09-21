@@ -12,6 +12,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { amplifyConfig } from "../lib/amplify-config";
+import { clearApiClientCache } from "../lib/api";
 import ThemeProvider, { useTheme, useThemedStyles } from "../components/ThemeProvider";
 import type { Palette } from "../lib/theme";
 
@@ -88,6 +89,10 @@ function RootLayoutInner(): React.JSX.Element {
     const stopListening = Hub.listen("auth", ({ payload }) => {
       switch (payload.event) {
         case "signedIn":
+          // Also cleared on the way in: a client cached during the signed-out
+          // window holds no token at all, and reusing it would 401 every
+          // request until the token happened to expire.
+          clearApiClientCache();
           supersededByEvent.current = true;
           setIsAuthenticated(true);
           setAuthChecked(true);
@@ -97,6 +102,10 @@ function RootLayoutInner(): React.JSX.Element {
         // as signed out sends the user to sign in, which is the truth; leaving
         // it would strand them in an app whose every request 401s.
         case "tokenRefresh_failure":
+          // Before the state change, so nothing can pick up a cached client
+          // carrying the old token on its way out. On a shared phone that
+          // would be one account briefly able to read another's recipes.
+          clearApiClientCache();
           supersededByEvent.current = true;
           setIsAuthenticated(false);
           setAuthChecked(true);
