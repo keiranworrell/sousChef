@@ -12,6 +12,8 @@ type Props = {
   state: OnboardingState;
   /** Shown above the list on a brand-new account. */
   welcome?: boolean;
+  /** Retires the checklist for good. Omit to render it without a way out. */
+  onDismiss?: () => void;
 };
 
 /**
@@ -33,6 +35,7 @@ type Props = {
 export default function OnboardingChecklist({
   state,
   welcome = false,
+  onDismiss,
 }: Props): React.JSX.Element {
   const { palette } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -49,6 +52,21 @@ export default function OnboardingChecklist({
             Four things and you've seen the whole of it. Start wherever you like.
           </Text>
         </View>
+      )}
+
+      {/* A way out that does not require finishing. Someone who has used the
+          app for a month and simply never makes shopping lists should not be
+          told to get started every time they open it. */}
+      {onDismiss && (
+        <TouchableOpacity
+          style={styles.dismiss}
+          onPress={onDismiss}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Hide this checklist"
+        >
+          <Ionicons name="close" size={16} color={palette.textFaint} />
+        </TouchableOpacity>
       )}
 
       <View style={styles.progressRow}>
@@ -93,6 +111,7 @@ export default function OnboardingChecklist({
 }
 
 const makeStyles = (t: Palette) => StyleSheet.create({
+  dismiss: { position: "absolute", top: 10, right: 10, padding: 4, zIndex: 1 },
   card: {
     backgroundColor: t.surface,
     borderWidth: 1,

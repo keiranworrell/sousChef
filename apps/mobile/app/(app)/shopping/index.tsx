@@ -144,7 +144,7 @@ export default function ShoppingScreen(): React.JSX.Element {
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No shopping lists yet.</Text>
             <TouchableOpacity
-              style={[styles.primaryButton, { marginTop: 16 }]}
+              style={styles.emptyButton}
               onPress={() => setCreating(true)}
             >
               <Text style={styles.primaryButtonText}>Create your first list</Text>
@@ -212,6 +212,8 @@ const makeStyles = (t: Palette) => StyleSheet.create({
     marginBottom: 8,
   },
   formButtons: { flexDirection: "row", gap: 8 },
+  // `flex: 1` so the two buttons in the create form's row share the width.
+  // Only ever valid inside that row — see emptyButton below.
   primaryButton: { flex: 1, backgroundColor: t.accent, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
   disabled: { opacity: 0.5 },
   primaryButtonText: { color: t.onAccent, fontWeight: "600", fontSize: 14 },
@@ -219,6 +221,25 @@ const makeStyles = (t: Palette) => StyleSheet.create({
   secondaryButtonText: { color: t.textSecondary, fontWeight: "600", fontSize: 14 },
   list: { paddingHorizontal: 16, paddingBottom: 40 },
   empty: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  /**
+   * The empty state's own button, deliberately without `flex: 1`.
+   *
+   * It used to reuse `primaryButton`, which carries `flex: 1` so the create
+   * form's two buttons can share a row. That row is `flexDirection: "row"`, so
+   * flex grows them horizontally. This container is a column, where the main
+   * axis is vertical — so the same style stretched the button down the entire
+   * screen. `alignSelf: "center"` also stops it filling the width, which the
+   * parent's `alignItems: "center"` would otherwise not do for a flex child.
+   */
+  emptyButton: {
+    alignSelf: "center",
+    marginTop: 16,
+    backgroundColor: t.accent,
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
   emptyText: { fontSize: 15, color: t.textFaint, textAlign: "center" },
   listRow: {
     flexDirection: "row",
