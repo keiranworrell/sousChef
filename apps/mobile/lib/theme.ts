@@ -78,10 +78,27 @@ export const lightPalette: Palette = {
   text: "#111827",
   textSecondary: "#374151",
   textMuted: "#6b7280",
-  textFaint: "#9ca3af",
+  // #767f8f, not #9ca3af. The old value was 2.43:1 on the page background —
+  // below the 3:1 floor at which text stops being text and becomes texture,
+  // and it was used about 130 times for hints and placeholders.
+  textFaint: "#767f8f",
 
-  accent: "#f97316",
-  accentStrong: "#ea580c",
+  // Deeper than the #f97316 this used to be, and the reason is arithmetic
+  // rather than taste. `accent` is used for two jobs: as a fill with
+  // `onAccent` written on it, and as the colour of links, icons and the active
+  // tab. At #f97316 the first was 2.80:1 against white and the second 2.68:1
+  // against the background — both failing, and the first is the primary button
+  // on every screen in the app.
+  //
+  // One value cannot serve both jobs unless it is dark: white on #f97316 only
+  // reaches 4.5:1 at about #c2410c, which is also where it becomes legible as
+  // a foreground. Keeping the brighter orange would mean splitting the token
+  // and sweeping every usage to the right half.
+  //
+  // Dark mode is untouched and keeps #fb923c, so the app still reads bright
+  // there — a dark background does the work the darker orange does here.
+  accent: "#c2410c",
+  accentStrong: "#9a3412",
   accentSurface: "#fff7ed",
   accentBorder: "#fed7aa",
   accentText: "#9a3412",

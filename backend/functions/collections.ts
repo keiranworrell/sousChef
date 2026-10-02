@@ -3,6 +3,7 @@ import { z } from "zod";
 import { validateAuth } from "../middleware/auth";
 import { handleError, okResponse, NotFoundError, BadRequestError } from "../middleware/errors";
 import { parseBody } from "../middleware/validation";
+import { isBareCollectionPath } from "./collection-paths";
 import { getUserByCognitoId } from "../db/queries/user-queries";
 import {
   listCollections,
@@ -117,24 +118,38 @@ export const handler: APIGatewayProxyHandlerV2 = async (
       return okResponse(collection, 201);
     }
 
-    // GET /collections/{id} — get collection with items
-    if (method === "GET" && collectionId && !rawPath.includes("/recipes")) {
-      const collection = await getCollectionById(collectionId, user.id);
+    // GET /collections/{id} — get collection with items.
+    //
+    // Matched positively on the bare path rather than by excluding the
+    // sub-resources we happen to know about. This asked `!includes("/recipes")`
+    // and so swallowed `GET /collections/{id}/shares`, returning the collection
+    // instead — which the app read `shares` off, got undefined, and crashed on.
+    // An exclusion list silently rots every time a sub-resource is added; a
+    // positive match cannot.
+    if (method === "GET" && isBareCollectionPath(rawPath, collectionId)) {
+      const collection = await getCollectionById(collectionId!, user.id);
       if (!collection) throw new NotFoundError("Collection not found");
       return okResponse(collection);
     }
 
     // PATCH /collections/{id} — update collection (name, description, isPublic)
-    if (method === "PATCH" && collectionId && !rawPath.includes("/recipes")) {
+    if (method === "PATCH" && isBareCollectionPath(rawPath, collectionId)) {
       const body = parseBody(event.body, UpdateCollectionSchema);
-      const collection = await updateCollection(collectionId, user.id, body);
+      const collection = await updateCollection(collectionId!, user.id, body);
       if (!collection) throw new NotFoundError("Collection not found");
       return okResponse(collection);
     }
 
-    // DELETE /collections/{id} — delete collection
-    if (method === "DELETE" && collectionId && !rawPath.includes("/recipes")) {
-      const deleted = await deleteCollection(collectionId, user.id);
+    // DELETE /collections/{id} — delete the whole collection.
+    //
+    // The exclusion list here was worse than the one on GET. A request to
+    // DELETE /collections/{id}/shares/{shareId} contains no "/recipes", so it
+    // matched this branch and deleted the entire collection, returning 204 as
+    // though the share had been revoked. The revoke branch further down was
+    // unreachable. It had not bitten yet only because the shares panel crashed
+    // before anyone could press Remove.
+    if (method === "DELETE" && isBareCollectionPath(rawPath, collectionId)) {
+      const deleted = await deleteCollection(collectionId!, user.id);
       if (!deleted) throw new NotFoundError("Collection not found");
       return okResponse(null, 204);
     }
