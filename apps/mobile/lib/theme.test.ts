@@ -40,33 +40,13 @@ describe("palette completeness", () => {
 });
 
 /**
- * Contrast the light theme is known to fail, today, before dark mode existed.
+ * Every pairing is held to the real standard, in both themes.
  *
- * These are not new. They are the existing palette measured honestly:
- *
- *  - white on the `#f97316` button fill is 2.80:1. This is the primary button
- *    in the whole app. `#c2410c` would reach 5.18:1.
- *  - `#9ca3af` hint text on the page background is 2.43:1, used ~130 times.
- *    `#6b7280` would reach 4.63:1.
- *  - `#f97316` as link and icon colour on the background is 2.68:1.
- *
- * Fixing them means visibly restyling the light theme — a darker orange
- * everywhere and greyer hints — which is a design decision, not something to
- * slip into a dark mode change. So they are recorded rather than hidden: any
- * *new* shortfall fails the build, and this list is the debt, with the numbers
- * needed to pay it off.
- *
- * The dark palette is new, so it is held to the real standard with no
- * exemptions.
+ * There used to be an allow-list here for five pairings the light theme failed
+ * before dark mode existed — white on the orange fill at 2.80:1, hint text at
+ * 2.43:1, orange links at 2.68:1. Those are fixed, so the list is gone. If one
+ * comes back, this fails rather than recording it.
  */
-const KNOWN_LIGHT_GAPS = new Set([
-  "light: textFaint on bg",
-  "light: textFaint on surface",
-  "light: onAccent on accent",
-  "light: accent on bg",
-  "light: accent on surface",
-]);
-
 function expectContrast(
   label: string,
   foreground: string,
@@ -74,11 +54,6 @@ function expectContrast(
   minimum: number,
 ): void {
   const ratio = contrastRatio(foreground, background);
-  if (KNOWN_LIGHT_GAPS.has(label)) {
-    // Pinned, so an accidental improvement or regression both get noticed.
-    expect(ratio, `${label} is a known gap at ${ratio.toFixed(2)}:1`).toBeLessThan(minimum);
-    return;
-  }
   expect(ratio, `${label} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(minimum);
 }
 
