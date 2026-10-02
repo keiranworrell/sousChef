@@ -14,7 +14,15 @@ import { useFocusEffect, useRouter } from "expo-router";
 import type { OnboardingState, Recipe } from "@souschef/shared";
 import { getApiClient } from "../../../lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingChecklist from "../../../components/OnboardingChecklist";
+import {
+  ONBOARDING_RETIRED_KEY,
+  RETIRED_VALUE,
+  parseRetired,
+  shouldRetire,
+  shouldShowChecklist,
+} from "../../../lib/onboarding-retirement";
 import RecipeSearchDrawer from "../../../components/RecipeSearchDrawer";
 import {
   DEFAULT_FILTERS,
@@ -136,6 +144,35 @@ export default function RecipeListScreen(): React.JSX.Element {
    * refuses to render because a progress call failed would be a worse trade.
    */
   const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
+  // undefined while storage is being read — see shouldShowChecklist.
+  const [retired, setRetired] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(ONBOARDING_RETIRED_KEY);
+        if (!cancelled) setRetired(parseRetired(stored));
+      } catch {
+        // Unreadable storage means we cannot prove it was retired. Showing
+        // the checklist again is the wrong way to be wrong, so assume it was.
+        if (!cancelled) setRetired(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const retire = useCallback((): void => {
+    setRetired(true);
+    void AsyncStorage.setItem(ONBOARDING_RETIRED_KEY, RETIRED_VALUE).catch(() => undefined);
+  }, []);
+
+  // Retired on the transition to complete, so the last step ticks and the
+  // checklist is gone next visit rather than vanishing under the thumb that
+  // just finished it.
+  useEffect(() => {
+    if (shouldRetire(onboarding, retired)) retire();
+  }, [onboarding, retired, retire]);
 
   useFocusEffect(
     useCallback(() => {
@@ -242,9 +279,9 @@ export default function RecipeListScreen(): React.JSX.Element {
         // Gone entirely once the loop is finished — this is a way in, not a
         // permanent fixture.
         ListHeaderComponent={
-          onboarding && !onboarding.complete && recipes.length > 0 ? (
+          shouldShowChecklist(onboarding, retired) && recipes.length > 0 ? (
             <View style={styles.checklistWrap}>
-              <OnboardingChecklist state={onboarding} />
+              <OnboardingChecklist state={onboarding!} onDismiss={retire} />
             </View>
           ) : null
         }
@@ -262,13 +299,13 @@ export default function RecipeListScreen(): React.JSX.Element {
                 <Text style={styles.addButtonText}>Clear filters</Text>
               </TouchableOpacity>
             </View>
-          ) : onboarding ? (
+          ) : shouldShowChecklist(onboarding, retired) ? (
             // A brand-new account gets the checklist as the empty state, with
             // a greeting on top. No modal and nothing to dismiss: it stops
             // appearing when they have a recipe, which is the same fact the
             // server derives `fresh` from.
             <View style={styles.emptyChecklist}>
-              <OnboardingChecklist state={onboarding} welcome={onboarding.fresh} />
+              <OnboardingChecklist state={onboarding!} welcome={onboarding!.fresh} onDismiss={retire} />
             </View>
           ) : (
             <View style={styles.empty}>
